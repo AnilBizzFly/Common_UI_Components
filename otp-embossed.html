@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Verify Your OTP</title>
+<style>
+:root{
+  /* one material -- everything is pressed into or pulled out of it */
+  --surface:#262b34;
+  --dark:#191d24;
+  --light:#333a46;
+  --txt:#e4e8f0; --mut:#8b94a6; --dim:#69707f;
+  --accent:#ff9f45;
+  --ok:#4fd39a;
+  --bad:#ff6b81;
+  --metal:#aeb8c9;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; display:grid; place-items:center; padding:24px;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:var(--txt); background:var(--surface); overflow:hidden;
+}
+body::after{
+  content:""; position:fixed; inset:0; pointer-events:none;
+  background:radial-gradient(120% 90% at 50% 40%, transparent 40%, rgba(12,15,20,.5) 100%);
+}
+
+/* ============ the panel ============ */
+.wrap{
+  position:relative; z-index:1; width:min(400px,100%);
+  padding:38px 34px 30px; border-radius:30px; text-align:center;
+  background:var(--surface);
+  box-shadow:14px 14px 30px var(--dark), -14px -14px 30px var(--light);
+}
+.wrap.shake{animation:shake .42s cubic-bezier(.36,.07,.19,.97)}
+@keyframes shake{10%,90%{transform:translateX(-3px)}20%,80%{transform:translateX(5px)}
+  30%,50%,70%{transform:translateX(-8px)}40%,60%{transform:translateX(8px)}}
+
+/* ============ the lock ============ */
+.lock{
+  position:relative; width:88px; height:88px; margin:0 auto 22px; border-radius:50%;
+  background:var(--surface);
+  box-shadow:9px 9px 18px var(--dark), -9px -9px 18px var(--light);
+  transition:box-shadow .4s ease;
+}
+/* shackle */
+.lock::before{
+  content:""; position:absolute; left:50%; top:18px; width:26px; height:26px; margin-left:-13px;
+  border:5px solid var(--metal); border-bottom:0; border-radius:13px 13px 0 0;
+  transform-origin:100% 100%;
+  transition:transform .5s cubic-bezier(.4,1.5,.5,1), border-color .4s ease;
+}
+/* body, with a keyhole punched straight through it */
+.lock::after{
+  content:""; position:absolute; left:50%; top:40px; width:40px; height:30px; margin-left:-20px;
+  border-radius:8px;
+  background:
+    radial-gradient(circle at 50% 40%, var(--surface) 3.8px, transparent 3.9px),
+    var(--metal);
+  box-shadow:2px 2px 5px rgba(10,13,18,.55) inset;
+  transition:background .4s ease;
+}
+[data-state="ok"] .lock::before{transform:translateY(-7px) rotate(-38deg);border-color:var(--ok)}
+[data-state="ok"] .lock::after{
+  background:radial-gradient(circle at 50% 40%, var(--surface) 3.8px, transparent 3.9px), var(--ok);
+}
+[data-state="ok"] .lock{box-shadow:9px 9px 18px var(--dark), -9px -9px 18px var(--light), 0 0 26px rgba(79,211,154,.28)}
+
+h1{margin:0 0 8px;font-size:20px;font-weight:650;letter-spacing:.01em}
+.description{margin:0 0 26px;font-size:13px;line-height:1.7;color:var(--mut)}
+.phone{display:inline-block;margin-top:2px;font-weight:650;color:var(--txt);letter-spacing:.04em}
+
+/* ============ the digits ============ */
+.otp-inputs{display:flex;justify-content:center;gap:10px;margin-bottom:26px}
+.otp-input{
+  width:48px; height:60px; padding:0; text-align:center;
+  font:inherit; font-size:23px; font-weight:700; color:var(--mut);
+  background:var(--surface); border:0; border-radius:15px; outline:none;
+  caret-color:var(--accent);
+  /* empty = carved in */
+  box-shadow:inset 5px 5px 11px var(--dark), inset -5px -5px 11px var(--light);
+  transition:box-shadow .3s ease, transform .3s cubic-bezier(.34,1.45,.5,1), color .25s ease;
+}
+.otp-input::placeholder{color:transparent}
+.otp-input:focus{
+  box-shadow:inset 5px 5px 11px var(--dark), inset -5px -5px 11px var(--light),
+             0 0 0 2px rgba(255,159,69,.55);
+}
+/* filled = embossed. pure CSS -- the digit pushes the key back out of the material. */
+.otp-input:not(:placeholder-shown){
+  transform:translateY(-4px);
+  color:var(--accent);
+  box-shadow:6px 6px 14px var(--dark), -6px -6px 14px var(--light);
+}
+.otp-input:not(:placeholder-shown):focus{
+  box-shadow:6px 6px 14px var(--dark), -6px -6px 14px var(--light),
+             0 0 0 2px rgba(255,159,69,.55);
+}
+[data-state="ok"] .otp-input:not(:placeholder-shown){color:var(--ok)}
+[data-state="bad"] .otp-input{color:var(--bad)}
+
+/* ============ buttons ============ */
+.verify-btn{
+  width:100%; padding:16px; font:inherit; font-size:13px; font-weight:750;
+  letter-spacing:.14em; color:var(--accent); background:var(--surface);
+  border:0; border-radius:16px; cursor:pointer;
+  box-shadow:7px 7px 16px var(--dark), -7px -7px 16px var(--light);
+  transition:box-shadow .22s ease, color .25s ease, opacity .25s ease, transform .12s ease;
+}
+.verify-btn:active{
+  transform:translateY(1px);
+  box-shadow:inset 5px 5px 12px var(--dark), inset -5px -5px 12px var(--light);
+}
+/* it only lights up once no key is still showing its placeholder */
+.wrap:has(.otp-input:placeholder-shown) .verify-btn{
+  color:var(--mut); opacity:.55; pointer-events:none;
+  box-shadow:inset 4px 4px 9px var(--dark), inset -4px -4px 9px var(--light);
+}
+[data-state="ok"] .verify-btn{color:var(--ok);pointer-events:none}
+
+.resend{margin:20px 0 0;font-size:12px;color:var(--mut)}
+.resend-btn{
+  background:none;border:0;padding:0 2px;font:inherit;font-size:12px;font-weight:750;
+  letter-spacing:.1em;color:var(--accent);cursor:pointer;
+}
+.resend-btn:disabled{color:#5d6675;cursor:default}
+#timer{color:#5d6675}
+
+.hint{margin:16px 0 0;font-size:11px;color:#59616f;letter-spacing:.03em}
+
+@media (max-width:400px){
+  .otp-input{width:42px;height:54px;font-size:20px;border-radius:13px}
+  .otp-inputs{gap:7px}
+}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="wrap" data-state="idle">
+
+  <div class="lock"></div>
+
+  <h1>Verify Your OTP</h1>
+  <p class="description">
+    We&rsquo;ve sent a 6-digit verification code to <br>
+    <span class="phone">+91 XXXXX 00945</span>
+  </p>
+
+  <div class="otp-inputs" id="otpInputs">
+    <input class="otp-input" type="text" inputmode="numeric" maxlength="1" placeholder=" " autocomplete="one-time-code" aria-label="Digit 1">
+    <input class="otp-input" type="text" inputmode="numeric" maxlength="1" placeholder=" " aria-label="Digit 2">
+    <input class="otp-input" type="text" inputmode="numeric" maxlength="1" placeholder=" " aria-label="Digit 3">
+    <input class="otp-input" type="text" inputmode="numeric" maxlength="1" placeholder=" " aria-label="Digit 4">
+    <input class="otp-input" type="text" inputmode="numeric" maxlength="1" placeholder=" " aria-label="Digit 5">
+    <input class="otp-input" type="text" inputmode="numeric" maxlength="1" placeholder=" " aria-label="Digit 6">
+  </div>
+
+  <button class="verify-btn" id="verifyBtn">VERIFY OTP</button>
+
+  <p class="resend">
+    Didn&rsquo;t get it?
+    <button class="resend-btn" id="resendBtn" disabled>RESEND OTP</button>
+    <span id="timer">in 0:30</span>
+  </p>
+
+  <p class="hint">demo code &mdash; 1 2 3 4 5 6</p>
+</div>
+
+<script>
+const $  = s => document.querySelector(s);
+const CODE = '123456';
+
+const wrap = $('#wrap'), verifyBtn = $('#verifyBtn'),
+      resendBtn = $('#resendBtn'), timerEl = $('#timer');
+const keys = [...document.querySelectorAll('.otp-input')];
+
+const value = () => keys.map(k => k.value).join('');
+const clearState = () => { if (wrap.dataset.state === 'bad') wrap.dataset.state = 'idle'; };
+
+/* ---- typing walks itself along the row ---- */
+keys.forEach((key, i) => {
+  key.addEventListener('input', () => {
+    key.value = key.value.replace(/\D/g, '').slice(0, 1);
+    clearState();
+    if (key.value && i < keys.length - 1) keys[i + 1].focus();
+  });
+
+  key.addEventListener('keydown', e => {
+    if (e.key === 'Backspace' && !key.value && i > 0){
+      e.preventDefault();
+      keys[i - 1].value = '';
+      keys[i - 1].focus();
+      clearState();
+    }
+    if (e.key === 'ArrowLeft'  && i > 0)              { e.preventDefault(); keys[i - 1].focus(); }
+    if (e.key === 'ArrowRight' && i < keys.length - 1){ e.preventDefault(); keys[i + 1].focus(); }
+    if (e.key === 'Enter' && value().length === 6) verify();
+  });
+
+  key.addEventListener('focus', () => key.select());
+
+  key.addEventListener('paste', e => {
+    e.preventDefault();
+    const digits = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, keys.length - i);
+    [...digits].forEach((d, n) => keys[i + n].value = d);
+    keys[Math.min(i + digits.length, keys.length - 1)].focus();
+    clearState();
+  });
+});
+
+/* ---- verify ---- */
+function verify(){
+  if (value() === CODE){
+    wrap.dataset.state = 'ok';
+    verifyBtn.textContent = 'VERIFIED';
+    keys.forEach(k => k.blur());
+    return;
+  }
+  wrap.dataset.state = 'bad';
+  wrap.classList.remove('shake'); void wrap.offsetWidth; wrap.classList.add('shake');
+  setTimeout(() => {
+    keys.forEach(k => k.value = '');
+    keys[0].focus();
+    wrap.dataset.state = 'idle';
+  }, 520);
+}
+verifyBtn.addEventListener('click', verify);
+
+/* ---- resend ---- */
+let left = 30, tick;
+function countdown(){
+  clearInterval(tick);
+  left = 30;
+  resendBtn.disabled = true;
+  timerEl.textContent = 'in 0:30';
+  tick = setInterval(() => {
+    left--;
+    timerEl.textContent = 'in 0:' + String(left).padStart(2, '0');
+    if (left <= 0){
+      clearInterval(tick);
+      resendBtn.disabled = false;
+      timerEl.textContent = '';
+    }
+  }, 1000);
+}
+resendBtn.addEventListener('click', () => {
+  keys.forEach(k => k.value = '');
+  wrap.dataset.state = 'idle';
+  verifyBtn.textContent = 'VERIFY OTP';
+  keys[0].focus();
+  countdown();
+});
+
+countdown();
+keys[0].focus();
+</script>
+</body>
+</html>

@@ -1,0 +1,231 @@
+/* ============================================================
+   Login.css  --  verbatim from the source screenshots
+   ============================================================ */
+
+.card {
+  position: relative;
+  overflow: hidden;
+  width: 660px;
+  height: 440px;
+  border-radius: 24px;
+  background: #ffffff;
+  border: 8px solid #ffffff;
+}
+
+.card-bg {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 50%;
+  background: url("hero.jpg");
+  border-radius: 18px;
+  translate: 0 0;
+  transition: 0.65s ease-in-out;
+}
+
+.card-bg.login {
+  translate: 100% 0;
+}
+
+.hero, .form {
+  position: absolute;
+  width: 50%;
+  height: 100%;
+  opacity: 0;
+  visibility: hidden;
+  transition: 0.65s ease-in-out;
+}
+
+.hero.active, .form.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.form.register {
+  left: 50%;
+}
+
+.hero.login {
+  left: 50%;
+  translate: 100% 0;
+}
+
+.hero.login.active {
+  translate: 0;
+}
+
+.hero.register {
+  translate: -100% 0;
+}
+
+.hero.register.active {
+  translate: 0;
+}
+
+.hero {
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 50%;
+  color: #f9f9f9;
+  text-align: center;
+  padding: 0 24px;
+}
+
+.form.login {
+  translate: 100% 0;
+}
+
+.form.login.active {
+  translate: 0;
+}
+
+.form.register {
+  translate: -100% 0;
+}
+
+.form.register.active {
+  translate: 0;
+}
+
+.hero p {
+  margin: 0 0 6px;
+  opacity: 0.85;
+  line-height: 1.45;
+}
+
+.hero button {
+  padding: 12px 40px;
+  border-radius: 32px;
+  letter-spacing: 1px;
+  font-family: inherit;
+  color: inherit;
+  border: 1px solid #f9f9f9;
+  background: transparent;
+  transition: 0.3s;
+  cursor: pointer;
+}
+
+.hero button:hover {
+  color: #212625;
+  background: #f9f9f9;
+}
+
+.form {
+  background: #ffffff;
+  z-index: 1;
+  width: 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 32px;
+}
+
+/* ============================================================
+   below here was cut off in the screenshots -- reconstructed
+   ============================================================ */
+
+/* the source omits these two; without them hero.jpg tiles at
+   natural size instead of filling the panel */
+.card-bg {
+  background-size: cover;
+  background-position: center;
+}
+
+.hero h2 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.01em; }
+.hero p  { font-size: 13.5px; }
+
+.form h2  { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+.form > p { margin: 0; font-size: 12.5px; color: #8a8f95; }
+
+.form form {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  width: 100%;
+}
+
+.form input {
+  width: 100%;
+  padding: 13px 15px;
+  font: inherit;
+  font-size: 13.5px;
+  color: #212625;
+  background: #eef0f3;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.form input::placeholder { color: #9aa0a6; }
+.form input:focus { background: #ffffff; border-color: #212625; }
+
+.form form button {
+  margin-top: 6px;
+  padding: 13px 40px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #f9f9f9;
+  background: #212625;
+  border: 1px solid #212625;
+  border-radius: 32px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.form form button:hover { color: #212625; background: transparent; }
+
+.form form a {
+  font-size: 12.5px;
+  color: #8a8f95;
+  text-decoration: none;
+  cursor: pointer;
+  text-align: center;
+}
+
+.form form a:hover { color: #212625; }
+
+/* the source loads these from Font Awesome (fa-brands) */
+.sso { display: flex; gap: 10px; }
+
+.sso a {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid #dcdfe4;
+  border-radius: 50%;
+  color: #212625;
+  cursor: pointer;
+  transition: border-color 0.25s, background 0.25s, color 0.25s;
+}
+
+.sso a:hover { border-color: #212625; background: #212625; color: #ffffff; }
+
+/* stacks the two halves instead of sitting them side by side */
+@media (max-width: 700px) {
+  .card { width: min(400px, 100%); height: 560px; }
+  .hero, .form { width: 100%; height: 50%; }
+  .card-bg { width: 100%; height: 50%; bottom: auto; }
+  .card-bg.login { translate: 0 100%; }
+  .form.register { left: 0; top: 50%; translate: 0 -100%; }
+  .form.register.active { translate: 0; }
+  .form.login { translate: 0 100%; }
+  .form.login.active { translate: 0; }
+  .hero.login { left: 0; top: 50%; translate: 0 100%; }
+  .hero.login.active { translate: 0; }
+  .hero.register { translate: 0 -100%; }
+  .hero.register.active { translate: 0; }
+  .hero h2 { font-size: 24px; }
+}

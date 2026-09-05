@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Huddle &mdash; Sign in</title>
+<style>
+:root{
+  --bg:#0f1322; --card:#191f33; --line:rgba(255,255,255,.09);
+  --txt:#e9edf8; --muted:#8b95b3;
+  --accent:#7b8cff; --accent2:#c06dff;
+  --ink:#20263a;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; display:grid; place-items:center; padding:24px;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:var(--txt); background:var(--bg); overflow:hidden;
+}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(100px);pointer-events:none}
+body::before{width:540px;height:540px;background:rgba(123,140,255,.18);top:-180px;left:-140px}
+body::after{width:480px;height:480px;background:rgba(192,109,255,.14);bottom:-190px;right:-130px}
+
+/* ============ stage ============ */
+.auth{position:relative;width:min(380px,100%);margin-top:104px}
+
+.crowd{
+  position:absolute; left:0; right:0; bottom:calc(100% - 52px);
+  display:flex; align-items:flex-end; justify-content:center;
+  z-index:0; pointer-events:none;
+}
+
+/* ============ the cast ============ */
+.mate{
+  /* pose defaults -- a mood only overrides what it changes */
+  --rot:0; --bend:0; --dy:0; --duck:0px;
+  --v-face:1; --v-open:1; --v-shut:0; --v-peek:0;
+  --v-line:1; --v-o:0; --v-grin:0; --v-blush:.3;
+  display:block; overflow:visible; flex:0 0 auto;
+  /* every lean is paid for with the lift it costs: dy = -(w/2h) sin|rot| */
+  transform:translateY(calc(var(--dy) * 1% + var(--duck)))
+            rotate(calc(var(--rot) * 1deg));
+  transition:transform .52s cubic-bezier(.34,1.28,.5,1);
+}
+.mate--tall {width:62px;height:124px;--skin:#8fa2d8;--blush:#5f74b4;margin:0 -5px 0 0}
+.mate--round{width:78px;height:88px; --skin:#e8b26a;--blush:#c98a45;margin:0 -7px 6px}
+.mate--short{width:58px;height:78px; --skin:#79cfae;--blush:#4fae8c;margin:0 -7px 18px}
+.mate--lanky{width:52px;height:112px;--skin:#e59ab4;--blush:#c2708c;margin:0 0 0 -5px}
+
+.mate--round{transition-delay:.04s}
+.mate--short{transition-delay:.08s}
+.mate--lanky{transition-delay:.12s}
+
+.mate_body{
+  transform-box:fill-box; transform-origin:50% 100%;
+  animation:sway 3.6s ease-in-out infinite;
+}
+.mate--round .mate_body{animation-duration:4.1s;animation-delay:-.7s}
+.mate--short .mate_body{animation-duration:3.2s;animation-delay:-1.4s}
+.mate--lanky .mate_body{animation-duration:4.6s;animation-delay:-2.1s}
+@keyframes sway{0%,100%{transform:rotate(-1.4deg) translateY(0)}50%{transform:rotate(1.4deg) translateY(-2px)}}
+
+.mate_skin{fill:var(--skin)}
+.mate_dark{fill:var(--ink);opacity:.16}
+.mate_head{
+  transform-box:fill-box; transform-origin:50% 100%;
+  transform:rotate(calc(var(--bend) * 1deg));
+  transition:transform .52s cubic-bezier(.34,1.28,.5,1);
+}
+.blush{fill:var(--blush);opacity:var(--v-blush);transition:opacity .3s}
+
+/* every face he can wear, drawn once, up front -- a mood just dials them in */
+.face      {opacity:var(--v-face)}
+.face_eyes {opacity:0}
+.is-open   {opacity:var(--v-open)}
+.is-shut   {opacity:var(--v-shut)}
+.is-peek   {opacity:var(--v-peek)}
+.face_mouth{opacity:0}
+.is-line   {opacity:var(--v-line)}
+.is-o      {opacity:var(--v-o)}
+.is-grin   {opacity:var(--v-grin)}
+.face,.face_eyes,.face_mouth{transition:opacity .22s ease}
+
+.eye{fill:var(--ink)}
+.spark{fill:#fff;opacity:.85}
+.lid{fill:var(--skin)}
+.ln{fill:none;stroke:var(--ink);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.fl{fill:var(--ink)}
+
+/* ============ one word poses the cast ============ */
+/* idle -- resting head tilts, nobody leaning */
+[data-mood="idle"] .mate--tall {--bend:-3}
+[data-mood="idle"] .mate--round{--bend:4}
+[data-mood="idle"] .mate--short{--bend:-5}
+[data-mood="idle"] .mate--lanky{--bend:3}
+
+/* nosy -- you are typing something readable, so they crane in */
+[data-mood="nosy"] .mate{--v-o:1;--v-line:0}
+[data-mood="nosy"] .mate--tall {--rot:9;  --bend:18;  --dy:-3.9}
+[data-mood="nosy"] .mate--round{--rot:6;  --bend:14;  --dy:-4.6}
+[data-mood="nosy"] .mate--short{--rot:-7; --bend:-15; --dy:-4.5}
+[data-mood="nosy"] .mate--lanky{--rot:-11;--bend:-20; --dy:-4.4}
+
+/* shy -- turned around = no face at all, so nothing extra is needed for it */
+[data-mood="shy"] .mate{--v-face:0}
+[data-mood="shy"] .mate--tall {--rot:-6;--bend:-14;--dy:-2.6;--duck:6px}
+[data-mood="shy"] .mate--round{--rot:-5;--bend:-12;--dy:-3.9;--duck:8px}
+[data-mood="shy"] .mate--short{--rot:5; --bend:12; --dy:-3.2;--duck:7px}
+[data-mood="shy"] .mate--lanky{--rot:7; --bend:16; --dy:-2.8;--duck:5px}
+/* ...except one of them cannot help himself */
+[data-mood="shy"] .mate--short{--v-face:1;--v-open:0;--v-peek:1;--v-line:0;--v-grin:1;--v-blush:.6}
+[data-mood="shy"] .mate--short .face{transition-delay:.9s}
+
+/* exposed -- the secret is on screen, so they clamp their eyes shut and back off */
+[data-mood="exposed"] .mate{--v-open:0;--v-shut:1;--v-line:0;--v-grin:1;--v-blush:.75}
+[data-mood="exposed"] .mate--tall {--rot:-13;--bend:-20;--dy:-5.6;--duck:3px}
+[data-mood="exposed"] .mate--round{--rot:-11;--bend:-17;--dy:-8.5;--duck:4px}
+[data-mood="exposed"] .mate--short{--rot:11; --bend:17; --dy:-7.1;--duck:4px}
+[data-mood="exposed"] .mate--lanky{--rot:13; --bend:20; --dy:-5.2;--duck:3px}
+
+/* welcome -- you got in, everybody hops */
+[data-mood="welcome"] .mate{--v-line:0;--v-grin:1;--v-blush:.7}
+[data-mood="welcome"] .mate_body{animation:hop .46s cubic-bezier(.3,1.4,.5,1) 3}
+@keyframes hop{0%,100%{transform:translateY(0) scale(1)}
+  40%{transform:translateY(-11px) scale(1.03,.96)}
+  75%{transform:translateY(0) scale(.97,1.04)}}
+
+/* ============ card ============ */
+.card{
+  position:relative; z-index:1;
+  background:linear-gradient(180deg,var(--card),#151a2b);
+  border:1px solid var(--line); border-radius:22px; padding:30px 28px 26px;
+  box-shadow:0 30px 70px -20px rgba(0,0,0,.75),0 0 0 1px rgba(255,255,255,.03) inset;
+}
+.card.shake{animation:shake .4s cubic-bezier(.36,.07,.19,.97)}
+@keyframes shake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}
+  30%,50%,70%{transform:translateX(-7px)}40%,60%{transform:translateX(7px)}}
+
+h1{margin:0 0 4px;font-size:22px;letter-spacing:-.02em;text-align:center}
+.sub{margin:0 0 24px;text-align:center;font-size:13px;color:var(--muted)}
+
+.field{display:block;margin-bottom:14px}
+.field__lab{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px}
+.f-wrap{position:relative;display:flex;align-items:center}
+.f-wrap>svg{position:absolute;left:13px;width:17px;height:17px;fill:none;stroke:var(--muted);
+  stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;pointer-events:none;transition:stroke .2s}
+.inp{width:100%;padding:12px 14px 12px 40px;font:inherit;font-size:14px;color:var(--txt);
+  background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;outline:none;
+  transition:border-color .2s,background .2s,box-shadow .2s}
+.inp::placeholder{color:#5d6784}
+.inp:focus{border-color:var(--accent);background:rgba(123,140,255,.07);box-shadow:0 0 0 3px rgba(123,140,255,.15)}
+.f-wrap:focus-within>svg{stroke:var(--accent)}
+.inp.pad{padding-right:44px}
+.field.bad .inp{border-color:#ff6b81;box-shadow:0 0 0 3px rgba(255,107,129,.14)}
+
+.peek{position:absolute;right:6px;display:grid;place-items:center;width:32px;height:32px;
+  background:none;border:0;border-radius:9px;cursor:pointer;color:var(--muted);transition:color .2s,background .2s}
+.peek:hover{color:var(--txt);background:rgba(255,255,255,.06)}
+.peek.on{color:var(--accent)}
+.peek svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.peek .off{display:none}
+.peek.on .off{display:block}
+.peek.on .on-i{display:none}
+
+.row{display:flex;align-items:center;justify-content:space-between;margin:2px 0 20px;font-size:12.5px}
+.cbx{display:flex;align-items:center;gap:8px;color:var(--muted);cursor:pointer;user-select:none}
+.cbx input{accent-color:var(--accent);width:15px;height:15px;cursor:pointer}
+a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
+a.lnk:hover{text-decoration:underline}
+
+.btn{width:100%;padding:13px 16px;font:inherit;font-size:14.5px;font-weight:650;color:#fff;
+  background:linear-gradient(120deg,var(--accent),var(--accent2));border:0;border-radius:13px;cursor:pointer;
+  box-shadow:0 10px 26px -8px rgba(123,140,255,.65);transition:transform .16s,box-shadow .2s,opacity .2s}
+.btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 14px 30px -8px rgba(123,140,255,.75)}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn:disabled{opacity:.72;cursor:default}
+.foot{margin:18px 0 0;text-align:center;font-size:12.5px;color:var(--muted)}
+
+/* mood readout -- the one derived word, on screen */
+.readout{margin:20px auto 0;display:flex;align-items:center;justify-content:center;gap:8px;
+  font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:#5b6484;letter-spacing:.08em}
+.readout b{padding:5px 10px;border-radius:999px;background:rgba(123,140,255,.14);
+  color:var(--accent);border:1px solid rgba(123,140,255,.24);transition:color .2s,background .2s}
+
+@media (prefers-reduced-motion:reduce){
+  .mate_body{animation:none!important}
+  *{transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+
+<div class="auth" id="auth" data-mood="idle">
+
+  <div class="crowd" aria-hidden="true">
+
+    <!-- ---------- tall ---------- -->
+    <svg class="mate mate--tall" viewBox="0 0 62 124">
+      <g class="mate_body">
+        <rect class="mate_skin" x="11" y="56" width="40" height="70" rx="18"/>
+        <ellipse class="mate_skin" cx="8"  cy="86" rx="7" ry="11"/>
+        <ellipse class="mate_skin" cx="54" cy="86" rx="7" ry="11"/>
+        <g class="mate_head">
+          <path class="mate_skin" d="M31 4 c2 0 3 4 5 7 -3-1-7-1-10 0 2-3 3-7 5-7Z"/>
+          <circle class="mate_skin" cx="31" cy="38" r="25"/>
+          <ellipse class="blush" cx="16" cy="45" rx="5" ry="3.2"/>
+          <ellipse class="blush" cx="46" cy="45" rx="5" ry="3.2"/>
+          <g class="face">
+            <g class="face_eyes is-open">
+              <circle class="eye" cx="23" cy="38" r="4.4"/><circle class="eye" cx="39" cy="38" r="4.4"/>
+              <circle class="spark" cx="24.7" cy="36.3" r="1.5"/><circle class="spark" cx="40.7" cy="36.3" r="1.5"/>
+            </g>
+            <g class="face_eyes is-shut">
+              <path class="ln" d="M18.6 39.4 Q23 34 27.4 39.4"/><path class="ln" d="M34.6 39.4 Q39 34 43.4 39.4"/>
+            </g>
+            <g class="face_eyes is-peek">
+              <circle class="eye" cx="23" cy="38" r="4.4"/><circle class="eye" cx="39" cy="38" r="4.4"/>
+              <rect class="lid" x="17" y="30" width="12" height="9"/><rect class="lid" x="33" y="30" width="12" height="9"/>
+              <path class="ln" d="M18.6 39 H27.4"/><path class="ln" d="M34.6 39 H43.4"/>
+            </g>
+            <g class="face_mouth is-line"><path class="ln" d="M25 51 H37"/></g>
+            <g class="face_mouth is-o"><ellipse class="fl" cx="31" cy="51" rx="4" ry="5"/></g>
+            <g class="face_mouth is-grin"><path class="ln" d="M23 48.5 Q31 57.5 39 48.5"/></g>
+          </g>
+        </g>
+      </g>
+    </svg>
+
+    <!-- ---------- round ---------- -->
+    <svg class="mate mate--round" viewBox="0 0 78 88">
+      <g class="mate_body">
+        <rect class="mate_skin" x="8" y="44" width="62" height="46" rx="22"/>
+        <g class="mate_head">
+          <circle class="mate_skin" cx="12" cy="21" r="8"/>
+          <circle class="mate_skin" cx="66" cy="21" r="8"/>
+          <ellipse class="mate_skin" cx="39" cy="32" rx="30" ry="27"/>
+          <ellipse class="blush" cx="18" cy="40" rx="6" ry="3.6"/>
+          <ellipse class="blush" cx="60" cy="40" rx="6" ry="3.6"/>
+          <g class="face">
+            <g class="face_eyes is-open">
+              <circle class="eye" cx="30" cy="32" r="4.8"/><circle class="eye" cx="48" cy="32" r="4.8"/>
+              <circle class="spark" cx="31.9" cy="30.1" r="1.6"/><circle class="spark" cx="49.9" cy="30.1" r="1.6"/>
+            </g>
+            <g class="face_eyes is-shut">
+              <path class="ln" d="M25.2 33.5 Q30 27.5 34.8 33.5"/><path class="ln" d="M43.2 33.5 Q48 27.5 52.8 33.5"/>
+            </g>
+            <g class="face_eyes is-peek">
+              <circle class="eye" cx="30" cy="32" r="4.8"/><circle class="eye" cx="48" cy="32" r="4.8"/>
+              <rect class="lid" x="24" y="23" width="13" height="9.6"/><rect class="lid" x="42" y="23" width="13" height="9.6"/>
+              <path class="ln" d="M25.2 32.6 H34.8"/><path class="ln" d="M43.2 32.6 H52.8"/>
+            </g>
+            <g class="face_mouth is-line"><path class="ln" d="M32 46 H46"/></g>
+            <g class="face_mouth is-o"><ellipse class="fl" cx="39" cy="46" rx="4.4" ry="5.4"/></g>
+            <g class="face_mouth is-grin"><path class="ln" d="M30 43.5 Q39 53 48 43.5"/></g>
+          </g>
+        </g>
+      </g>
+    </svg>
+
+    <!-- ---------- short (the one who peeks) ---------- -->
+    <svg class="mate mate--short" viewBox="0 0 58 78">
+      <g class="mate_body">
+        <rect class="mate_skin" x="9" y="42" width="40" height="38" rx="17"/>
+        <g class="mate_head">
+          <path class="mate_skin" d="M28 2 h2 v8 h-2Z"/>
+          <circle class="mate_skin" cx="29" cy="2.5" r="3.4"/>
+          <rect class="mate_skin" x="4" y="8" width="50" height="48" rx="20"/>
+          <ellipse class="blush" cx="13" cy="42" rx="5" ry="3.2"/>
+          <ellipse class="blush" cx="45" cy="42" rx="5" ry="3.2"/>
+          <g class="face">
+            <g class="face_eyes is-open">
+              <circle class="eye" cx="19" cy="31" r="4.6"/><circle class="eye" cx="39" cy="31" r="4.6"/>
+              <circle class="spark" cx="20.8" cy="29.2" r="1.6"/><circle class="spark" cx="40.8" cy="29.2" r="1.6"/>
+            </g>
+            <g class="face_eyes is-shut">
+              <path class="ln" d="M14.4 32.5 Q19 26.8 23.6 32.5"/><path class="ln" d="M34.4 32.5 Q39 26.8 43.6 32.5"/>
+            </g>
+            <g class="face_eyes is-peek">
+              <circle class="eye" cx="19" cy="31" r="4.6"/><circle class="eye" cx="39" cy="31" r="4.6"/>
+              <rect class="lid" x="13" y="22" width="13" height="9.6"/><rect class="lid" x="33" y="22" width="13" height="9.6"/>
+              <path class="ln" d="M14.4 31.6 H23.6"/><path class="ln" d="M34.4 31.6 H43.6"/>
+            </g>
+            <g class="face_mouth is-line"><path class="ln" d="M23 44 H35"/></g>
+            <g class="face_mouth is-o"><ellipse class="fl" cx="29" cy="44" rx="4.2" ry="5.2"/></g>
+            <g class="face_mouth is-grin"><path class="ln" d="M21 41.5 Q29 50.5 37 41.5"/></g>
+          </g>
+        </g>
+      </g>
+    </svg>
+
+    <!-- ---------- lanky ---------- -->
+    <svg class="mate mate--lanky" viewBox="0 0 52 112">
+      <g class="mate_body">
+        <rect class="mate_skin" x="12" y="52" width="28" height="62" rx="13"/>
+        <ellipse class="mate_skin" cx="9"  cy="74" rx="5.5" ry="10"/>
+        <ellipse class="mate_skin" cx="43" cy="74" rx="5.5" ry="10"/>
+        <g class="mate_head">
+          <path class="mate_skin" d="M9 18 L11 2 L22 14Z"/>
+          <path class="mate_skin" d="M43 18 L41 2 L30 14Z"/>
+          <ellipse class="mate_skin" cx="26" cy="32" rx="23" ry="25"/>
+          <ellipse class="blush" cx="13" cy="40" rx="4.6" ry="3"/>
+          <ellipse class="blush" cx="39" cy="40" rx="4.6" ry="3"/>
+          <g class="face">
+            <g class="face_eyes is-open">
+              <circle class="eye" cx="19" cy="33" r="4.2"/><circle class="eye" cx="33" cy="33" r="4.2"/>
+              <circle class="spark" cx="20.6" cy="31.4" r="1.45"/><circle class="spark" cx="34.6" cy="31.4" r="1.45"/>
+            </g>
+            <g class="face_eyes is-shut">
+              <path class="ln" d="M14.8 34.4 Q19 29 23.2 34.4"/><path class="ln" d="M28.8 34.4 Q33 29 37.2 34.4"/>
+            </g>
+            <g class="face_eyes is-peek">
+              <circle class="eye" cx="19" cy="33" r="4.2"/><circle class="eye" cx="33" cy="33" r="4.2"/>
+              <rect class="lid" x="13" y="25" width="12" height="8.6"/><rect class="lid" x="27" y="25" width="12" height="8.6"/>
+              <path class="ln" d="M14.8 33.6 H23.2"/><path class="ln" d="M28.8 33.6 H37.2"/>
+            </g>
+            <g class="face_mouth is-line"><path class="ln" d="M21 45 H31"/></g>
+            <g class="face_mouth is-o"><ellipse class="fl" cx="26" cy="45" rx="3.8" ry="4.8"/></g>
+            <g class="face_mouth is-grin"><path class="ln" d="M19 42.5 Q26 51 33 42.5"/></g>
+          </g>
+        </g>
+      </g>
+    </svg>
+
+  </div>
+
+  <form class="card" id="form" novalidate autocomplete="off">
+    <h1>Welcome back</h1>
+    <p class="sub">Four of them are watching. Sort of.</p>
+
+    <label class="field" id="f-mail">
+      <span class="field__lab">Email</span>
+      <span class="f-wrap">
+        <svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="m3 7 9 6 9-6"/></svg>
+        <input class="inp" id="mail" type="email" placeholder="you@company.com" autocomplete="username">
+      </span>
+    </label>
+
+    <label class="field" id="f-pw">
+      <span class="field__lab">Password</span>
+      <span class="f-wrap">
+        <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <input class="inp pad" id="pw" type="password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="current-password">
+        <button class="peek" id="toggle" type="button" aria-label="Show password">
+          <svg class="on-i" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg class="off" viewBox="0 0 24 24"><path d="M10.6 6.2A9.9 9.9 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3 3.6M6.6 6.9A17 17 0 0 0 2 12s3.6 6 10 6a9.7 9.7 0 0 0 4.2-.9"/><path d="m2 2 20 20"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+        </button>
+      </span>
+    </label>
+
+    <div class="row">
+      <label class="cbx"><input type="checkbox" checked> Keep me signed in</label>
+      <a class="lnk" href="#" onclick="return false">Forgot?</a>
+    </div>
+
+    <button class="btn" id="btn" type="submit">Sign in</button>
+    <p class="foot">New here? <a class="lnk" href="#" onclick="return false">Create an account</a></p>
+  </form>
+
+  <p class="readout">mood <b id="word">idle</b></p>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+const auth = $('#auth'), form = $('#form'), btn = $('#btn'), word = $('#word'),
+      mail = $('#mail'), pw = $('#pw'), toggle = $('#toggle');
+
+let shown = false;   // is the password legible on screen
+let done  = false;   // signed in
+
+// One derived word IS the state of all four of them
+function moodOf(){
+  if (done) return 'welcome';
+  const at = document.activeElement;
+  // the secret is on screen -- the caret doesn't matter
+  if (shown && pw.value) return 'exposed';
+  if (at === pw)   return 'shy';
+  if (at === mail) return 'nosy';
+  return 'idle';
+}
+function pose(){
+  const m = moodOf();
+  if (auth.dataset.mood === m) return;
+  auth.dataset.mood = m;
+  word.textContent = m;
+}
+
+['input','focusin','focusout','click'].forEach(ev =>
+  document.addEventListener(ev, () => requestAnimationFrame(pose)));
+
+toggle.addEventListener('mousedown', e => e.preventDefault());
+toggle.addEventListener('click', () => {
+  shown = !shown;
+  pw.type = shown ? 'text' : 'password';
+  toggle.classList.toggle('on', shown);
+  toggle.setAttribute('aria-label', shown ? 'Hide password' : 'Show password');
+  pw.focus();
+  pose();
+});
+
+form.addEventListener('submit', async e => {
+  e.preventDefault();
+  if (done) return;
+
+  const badMail = !mail.value.trim(), badPw = !pw.value;
+  $('#f-mail').classList.toggle('bad', badMail);
+  $('#f-pw').classList.toggle('bad', badPw);
+  if (badMail || badPw){
+    form.classList.remove('shake'); void form.offsetWidth; form.classList.add('shake');
+    (badMail ? mail : pw).focus();
+    return;
+  }
+
+  done = true;
+  btn.disabled = true;
+  btn.textContent = 'Signed in';
+  pw.blur(); mail.blur();
+  pose();
+
+  await wait(2600);                    // replayable
+  done = false; shown = false;
+  pw.type = 'password'; toggle.classList.remove('on');
+  btn.disabled = false; btn.textContent = 'Sign in';
+  pose();
+});
+
+[mail, pw].forEach(el => el.addEventListener('input', () =>
+  el.closest('.field').classList.remove('bad')));
+
+pose();
+</script>
+</body>
+</html>

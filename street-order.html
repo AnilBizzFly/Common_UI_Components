@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Street &mdash; Order Now</title>
+<style>
+/* register them, or they are strings and cannot tween */
+@property --vx      { syntax:'<number>'; inherits:true;  initial-value:-190 }
+@property --shutter { syntax:'<number>'; inherits:true;  initial-value:1 }
+@property --px      { syntax:'<number>'; inherits:false; initial-value:40 }
+@property --py      { syntax:'<number>'; inherits:false; initial-value:33.5 }
+@property --pitch   { syntax:'<number>'; inherits:false; initial-value:0 }
+
+:root{
+  --sand:#f4ece1; --card:#fffdfa; --edge:#ece0d1;
+  --ink:#2b2420; --mut:#8d8076; --dim:#b2a496;
+  --hot:#ef6c33; --hot2:#f79a3c;
+  --asphalt:#272a32; --paint:#93a0b6;
+
+  --brake:cubic-bezier(.14,.72,.18,1);
+  --go:cubic-bezier(.5,0,.82,.32);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; display:grid; place-items:center; padding:24px;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:var(--ink); background:var(--sand); overflow:hidden;
+}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(100px);pointer-events:none}
+body::before{width:520px;height:520px;background:rgba(239,108,51,.16);top:-190px;left:-150px}
+body::after{width:460px;height:460px;background:rgba(247,154,63,.18);bottom:-180px;right:-140px}
+
+/* ============ card ============ */
+.order{
+  position:relative; z-index:1; width:min(380px,100%);
+  background:var(--card); border:1px solid var(--edge); border-radius:22px; padding:24px;
+  box-shadow:0 26px 60px -24px rgba(78,52,32,.34),0 1px 0 #fff inset;
+}
+.order h1{margin:0 0 2px;font-size:16px;letter-spacing:-.01em}
+.order .who{margin:0 0 18px;font-size:12.5px;color:var(--dim)}
+
+.line{display:flex;align-items:center;gap:12px;padding:9px 0}
+.line+.line{border-top:1px solid #f4ece2}
+.thumb{width:38px;height:38px;border-radius:10px;flex:0 0 auto;display:grid;place-items:center}
+.thumb svg{width:19px;height:19px;fill:none;stroke:#fff;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.t1{background:linear-gradient(135deg,#f0803f,#e35d3a)}
+.t2{background:linear-gradient(135deg,#6fb8a0,#4e9b8c)}
+.line .nm{flex:1;min-width:0}
+.line .nm b{display:block;font-size:13.5px;font-weight:600}
+.line .nm span{font-size:12px;color:var(--dim)}
+.line .amt{font-size:13.5px;font-weight:600;font-variant-numeric:tabular-nums}
+
+.tot{display:flex;align-items:baseline;justify-content:space-between;
+  margin:14px 0 18px;padding-top:14px;border-top:1px dashed #e8dccd}
+.tot span{font-size:13px;color:var(--mut);font-weight:600}
+.tot b{font-size:24px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+
+/* ============ the button ============ */
+/* the street lives inside the button's own clip */
+.cta{
+  position:relative; display:block; width:100%; height:62px; overflow:hidden;
+  border:0; border-radius:16px; padding:0; cursor:pointer;
+  background:var(--asphalt);
+  font:inherit; font-size:15px; font-weight:700; color:#fff;
+  box-shadow:0 14px 26px -12px rgba(224,96,44,.75);
+  transition:box-shadow .35s ease;
+}
+.cta::before{
+  content:""; position:absolute; inset:0;
+  background:linear-gradient(102deg,var(--hot),var(--hot2));
+  transition:opacity .42s ease;
+}
+.cta>span{
+  position:absolute; inset:0; z-index:3; display:flex; align-items:center; justify-content:center; gap:9px;
+  transition:opacity .2s ease;
+}
+.cta>span svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.cta:hover{box-shadow:0 18px 32px -12px rgba(224,96,44,.9)}
+.cta:disabled{cursor:default}
+
+.cta.is-open::before{opacity:0}
+.cta.is-open>span{opacity:0}
+.cta.is-open{box-shadow:0 14px 26px -14px rgba(40,30,20,.5)}
+
+/* the closing word, once the street is empty again */
+.cta .done{opacity:0;z-index:4}
+.cta.is-done::before{opacity:1;transition-delay:.1s}
+.cta.is-done .done{opacity:1;transition-delay:.22s}
+
+/* ============ the scene ============ */
+.scene{position:absolute;inset:0;width:100%;height:100%;z-index:1;
+  --shutter:1; opacity:0; transition:opacity .3s ease}
+.cta.is-open .scene{opacity:1}
+.cta.is-done .scene{opacity:0}
+
+.road_edge{stroke:var(--paint);stroke-width:1.4;opacity:.5}
+.road_ticks{stroke:var(--paint);stroke-width:2.6;stroke-linecap:round;opacity:.42;
+  stroke-dasharray:14 20;stroke-dashoffset:120;transition:stroke-dashoffset .7s ease .12s}
+.cta.is-open .road_ticks{stroke-dashoffset:0}
+
+.van{--vx:-190; transform:translate(calc(var(--vx) * 1px),4px)}
+/* the wheels are NOT animated. 7.639 = 360 / (2 x pi x r), r = 7.5 */
+.wheel{transform:rotate(calc(var(--vx) * 7.639deg));transform-box:fill-box;transform-origin:50% 50%}
+/* body rolls on its suspension; the wheels stay planted */
+.van__pitch{--pitch:0;transform:rotate(calc(var(--pitch) * 1deg));
+  transform-box:fill-box;transform-origin:50% 100%}
+
+.shell{fill:#f3f5fa}
+.shell-sh{fill:#d8dfec}
+.glass{fill:#8fb4d6}
+.trim{fill:none;stroke:#c3ccdd;stroke-width:1.3}
+.bay{fill:#1d2029}
+.tyre{fill:#23262e}
+.hub{fill:#cdd6e4}
+.spoke{fill:none;stroke:#8e99ae;stroke-width:1.6;stroke-linecap:round}
+.lamp{fill:#ffd27a}
+.shutter{transform:translateY(calc((var(--shutter) - 1) * 24px));clip-path:url(#bayclip)}
+
+.parcel{--px:40;--py:33.5;opacity:0;
+  transform:translate(calc(var(--px) * 1px),calc(var(--py) * 1px));
+  transition:opacity .22s ease}
+.parcel.is-here{opacity:1}
+.parcel_box{fill:#d8ab74}
+.parcel_tape{fill:none;stroke:#b98849;stroke-width:1.5}
+/* cut off by what the shutter covers, not switched off */
+.parcel--aboard{clip-path:inset(max(0px,calc((var(--shutter) * 24 - 9) * 1px)) 0 0 0)}
+
+.note{margin:14px 0 0;text-align:center;font-size:12px;color:var(--dim)}
+
+@media (prefers-reduced-motion:reduce){
+  .road_ticks{transition:none}
+}
+</style>
+</head>
+<body>
+
+<div class="order">
+  <h1>Confirm your order</h1>
+  <p class="who">Delivering to 14 Alder Row</p>
+
+  <div class="line">
+    <span class="thumb t1"><svg viewBox="0 0 24 24"><path d="M3 9 12 3l9 6v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M9 21v-8h6v8"/></svg></span>
+    <span class="nm"><b>Ceramic pour-over</b><span>Matte clay &middot; 600ml</span></span>
+    <span class="amt">$96.00</span>
+  </div>
+  <div class="line">
+    <span class="thumb t2"><svg viewBox="0 0 24 24"><path d="M4 8h13a4 4 0 0 1 0 8h-1"/><path d="M4 8v8a4 4 0 0 0 4 4h4a4 4 0 0 0 4-4V8"/><path d="M7 4v1M11 3v2M15 4v1"/></svg></span>
+    <span class="nm"><b>Single-origin, 1kg</b><span>Whole bean &middot; medium</span></span>
+    <span class="amt">$52.00</span>
+  </div>
+
+  <div class="tot"><span>Total</span><b>$148.00</b></div>
+
+  <!-- the street lives inside the button's own clip -->
+  <button class="cta" id="cta" type="submit">
+    <svg class="scene" id="scene" viewBox="0 0 332 62" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs>
+        <pattern id="slats" width="4" height="4" patternUnits="userSpaceOnUse">
+          <rect width="4" height="4" fill="#c7d1e2"/>
+          <rect y="3" width="4" height="1" fill="#98a4bb"/>
+        </pattern>
+        <clipPath id="bayclip"><rect x="71" y="8" width="44" height="24" rx="2"/></clipPath>
+      </defs>
+
+      <g class="road">
+        <line class="road_edge" x1="0" y1="52.5" x2="332" y2="52.5"/>
+        <g class="road_ticks"><line x1="-6" y1="58" x2="338" y2="58"/></g>
+      </g>
+
+      <g class="van" id="van">
+        <g class="van__pitch" id="pitch">
+          <path class="shell" d="M56 40 L56 9 Q56 4 61 4 L128 4 L128 13 L141 13 Q146 13 149 16 L160 26 Q166 28 166 33 L166 37 Q166 40 163 40 Z"/>
+          <path class="shell-sh" d="M56 36 H166 v1 Q166 40 163 40 H56 Z"/>
+          <path class="glass" d="M131 15 h9 q4 0 6 2 l7 7 h-22 Z"/>
+          <path class="trim" d="M56 13 H128"/>
+          <rect class="lamp" x="161" y="28" width="5" height="4" rx="1.5"/>
+          <rect class="bay" x="71" y="8" width="44" height="24" rx="2"/>
+          <g class="shutter"><rect x="71" y="8" width="44" height="24" rx="2" fill="url(#slats)"/></g>
+        </g>
+
+        <g class="wheel">
+          <circle class="tyre" cx="76" cy="40.5" r="7.5"/>
+          <circle class="hub" cx="76" cy="40.5" r="3.4"/>
+          <path class="spoke" d="M76 37.4 V43.6 M72.9 40.5 H79.1"/>
+        </g>
+        <g class="wheel">
+          <circle class="tyre" cx="147" cy="40.5" r="7.5"/>
+          <circle class="hub" cx="147" cy="40.5" r="3.4"/>
+          <path class="spoke" d="M147 37.4 V43.6 M143.9 40.5 H150.1"/>
+        </g>
+
+        <g class="parcel" id="parcel">
+          <rect class="parcel_box" x="-8" y="-0.5" width="16" height="15" rx="1.6"/>
+          <path class="parcel_tape" d="M-8 5.5 H8 M0 -0.5 V14.5"/>
+        </g>
+      </g>
+    </svg>
+
+    <span>
+      <svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg>
+      Order Now
+    </span>
+    <span class="done">
+      <svg viewBox="0 0 24 24"><path d="m4 12.5 5 5L20 6.5"/></svg>
+      On its way
+    </span>
+  </button>
+
+  <p class="note">Arrives Thursday &middot; free returns</p>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+
+const cta = $('#cta'), scene = $('#scene'), van = $('#van'),
+      pitch = $('#pitch'), parcel = $('#parcel');
+
+const OFF_LEFT  = -190;
+const PARKED    = 55;      // van art spans local x 56..166, so this centres it in 332
+const OFF_RIGHT = 300;
+const START_PX  = 40, START_PY = 33.5;
+
+function tween(el, transition, to){
+  el.style.transition = transition;
+  requestAnimationFrame(() => {
+    for (const k in to) el.style.setProperty(k, to[k]);
+  });
+}
+
+// absolute ms from the press so the run reads top to bottom as one timeline
+const SCORE = [
+  // the van pulls up
+  [ 260, () => { tween(van,   '--vx 880ms var(--brake)',    { '--vx': PARKED });
+                 tween(pitch, '--pitch 880ms var(--brake)', { '--pitch': 1.6 }); }],
+  [1140, () => tween(pitch, '--pitch 420ms cubic-bezier(.3,1.5,.5,1)', { '--pitch': 0 })],
+  [1150, () => parcel.classList.add('is-here')],
+
+  // the shutter rolls up
+  [1380, () => tween(scene, '--shutter 300ms ease', { '--shutter': 0 })],
+
+  // and the parcel hops in
+  [1810, () => tween(parcel, '--px 210ms linear,' + '--py 210ms ease-out', { '--px': 93, '--py': 17.5 })],
+  [2030, () => parcel.classList.add('parcel--aboard')],
+
+  // the shutter comes back down over it
+  [2180, () => tween(scene, '--shutter 300ms ease', { '--shutter': 1 })],
+
+  // then it goes
+  [2920, () => { tween(van,   '--vx 760ms var(--go)',   { '--vx': OFF_RIGHT });
+                 tween(pitch, '--pitch 460ms var(--go)',{ '--pitch': -1.5 }); }],
+  [3760, () => cta.classList.add('is-done')],
+  [6200, () => reset()]
+];
+
+let running = false, timers = [];
+
+function play(){
+  if (running) return;
+  running = true;
+  cta.disabled = true;
+  cta.classList.add('is-open');
+  timers = SCORE.map(([at, cue]) => setTimeout(cue, at));
+}
+
+function reset(){
+  timers.forEach(clearTimeout);
+  timers = [];
+  const all = [van, scene, parcel, pitch];
+  all.forEach(el => el.style.transition = 'none');
+  van.style.setProperty('--vx', OFF_LEFT);
+  pitch.style.setProperty('--pitch', 0);
+  scene.style.setProperty('--shutter', 1);
+  parcel.style.setProperty('--px', START_PX);
+  parcel.style.setProperty('--py', START_PY);
+  parcel.classList.remove('parcel--aboard', 'is-here');
+  cta.classList.remove('is-open', 'is-done');
+  void cta.offsetWidth;                 // land it all before transitions come back
+  all.forEach(el => el.style.transition = '');
+  cta.disabled = false;
+  running = false;
+}
+
+cta.addEventListener('click', e => { e.preventDefault(); play(); });
+</script>
+</body>
+</html>

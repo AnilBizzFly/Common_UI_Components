@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Analytics Dashboard</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<section class="dash">
+  <div class="top">
+    <h1>Platform overview</h1>
+    <div class="seg" role="group" aria-label="View">
+      <button type="button" id="vChart" aria-pressed="true">CHART</button>
+      <button type="button" id="vTable" aria-pressed="false">TABLE</button>
+    </div>
+  </div>
+
+  <div class="tiles">
+    <div class="tile"><span>Requests / day</span><b>1.28M</b><em class="up">▲ 12.4% vs last week</em></div>
+    <div class="tile"><span>p95 latency</span><b>184<small style="font-size:13px;color:var(--dim)">ms</small></b><em class="down">▼ 8.1% slower</em></div>
+    <div class="tile"><span>Error rate</span><b>0.42%</b><em class="up">▼ 0.08pp &middot; within budget</em></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel_hd"><h2>Requests per day</h2><p>last 14 days</p></div>
+    <div class="wrap" id="w1">
+      <svg class="chart" id="c1" viewBox="0 0 660 200" role="img" aria-label="Requests per day over the last 14 days"></svg>
+      <div class="tip" id="t1"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel_hd"><h2>Requests by surface</h2><p>weekly, millions</p></div>
+    <div class="wrap" id="w2">
+      <svg class="chart" id="c2" viewBox="0 0 660 200" role="img" aria-label="Requests by surface, weekly"></svg>
+      <div class="tip" id="t2"></div>
+    </div>
+    <div class="legend" id="lg"></div>
+  </div>
+
+  <div id="tableView" hidden></div>
+</section>
+
+<script src="app.js"></script>
+</body>
+</html>

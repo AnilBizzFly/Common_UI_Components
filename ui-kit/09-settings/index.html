@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Settings</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<section class="sh">
+  <div class="hd"><h1>Settings</h1><p>Preferences apply to this workspace only.</p></div>
+
+  <div class="grp">
+    <h2>Appearance</h2>
+    <div class="row">
+      <span class="t"><b>Theme</b><span>Follow the system, or pin one.</span></span>
+      <div class="seg" role="group" aria-label="Theme">
+        <button type="button" data-th="light" aria-pressed="false">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M5 5l1.8 1.8M17.2 17.2 19 19M19 5l-1.8 1.8M6.8 17.2 5 19"/></svg>Light</button>
+        <button type="button" data-th="dark" aria-pressed="false">
+          <svg viewBox="0 0 24 24"><path d="M21 13.2A9 9 0 1 1 10.8 3a7 7 0 0 0 10.2 10.2Z"/></svg>Dark</button>
+        <button type="button" data-th="system" aria-pressed="true">
+          <svg viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M9 21h6M12 17v4"/></svg>System</button>
+      </div>
+    </div>
+    <div class="row">
+      <span class="t"><b>Reduce motion</b><span>Turn off transitions and parallax.</span></span>
+      <button class="sw" role="switch" aria-checked="false" aria-label="Reduce motion"></button>
+    </div>
+    <div class="row">
+      <span class="t"><b>Density</b><span>How much breathing room lists get.</span></span>
+      <select aria-label="Density"><option>Comfortable</option><option selected>Cosy</option><option>Compact</option></select>
+    </div>
+  </div>
+
+  <div class="grp">
+    <h2>Notifications</h2>
+    <div class="row">
+      <span class="t"><b>Deploy alerts</b><span>Ping me when a release finishes.</span></span>
+      <button class="sw" role="switch" aria-checked="true" aria-label="Deploy alerts"></button>
+    </div>
+    <div class="row">
+      <span class="t"><b>Weekly digest</b><span>Monday summary of everything shipped.</span></span>
+      <button class="sw" role="switch" aria-checked="true" aria-label="Weekly digest"></button>
+    </div>
+    <div class="row">
+      <span class="t"><b>Quota warning</b><span>Warn me at this share of the plan.</span></span>
+      <span class="slide"><input type="range" id="quota" min="50" max="100" step="5" value="90" aria-label="Quota warning"><b id="qv">90%</b></span>
+    </div>
+  </div>
+
+  <div class="danger">
+    <div class="row">
+      <span class="t"><b>Delete workspace</b><span>Removes all projects and history. Cannot be undone.</span></span>
+      <button class="dbtn" type="button" id="del">Delete…</button>
+    </div>
+  </div>
+
+  <p class="saved" id="saved"><svg viewBox="0 0 24 24"><path d="m4 12.5 5 5L20 6.5"/></svg><span>All changes saved</span></p>
+</section>
+
+<script src="app.js"></script>
+</body>
+</html>

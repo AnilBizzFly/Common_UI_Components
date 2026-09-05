@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Command Palette</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="stage">
+  <h1>Command Palette</h1>
+  <p>Press <kbd>Ctrl</kbd> <kbd>K</kbd> &mdash; or</p>
+  <button class="open" id="openBtn" type="button">Open palette</button>
+</div>
+
+<div class="scrim" id="scrim">
+  <div class="pal" role="dialog" aria-modal="true" aria-label="Command palette">
+    <div class="pal_top">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" placeholder="Search commands, people, files…" aria-label="Search" autocomplete="off">
+    </div>
+    <div class="pal_list" id="list" role="listbox"></div>
+    <div class="pal_foot">
+      <span><i>↑</i><i>↓</i> navigate</span><span><i>↵</i> select</span><span><i>esc</i> close</span>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

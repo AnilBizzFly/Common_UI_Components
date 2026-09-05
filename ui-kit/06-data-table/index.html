@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Data Table</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<section class="panel">
+  <div class="bar">
+    <h1>Deployments</h1>
+    <div class="chipbar" id="chips">
+      <button class="fchip" type="button" data-f="all" aria-pressed="true">ALL</button>
+      <button class="fchip" type="button" data-f="live" aria-pressed="false">LIVE</button>
+      <button class="fchip" type="button" data-f="build" aria-pressed="false">BUILDING</button>
+      <button class="fchip" type="button" data-f="fail" aria-pressed="false">FAILED</button>
+    </div>
+    <label class="search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" placeholder="Search service or author…" aria-label="Search">
+    </label>
+  </div>
+
+  <div class="selbar" id="selbar">
+    <b id="selcount"></b>
+    <button type="button" id="redeploy">Redeploy</button>
+    <button type="button" id="clearsel">Clear</button>
+  </div>
+
+  <div class="scroll">
+    <table>
+      <thead><tr>
+        <th class="cbx"><input type="checkbox" id="all" aria-label="Select all"></th>
+        <th class="s" data-k="service">Service <i>↕</i></th>
+        <th class="s" data-k="status">Status <i>↕</i></th>
+        <th class="s" data-k="author">Author <i>↕</i></th>
+        <th class="s num" data-k="dur">Duration <i>↕</i></th>
+        <th class="s num" data-k="when">Deployed <i>↕</i></th>
+      </tr></thead>
+      <tbody id="body"></tbody>
+    </table>
+    <div class="empty" id="empty" hidden><b>Nothing matches</b>Try a different service or clear the filter</div>
+  </div>
+
+  <div class="foot">
+    <span id="range"></span><span class="grow"></span>
+    <div class="pg" id="pg"></div>
+  </div>
+</section>
+
+<script src="app.js"></script>
+</body>
+</html>

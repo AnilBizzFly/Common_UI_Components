@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Unroll &mdash; Download</title>
+<style>
+:root{
+  --bg:#0e1220; --panel:#171d2e; --line:rgba(255,255,255,.09);
+  --txt:#e9edf8; --muted:#8b95b3; --dim:#5b6484;
+  --a:#5fd0a8; --b:#4aa8ff; --ink:#111726;
+  --chute:#f0a24b; --chute2:#d9823a; --crate:#c8d3ea;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; display:grid; place-items:center; padding:24px;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:var(--txt); background:var(--bg); overflow:hidden;
+}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(100px);pointer-events:none}
+body::before{width:540px;height:540px;background:rgba(95,208,168,.14);top:-190px;left:-150px}
+body::after{width:480px;height:480px;background:rgba(74,168,255,.13);bottom:-190px;right:-140px}
+
+/* ============ shell ============ */
+.dl{
+  position:relative; z-index:1; width:min(360px,100%);
+  background:linear-gradient(180deg,var(--panel),#141929);
+  border:1px solid var(--line); border-radius:22px; padding:0 0 22px;
+  box-shadow:0 30px 70px -20px rgba(0,0,0,.75),0 0 0 1px rgba(255,255,255,.03) inset;
+}
+.dl_head{padding:22px 24px 0;text-align:center}
+.dl_head h1{margin:0 0 3px;font-size:16px;letter-spacing:-.01em}
+.dl_head p{margin:0;font-size:12.5px;color:var(--dim)}
+
+/* the sky the payload falls through */
+.dl_stage{position:relative;height:172px;overflow:hidden}
+
+.dl_slot{
+  position:absolute; left:0; right:0; bottom:30px; height:56px;
+  display:flex; align-items:center; justify-content:center;
+}
+
+/* ============ the ring ============ */
+/* one element, three shapes: pill -> ring -> bar. it never gets replaced. */
+.rail{
+  position:relative; display:block; overflow:hidden; cursor:pointer;
+  width:196px; height:52px; border-radius:26px;
+  border:2px solid transparent; background:transparent; padding:0;
+  color:#0b1120; font:inherit; font-size:14.5px; font-weight:700;
+  box-shadow:0 12px 28px -10px rgba(95,208,168,.55);
+  transition:
+    width .48s cubic-bezier(.34,1.32,.5,1),
+    height .42s cubic-bezier(.65,0,.3,1),
+    border-radius .42s cubic-bezier(.65,0,.3,1),
+    border-color .3s ease,
+    box-shadow .4s ease,
+    opacity .34s ease;
+}
+.rail:hover{box-shadow:0 16px 34px -10px rgba(95,208,168,.7)}
+.rail:disabled{cursor:default}
+.rail::before{
+  content:""; position:absolute; inset:0; border-radius:inherit;
+  background:linear-gradient(115deg,var(--a),var(--b));
+  transition:opacity .28s ease;
+}
+.rail_txt{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center; gap:9px;
+  white-space:nowrap; transition:opacity .16s ease;
+}
+.rail_txt svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.rail_fill{
+  position:absolute; inset:0; width:0; border-radius:inherit; opacity:0;
+  background:linear-gradient(90deg,var(--a),var(--b));
+  transition:opacity .25s ease;
+}
+
+/* ring: collapse the pill to a circle and hollow it out */
+[data-state="arm"] .rail{width:52px;border-color:rgba(255,255,255,.16);box-shadow:none}
+[data-state="arm"] .rail::before{opacity:0}
+
+/* bar: the ring unrolls, and keeps unrolling a touch past true before settling */
+[data-state="unroll"] .rail,
+[data-state="load"]   .rail,
+[data-state="chute"]  .rail,
+[data-state="done"]   .rail{
+  width:284px; height:10px; border-radius:6px;
+  border-color:rgba(255,255,255,.14); box-shadow:none;
+}
+[data-state="unroll"] .rail::before,
+[data-state="load"]   .rail::before,
+[data-state="chute"]  .rail::before,
+[data-state="done"]   .rail::before{opacity:0}
+[data-state="load"]  .rail_fill,
+[data-state="chute"] .rail_fill,
+[data-state="done"]  .rail_fill{opacity:1}
+
+[data-state="arm"]    .rail_txt,
+[data-state="unroll"] .rail_txt,
+[data-state="load"]   .rail_txt,
+[data-state="chute"]  .rail_txt,
+[data-state="done"]   .rail_txt{opacity:0}
+
+/* the bar has served its purpose */
+[data-state="done"] .rail{opacity:0;transition-delay:.5s}
+
+/* ============ the arc that says "still a ring" ============ */
+.arc-wrap{position:absolute;left:50%;top:50%;width:60px;height:60px;margin:-30px 0 0 -30px;
+  opacity:0;transition:opacity .22s ease;pointer-events:none}
+[data-state="arm"] .arc-wrap{opacity:1}
+.arc{width:100%;height:100%;animation:spin .82s linear infinite}
+.arc circle{fill:none;stroke:url(#g);stroke-width:3;stroke-linecap:round;
+  stroke-dasharray:44 126;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ============ the parachute ============ */
+.chute{
+  position:absolute; left:50%; top:0; width:70px;
+  transform:translate(-50%,-108px); opacity:0;
+  transition:transform 1.15s cubic-bezier(.22,.62,.3,1),opacity .28s ease;
+}
+[data-state="chute"] .chute,
+[data-state="done"]  .chute{transform:translate(-50%,31px);opacity:1}
+.chute_in{display:block;width:100%;height:auto;transform-origin:50% 6%}
+[data-state="chute"] .chute_in{animation:sway 1.5s ease-in-out infinite}
+@keyframes sway{0%,100%{transform:rotate(-5.5deg)}50%{transform:rotate(5.5deg)}}
+
+.canopy{fill:var(--chute)}
+.canopy-sh{fill:var(--chute2)}
+.seam{fill:none;stroke:var(--chute2);stroke-width:1.6;opacity:.75}
+.cord{fill:none;stroke:#8f9ab8;stroke-width:1.5;stroke-linecap:round}
+.crate{fill:var(--crate)}
+.crate-mk{fill:none;stroke:#4d5876;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* the canopy has done its job -- cut it loose */
+.chute_canopy,.chute_cords{transform-box:fill-box;transform-origin:50% 100%;
+  transition:transform .6s cubic-bezier(.4,0,.6,1),opacity .6s ease}
+[data-state="done"] .chute_canopy,
+[data-state="done"] .chute_cords{transform:translateY(-16px) scaleY(.32);opacity:0}
+[data-state="done"] .chute_crate{animation:land .5s cubic-bezier(.3,1.5,.5,1)}
+@keyframes land{0%{transform:translateY(-3px) scaleY(1)}
+  40%{transform:translateY(0) scale(1.1,.86)}
+  70%{transform:translateY(-2px) scale(.96,1.05)}
+  100%{transform:translateY(0) scale(1)}}
+.chute_crate{transform-box:fill-box;transform-origin:50% 100%}
+
+/* ============ status ============ */
+.status{
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  min-height:20px; padding:0 24px; font-size:12.5px; color:var(--muted);
+  font-variant-numeric:tabular-nums;
+}
+.status b{color:var(--txt);font-weight:600}
+.status .ok{color:var(--a);font-weight:600}
+.tick{width:15px;height:15px;fill:none;stroke:var(--a);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;
+  stroke-dasharray:22;stroke-dashoffset:22}
+[data-state="done"] .tick{animation:draw .4s ease .12s forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+
+@media (prefers-reduced-motion:reduce){
+  .arc,.chute_in{animation:none!important}
+  .chute{transition-duration:.2s}
+}
+</style>
+</head>
+<body>
+
+<div class="dl" id="dl" data-state="idle">
+
+  <div class="dl_head">
+    <h1>quarterly-report.pdf</h1>
+    <p>4.2 MB &middot; PDF document</p>
+  </div>
+
+  <div class="dl_stage">
+
+    <!-- the payload, waiting above the fold -->
+    <div class="chute" aria-hidden="true">
+      <svg class="chute_in" viewBox="0 0 76 84">
+        <g class="chute_canopy">
+          <path class="canopy" d="M4 34 A34 34 0 0 1 72 34 Z"/>
+          <path class="canopy-sh" d="M38 0 A34 34 0 0 1 72 34 L38 34 Z" opacity=".55"/>
+          <path class="seam" d="M17 7.3 V34 M38 0.4 V34 M59 7.3 V34"/>
+        </g>
+        <g class="chute_cords">
+          <path class="cord" d="M4 34 L28 57 M21 34 L33 57 M55 34 L43 57 M72 34 L48 57"/>
+        </g>
+        <g class="chute_crate">
+          <rect class="crate" x="26" y="57" width="24" height="24" rx="5"/>
+          <path class="crate-mk" d="M38 63 V73 M34 69.5 L38 73.5 L42 69.5"/>
+        </g>
+      </svg>
+    </div>
+
+    <div class="dl_slot">
+      <!-- the ring doesn't disappear -- it unrolls into the progress bar -->
+      <button class="rail" id="rail" type="button"
+              role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <span class="rail_fill" id="fill"></span>
+        <span class="rail_txt">
+          <svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg>
+          Download
+        </span>
+      </button>
+
+      <div class="arc-wrap" aria-hidden="true">
+        <svg class="arc" viewBox="0 0 60 60">
+          <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#5fd0a8"/><stop offset="1" stop-color="#4aa8ff"/>
+          </linearGradient></defs>
+          <circle cx="30" cy="30" r="27"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <p class="status" id="status" aria-live="polite">
+    <svg class="tick" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 12.5 5 5L20 6.5"/></svg>
+    <span id="msg">Ready when you are</span>
+  </p>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
+
+const dl = $('#dl'), rail = $('#rail'), fill = $('#fill'), msg = $('#msg');
+const SIZE = 4.2;                       // MB, for the readout
+let busy = false;
+
+const set = s => { dl.dataset.state = s; };
+
+/* a real download does not climb at a constant rate -- it hesitates near the end */
+function curve(t){
+  const out = x => 1 - (1 - x) * (1 - x);
+  const smooth = x => x * x * (3 - 2 * x);
+  return t < .68 ? out(t / .68) * .82
+                 : .82 + smooth((t - .68) / .32) * .18;
+}
+
+function paint(p){
+  const pct = Math.round(p * 100);
+  fill.style.width = (p * 100).toFixed(2) + '%';
+  rail.setAttribute('aria-valuenow', pct);
+  msg.innerHTML = '<b>' + pct + '%</b> &middot; ' +
+                  (p * SIZE).toFixed(1) + ' of ' + SIZE.toFixed(1) + ' MB';
+}
+
+function fillTo(ms){
+  return new Promise(done => {
+    const t0 = performance.now();
+    let peak = 0;
+    (function step(now){
+      const t = clamp01((now - t0) / ms);
+      peak = Math.max(peak, curve(t));       // never let the number walk backwards
+      paint(peak);
+      t < 1 ? requestAnimationFrame(step) : done();
+    })(t0);
+  });
+}
+
+async function run(){
+  if (busy) return;
+  busy = true;
+  rail.disabled = true;
+
+  set('arm');                 // pill collapses into the ring
+  await wait(540);
+  set('unroll');              // ring unrolls flat
+  msg.textContent = 'Starting…';
+  await wait(500);
+  set('load');                // and fills
+  await fillTo(2280);
+  set('chute');               // canopy opens, payload comes down
+  msg.innerHTML = '<b>100%</b> &middot; landing…';
+  await wait(1180);
+  set('done');                // cut loose, crate settles
+  msg.innerHTML = '<span class="ok">Saved to Downloads</span>';
+
+  await wait(2600);           // replayable
+  set('idle');
+  fill.style.width = '0%';
+  rail.setAttribute('aria-valuenow', 0);
+  msg.textContent = 'Ready when you are';
+  rail.disabled = false;
+  busy = false;
+}
+
+rail.addEventListener('click', run);
+</script>
+</body>
+</html>

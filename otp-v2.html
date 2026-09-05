@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Component 85 &mdash; OTP Verification v2</title>
+<style>
+:root{
+  --bg:#080c17; --card:#151c2d; --card2:#0f1524;
+  --line:rgba(255,255,255,.08);
+  --txt:#e9edf8; --mut:#8b95b3; --dim:#5a6482; --faint:#3c4562;
+  --a:#7cc4ff; --b:#a98bff;
+  --ok:#5fe0ac; --bad:#ff6b81;
+}
+*{box-sizing:border-box}
+html{height:100%}
+body{
+  margin:0; min-height:100%; display:flex; align-items:center; justify-content:center; padding:30px 22px;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:var(--txt); background:var(--bg);
+}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0}
+body::before{width:540px;height:540px;background:rgba(124,196,255,.13);top:-200px;left:-160px}
+body::after{width:480px;height:480px;background:rgba(95,224,172,.12);bottom:-190px;right:-150px}
+
+.sheet{
+  position:relative; z-index:1; width:min(392px,100%); text-align:center;
+  background:linear-gradient(168deg,var(--card),var(--card2));
+  border:1px solid var(--line); border-radius:24px; padding:26px 24px 22px;
+  box-shadow:0 36px 80px -26px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.03) inset;
+}
+.sheet.shake{animation:shake .42s cubic-bezier(.36,.07,.19,.97)}
+@keyframes shake{10%,90%{transform:translateX(-3px)}20%,80%{transform:translateX(5px)}
+  30%,50%,70%{transform:translateX(-8px)}40%,60%{transform:translateX(8px)}}
+
+.kicker{margin:0 0 4px;font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.18em;color:var(--faint)}
+h1{margin:0 0 6px;font-size:21px;letter-spacing:-.02em}
+.lede{margin:0;font-size:12.5px;color:var(--dim)}
+.lede b{color:var(--mut);font-weight:650;letter-spacing:.03em}
+
+/* ============ the stage ============ */
+/* a fold that only translates is a slide - so the row is a 3D stage
+   and every box tips through depth on the way */
+.code{
+  position:relative; width:292px; margin:0 auto;
+  display:flex; justify-content:center; gap:12px;
+  padding:30px 0;
+  perspective: 1000px;
+}
+
+/* four boxes, four wires */
+.wire{position:absolute;top:20px;bottom:20px;left:0;right:0;pointer-events:none}
+.wire span{position:absolute;background:var(--ok);opacity:0;
+  box-shadow:0 0 10px rgba(95,224,172,.75);
+  transition:transform .24s cubic-bezier(.5,0,.3,1),opacity .18s ease}
+[data-wire="top"]   {top:0;   left:0;right:0;height:1.8px;transform:scaleX(0);transform-origin:left}
+[data-wire="right"] {top:0;bottom:0;right:0; width:1.8px;transform:scaleY(0);transform-origin:top}
+[data-wire="bottom"]{bottom:0;left:0;right:0;height:1.8px;transform:scaleX(0);transform-origin:right}
+[data-wire="left"]  {top:0;bottom:0;left:0;  width:1.8px;transform:scaleY(0);transform-origin:bottom}
+
+[data-wired] .wire span{opacity:1;transform:scale(1)}
+[data-wired] [data-wire="right"] {transition-delay:.18s}
+[data-wired] [data-wire="bottom"]{transition-delay:.36s}
+[data-wired] [data-wire="left"]  {transition-delay:.54s}
+
+/* ============ the slots ============ */
+.slot{
+  position:relative; width:58px; height:68px; flex:0 0 auto;
+  border-radius:15px; background:rgba(255,255,255,.045);
+  box-shadow:inset 0 0 0 1px var(--line);
+  transform-style:preserve-3d;
+  transition:box-shadow .25s ease,background .25s ease;
+}
+.slot input{
+  position:absolute; inset:0; width:100%; height:100%; padding:0;
+  text-align:center; font:inherit; font-size:25px; font-weight:700; color:var(--txt);
+  background:none; border:0; border-radius:inherit; outline:none; caret-color:var(--a);
+}
+.slot:focus-within{background:rgba(124,196,255,.09);box-shadow:inset 0 0 0 1.6px var(--a),0 0 0 4px rgba(124,196,255,.12)}
+.slot.is-set{background:rgba(255,255,255,.07)}
+
+/* circuit closed: four inputs become one object */
+.sheet [data-wired] .slot { box-shadow: inset 0 1.8px var(--ok); }
+.sheet [data-wired] .slot{background:rgba(95,224,172,.09)}
+.sheet [data-wired] .slot input{color:var(--ok)}
+.sheet [data-wired] .slot:focus-within{box-shadow:inset 0 1.8px var(--ok),0 0 0 4px rgba(95,224,172,.14)}
+
+.slot_win{position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none}
+.slot_win::after{
+  content:""; position:absolute; inset:-60% -130%;
+  background:linear-gradient(102deg,transparent 42%,rgba(255,255,255,.42) 50%,transparent 58%);
+  transform:translateX(-100%);
+}
+.slot.is-lit .slot_win::after{animation:sheen .62s cubic-bezier(.3,.7,.3,1)}
+@keyframes sheen{to{transform:translateX(100%)}}
+
+/* ============ chrome ============ */
+.status{display:flex;align-items:center;justify-content:center;gap:7px;margin:2px 0 18px;min-height:16px;
+  font:600 10.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.13em;text-transform:uppercase;color:var(--faint);
+  transition:color .3s ease}
+.status::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;
+  box-shadow:0 0 8px currentColor;transition:background .3s}
+.status.wired{color:var(--ok)}
+.status.bad{color:var(--bad)}
+
+.go{
+  width:100%;padding:14px;font:inherit;font-size:12.5px;font-weight:750;letter-spacing:.14em;
+  color:#07121d;background:linear-gradient(115deg,var(--a),var(--b));
+  border:0;border-radius:14px;cursor:pointer;
+  box-shadow:0 12px 28px -10px rgba(124,196,255,.65);
+  transition:transform .14s,box-shadow .2s,opacity .25s,filter .25s;
+}
+.go:hover{transform:translateY(-1px)}
+.go:active{transform:translateY(1px)}
+.code:not([data-wired]) ~ .go{opacity:.5;filter:saturate(.5);pointer-events:none}
+.go.done{background:linear-gradient(115deg,var(--ok),#4bc7ff);pointer-events:none}
+
+.foot{margin:14px 0 0;font-size:12px;color:var(--dim)}
+.foot button{background:none;border:0;padding:0;font:inherit;font-size:12px;font-weight:650;
+  color:var(--a);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+
+@media (max-width:400px){
+  .code{width:252px;gap:9px}
+  .slot{width:52px;height:62px}
+  .slot input{font-size:22px}
+}
+@media (prefers-reduced-motion:reduce){ .wire span{transition-duration:.01ms} }
+</style>
+</head>
+<body>
+
+<section class="sheet" id="sheet">
+  <p class="kicker">COMPONENT 85</p>
+  <h1>OTP Verification</h1>
+  <p class="lede">Enter the 4-digit code sent to <b>+1 415 &bull;&bull;&bull; 0148</b></p>
+
+  <div class="code" id="code">
+    <!-- four boxes, four wires -->
+    <div class="wire">
+      <span data-wire="top"></span>
+      <span data-wire="left"></span>
+      <span data-wire="right"></span>
+      <span data-wire="bottom"></span>
+    </div>
+
+    <label class="slot"><input inputmode="numeric" autocomplete="one-time-code" maxlength="1" aria-label="Digit 1"><span class="slot_win"></span></label>
+    <label class="slot"><input inputmode="numeric" maxlength="1" aria-label="Digit 2"><span class="slot_win"></span></label>
+    <label class="slot"><input inputmode="numeric" maxlength="1" aria-label="Digit 3"><span class="slot_win"></span></label>
+    <label class="slot"><input inputmode="numeric" maxlength="1" aria-label="Digit 4"><span class="slot_win"></span></label>
+  </div>
+
+  <p class="status" id="status">waiting for code</p>
+
+  <button class="go" id="go" type="button">VERIFY</button>
+
+  <p class="foot">Didn&rsquo;t get it? <button id="sms" type="button">Simulate SMS</button></p>
+</section>
+
+<script>
+const $  = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+
+const CODE   = '4271';
+const sheet  = $('#sheet'), code = $('#code'), status = $('#status'), go = $('#go');
+const slots  = $$('.slot');
+const inputs = $$('.slot input');
+
+const value = () => inputs.map(i => i.value).join('');
+
+/* the digit lands: the box tips through depth on the way */
+function set(i){
+  const slot = slots[i];
+  slot.classList.add('is-set');
+  slot.classList.remove('is-lit'); void slot.offsetWidth; slot.classList.add('is-lit');
+}
+function land(i){
+  const slot = slots[i];
+  set(i);
+  slot.animate([
+    { transform:'rotateY(0deg) translateZ(0)' },
+    { transform:'rotateY(-52deg) translateZ(26px)', offset:.45 },
+    { transform:'rotateY(0deg) translateZ(0)' }
+  ], { duration:420, easing:'cubic-bezier(.4,0,.3,1)' });
+}
+
+function check(){
+  const v = value();
+  const full = v.length === 4 && /^\d{4}$/.test(v);
+  code.toggleAttribute('data-wired', full);
+  status.classList.toggle('wired', full);
+  status.classList.remove('bad');
+  status.textContent = full ? 'circuit closed' : (v.replace(/\s/g,'').length ? 'reading code' : 'waiting for code');
+}
+
+/* ---- they turn about the CENTRE of the square, not their own middles
+        - an arc, not a line ---- */
+const T = 42 * Math.PI / 180;
+
+function swing(){
+  const box = code.getBoundingClientRect();
+  const cx = box.left + box.width  / 2;
+  const cy = box.top  + box.height / 2;
+
+  slots.forEach((slot, i) => {
+    const r  = slot.getBoundingClientRect();
+    const rx = r.left + r.width  / 2 - cx;
+    const ry = r.top  + r.height / 2 - cy;
+
+    const Ex = cx + (rx * Math.cos(T) - ry * Math.sin(T));
+    const Ey = cy + (rx * Math.sin(T) + ry * Math.cos(T));
+    const mx = Ex - (cx + rx);
+    const my = Ey - (cy + ry);
+
+    slot.animate([
+      { transform: 'none' },
+      { transform: `translate(${mx.toFixed(1)}px, ${my.toFixed(1)}px) rotate(22deg) rotateY(44deg)`, offset: .5 },
+      { transform: 'none' }
+    ], { duration: 520, delay: i * 58, easing: 'cubic-bezier(.45,0,.32,1)' });
+  });
+}
+
+/* ---- automatic filling ---- */
+let filling = false;
+function autofill(digits){
+  if (filling) return;
+  filling = true;
+  inputs.forEach(i => i.value = '');
+  check();
+  status.textContent = 'code received';
+  swing();
+  digits.split('').forEach((d, i) => setTimeout(() => {
+    inputs[i].value = d;
+    set(i);                       // the swing is already tipping it; don't fight it
+    check();
+    if (i === 3){ filling = false; inputs[3].focus(); }
+  }, 300 + i * 58));
+}
+
+/* ---- typing ---- */
+inputs.forEach((el, i) => {
+  el.addEventListener('input', () => {
+    const digits = el.value.replace(/\D/g, '');
+    el.value = digits.slice(0, 1);
+    if (el.value) land(i);
+    if (el.value && i < 3) inputs[i + 1].focus();
+    check();
+  });
+  el.addEventListener('keydown', e => {
+    if (e.key === 'Backspace' && !el.value && i > 0){
+      e.preventDefault();
+      inputs[i - 1].value = '';
+      slots[i - 1].classList.remove('is-set');
+      inputs[i - 1].focus(); check();
+    }
+    if (e.key === 'ArrowLeft'  && i > 0){ e.preventDefault(); inputs[i - 1].focus(); }
+    if (e.key === 'ArrowRight' && i < 3){ e.preventDefault(); inputs[i + 1].focus(); }
+    if (e.key === 'Enter' && value().length === 4) verify();
+  });
+  el.addEventListener('focus', () => el.select());
+  el.addEventListener('paste', e => {
+    e.preventDefault();
+    const d = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 4);
+    if (d.length === 4) autofill(d);
+    else { d.split('').forEach((c, n) => { if (inputs[i + n]) { inputs[i + n].value = c; land(i + n); } }); check(); }
+  });
+});
+
+/* ---- verify ---- */
+function verify(){
+  if (value() === CODE){
+    status.textContent = 'verified';
+    status.classList.add('wired');
+    go.textContent = 'VERIFIED';
+    go.classList.add('done');
+    inputs.forEach(i => i.blur());
+    return;
+  }
+  status.textContent = 'wrong code';
+  status.classList.add('bad'); status.classList.remove('wired');
+  sheet.classList.remove('shake'); void sheet.offsetWidth; sheet.classList.add('shake');
+  setTimeout(() => {
+    inputs.forEach(i => i.value = '');
+    slots.forEach(s => s.classList.remove('is-set'));
+    inputs[0].focus(); check();
+  }, 540);
+}
+go.addEventListener('click', verify);
+
+$('#sms').addEventListener('click', () => autofill(CODE));
+
+check();
+inputs[0].focus();
+</script>
+</body>
+</html>

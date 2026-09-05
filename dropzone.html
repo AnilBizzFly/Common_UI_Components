@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dropzone</title>
+<style>
+/* registered, so it INTERPOLATES */
+@property --p { syntax:'<number>'; inherits:true; initial-value:0 }
+
+:root{
+  --bg:#0a0e1a; --card:#161d2e; --card2:#111725;
+  --line:rgba(255,255,255,.08);
+  --txt:#e9edf8; --mut:#8b95b3; --dim:#5a6482; --faint:#3e4763;
+  --a:#7cc4ff; --b:#a98bff;
+  --ok:#5fd0a8; --bad:#ff6b81;
+}
+*{box-sizing:border-box}
+html{height:100%}
+body{
+  margin:0; min-height:100%; display:flex; align-items:center; justify-content:center; padding:30px 22px;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:var(--txt); background:var(--bg);
+}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0}
+body::before{width:540px;height:540px;background:rgba(124,196,255,.13);top:-200px;left:-160px}
+body::after{width:480px;height:480px;background:rgba(169,139,255,.13);bottom:-190px;right:-150px}
+
+.dz{
+  position:relative; z-index:1; width:min(440px,100%);
+  background:linear-gradient(168deg,var(--card),var(--card2));
+  border:1px solid var(--line); border-radius:24px; padding:24px;
+  box-shadow:0 36px 80px -26px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.03) inset;
+}
+.dz_kicker{margin:0 0 3px;font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.18em;color:var(--faint)}
+.dz h1{margin:0 0 5px;font-size:21px;letter-spacing:-.02em}
+.dz_hint{margin:0 0 18px;font-size:12.5px;line-height:1.55;color:var(--dim)}
+
+/* ============ the zone ============ */
+.zone{
+  position:relative; display:flex; flex-direction:column; align-items:center; gap:9px;
+  padding:26px 20px; text-align:center; cursor:pointer;
+  border:1.5px dashed rgba(255,255,255,.15); border-radius:16px;
+  background:rgba(255,255,255,.02);
+  transition:border-color .22s,background .22s,transform .18s;
+}
+.zone:hover{border-color:rgba(124,196,255,.45);background:rgba(124,196,255,.05)}
+.zone.is-over{
+  border-color:var(--a);background:rgba(124,196,255,.11);transform:scale(1.012);
+  box-shadow:0 0 0 4px rgba(124,196,255,.1);
+}
+.zone_arrow{
+  display:grid;place-items:center;width:40px;height:40px;border-radius:13px;
+  background:linear-gradient(135deg,var(--a),var(--b));
+  box-shadow:0 10px 22px -8px rgba(124,196,255,.7);
+  transition:transform .3s cubic-bezier(.3,1.4,.5,1);
+}
+.zone.is-over .zone_arrow{transform:translateY(-4px)}
+.zone_arrow svg{width:19px;height:19px;fill:none;stroke:#0a1220;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.zone p{margin:0;font-size:13px;color:var(--mut)}
+.zone b{color:var(--txt);font-weight:650}
+.browse{background:none;border:0;padding:0;font:inherit;font-size:13px;font-weight:650;
+  color:var(--a);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.zone_kbd{font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.1em;color:var(--faint)}
+
+.err{margin:10px 0 0;min-height:16px;font-size:11.5px;color:var(--bad);opacity:0;transition:opacity .25s}
+.err.on{opacity:1}
+
+/* ============ the rows ============ */
+.files{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+
+.file{
+  --p:0;
+  display:flex; align-items:center; gap:12px; padding:9px 10px;
+  background:rgba(255,255,255,.035); border:1px solid var(--line); border-radius:13px;
+  transition:--p .3s linear, border-color .3s ease, background .3s ease;
+}
+.file.is-done{border-color:rgba(95,208,168,.26);background:rgba(95,208,168,.05)}
+.file.is-failed{border-color:rgba(255,107,129,.32);background:rgba(255,107,129,.05)}
+
+/* the picture IS the bar */
+.file_img{
+  position:relative; width:44px; height:44px; flex:0 0 auto;
+  border-radius:10px; overflow:hidden; background:#0d1220;
+  box-shadow:0 0 0 1px rgba(255,255,255,.07) inset;
+}
+.file_img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+/* the dark, not-yet-arrived one */
+.file_img--ghost{ filter:grayscale(1) brightness(.32) }
+/* and the real one, uncovered exactly as far as the bytes have got */
+.file_img--live{ clip-path:inset(0 0 calc((1 - var(--p)) * 100%) 0) }
+/* the waterline */
+.file_img::after{
+  content:""; position:absolute; left:0; right:0; height:1.5px;
+  top:calc(var(--p) * 100%); background:var(--a); box-shadow:0 0 8px 1px rgba(124,196,255,.9);
+  opacity:0; transition:opacity .25s;
+}
+.file.is-up .file_img::after{opacity:1}
+.file.is-failed .file_img{box-shadow:0 0 0 1.5px var(--bad) inset}
+
+.file_meta{flex:1;min-width:0}
+.file_name{display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file_sub{display:block;font-size:11.5px;color:var(--dim);font-variant-numeric:tabular-nums}
+.file.is-done .file_sub b{color:var(--ok)}
+.file.is-failed .file_sub b{color:var(--bad)}
+
+.file_act{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+.pct{font:600 12px/1 ui-monospace,Menlo,monospace;color:var(--a);font-variant-numeric:tabular-nums}
+.icon{
+  display:grid;place-items:center;width:28px;height:28px;border-radius:9px;
+  background:none;border:0;color:var(--dim);cursor:pointer;
+  transition:background .2s,color .2s;
+}
+.icon:hover{background:rgba(255,255,255,.08);color:var(--txt)}
+.icon svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.retry{color:var(--bad)}
+.retry:hover{background:rgba(255,107,129,.14);color:var(--bad)}
+.tick{stroke:var(--ok)}
+
+.bar{display:flex;align-items:center;justify-content:space-between;margin:14px 0 0;
+  font:600 10.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.11em;text-transform:uppercase;color:var(--faint)}
+.sample{background:none;border:0;padding:0;font:inherit;color:var(--a);cursor:pointer;letter-spacing:.11em}
+.sample:hover{text-decoration:underline}
+
+@media (prefers-reduced-motion:reduce){ .zone{transition:none} }
+</style>
+</head>
+<body>
+
+<section class="dz" id="zone">
+  <p class="dz_kicker">COMPONENT</p>
+  <h1>Dropzone</h1>
+  <p class="dz_hint">Upload files: PNG, JPG, WebP, GIF or PDF up to 8&nbsp;MB each. 6 files max</p>
+
+  <div class="zone" id="drop">
+    <span class="zone_arrow"><svg viewBox="0 0 24 24"><path d="M12 20V5"/><path d="m6 11 6-6 6 6"/></svg></span>
+    <p><b>Drop files here</b> or <button class="browse" id="browse" type="button">browse</button></p>
+    <span class="zone_kbd">YOU CAN PASTE TOO</span>
+    <input type="file" id="picker" multiple accept="image/png,image/jpeg,image/webp,image/gif,application/pdf" hidden>
+  </div>
+
+  <p class="err" id="err"></p>
+
+  <ul class="files" id="list"></ul>
+
+  <p class="bar">
+    <span id="tally">0 of 6</span>
+    <button class="sample" id="sampleBtn" type="button">LOAD SAMPLES</button>
+  </p>
+</section>
+
+<script>
+const $ = s => document.querySelector(s);
+const SPRING = 'cubic-bezier(.22,1.18,.36,1)';
+const MAX_FILES = 6, MAX_BYTES = 8 * 1024 * 1024;
+const OK_TYPES = ['image/png','image/jpeg','image/webp','image/gif','application/pdf'];
+
+const zone = $('#drop'), list = $('#list'), picker = $('#picker'),
+      errEl = $('#err'), tally = $('#tally');
+
+const rows = [];
+let over = 0, errTimer;
+
+const fmt = n => n < 1024 ? n + ' B'
+  : n < 1048576 ? (n / 1024).toFixed(0) + ' KB'
+  : (n / 1048576).toFixed(1) + ' MB';
+
+function warn(msg){
+  errEl.textContent = msg; errEl.classList.add('on');
+  clearTimeout(errTimer);
+  errTimer = setTimeout(() => errEl.classList.remove('on'), 2600);
+}
+function retally(){
+  if (!rows.length){ tally.textContent = '0 of ' + MAX_FILES; return; }
+  const d = rows.filter(r => r.state === 'done').length;
+  tally.textContent = d + ' of ' + rows.length + ' uploaded';
+}
+
+/* a document gets a tile so the same ghost/live trick still works */
+function docThumb(ext){
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44">' +
+    '<rect width="44" height="44" fill="#e0524f"/>' +
+    '<path d="M0 30h44v14H0z" fill="#c8403d"/>' +
+    '<text x="22" y="25" font-family="Helvetica,Arial,sans-serif" font-size="11" font-weight="bold" ' +
+    'fill="#fff" text-anchor="middle">' + ext + '</text></svg>';
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+
+/* ---- thrown, not spawned ---- */
+function fly(el, from){
+  if (!from) return;
+  const r = el.getBoundingClientRect();
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  el.animate([
+    { transform: 'translate(' + (from.x - cx) + 'px, ' + (from.y - cy) + 'px)' },
+    { transform: 'none' }
+  ], { duration: 620, easing: SPRING });
+}
+
+function add(files, from){
+  const incoming = [...files];
+  if (!incoming.length) return;
+
+  for (const file of incoming){
+    if (rows.length >= MAX_FILES){ warn('6 files max — ' + file.name + ' skipped'); break; }
+    if (!OK_TYPES.includes(file.type)){ warn(file.name + ' — PNG, JPG, WebP, GIF or PDF only'); continue; }
+    if (file.size > MAX_BYTES){ warn(file.name + ' — over 8 MB'); continue; }
+    mount(file, from);
+  }
+  retally();
+}
+
+function mount(file, from){
+  const isImg = file.type.startsWith('image/');
+  const src = isImg ? URL.createObjectURL(file)
+                    : docThumb((file.name.split('.').pop() || 'FILE').toUpperCase().slice(0, 4));
+
+  const li = document.createElement('li');
+  li.className = 'file';
+  li.innerHTML =
+    '<span class="file_img">' +
+      '<img class="file_img--ghost" alt="">' +
+      '<img class="file_img--live" alt="">' +
+    '</span>' +
+    '<span class="file_meta">' +
+      '<span class="file_name"></span>' +
+      '<span class="file_sub"></span>' +
+    '</span>' +
+    '<span class="file_act">' +
+      '<span class="pct">0%</span>' +
+      '<button class="icon retry" type="button" title="Retry" hidden>' +
+        '<svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg></button>' +
+      '<button class="icon" type="button" title="Remove" hidden>' +
+        '<svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
+    '</span>';
+
+  li.querySelectorAll('img').forEach(i => i.src = src);
+  li.querySelector('.file_name').textContent = file.name;
+  li.querySelector('.file_sub').textContent = fmt(file.size);
+
+  const row = {
+    file, li, src, isImg, attempt: 0, state: 'up', p: 0,
+    sub: li.querySelector('.file_sub'),
+    pct: li.querySelector('.pct'),
+    retryBtn: li.querySelectorAll('.icon')[0],
+    killBtn: li.querySelectorAll('.icon')[1]
+  };
+  rows.push(row);
+  list.appendChild(li);
+
+  // so every new row FLIES from where you let go, instead of appearing in its slot
+  fly(li, from);
+
+  row.retryBtn.addEventListener('click', () => { row.attempt++; upload(row); });
+  row.killBtn.addEventListener('click', () => {
+    row.dead = true;
+    if (row.isImg) URL.revokeObjectURL(row.src);
+    li.remove();
+    rows.splice(rows.indexOf(row), 1);
+    retally();
+  });
+
+  upload(row);
+}
+
+function setP(row, p){
+  row.p = p;
+  row.li.style.setProperty('--p', p.toFixed(4));
+  row.pct.textContent = Math.round(p * 100) + '%';
+}
+
+function upload(row){
+  row.state = 'up';
+  row.li.className = 'file is-up';
+  row.retryBtn.hidden = true; row.killBtn.hidden = true;
+  row.pct.hidden = false;
+
+  const dur = 1500 + Math.min(row.file.size / 1400, 1900);
+  const willFail = row.attempt === 0 && Math.random() < 0.3;   // retry always lands
+  const failAt = 0.32 + Math.random() * 0.42;
+  const t0 = performance.now();
+  const token = row.token = Symbol();
+
+  (function step(now){
+    if (row.dead || row.token !== token) return;
+    const t = Math.min(1, (now - t0) / dur);
+    const p = 1 - Math.pow(1 - t, 2.4);
+    if (willFail && p >= failAt){ return fail(row, failAt); }
+    setP(row, p);
+    if (t < 1) requestAnimationFrame(step); else done(row);
+  })(t0);
+}
+
+function done(row){
+  row.state = 'done';
+  setP(row, 1);
+  row.li.className = 'file is-done';
+  row.pct.hidden = true;
+  row.killBtn.hidden = false;
+  row.sub.innerHTML = fmt(row.file.size) + ' &middot; <b>uploaded</b>';
+  retally();
+}
+
+function fail(row, at){
+  row.state = 'failed';
+  setP(row, at);
+  row.li.className = 'file is-failed';
+  row.pct.hidden = true;
+  row.retryBtn.hidden = false; row.killBtn.hidden = false;
+  row.sub.innerHTML = fmt(row.file.size) + ' &middot; <b>upload failed</b>';
+  retally();
+}
+
+/* ---- ways in ---- */
+zone.addEventListener('dragover', e => e.preventDefault());
+zone.addEventListener('dragenter', e => { e.preventDefault(); if (++over === 1) zone.classList.add('is-over'); });
+zone.addEventListener('dragleave', () => { if (--over <= 0){ over = 0; zone.classList.remove('is-over'); } });
+
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  over = 0; zone.classList.remove('is-over');
+  // where you let go of them
+  const from = { x: e.clientX, y: e.clientY };
+  add(e.dataTransfer.files, from);
+});
+
+zone.addEventListener('click', e => { if (e.target !== picker) picker.click(); });
+picker.addEventListener('change', () => {
+  const r = $('#browse').getBoundingClientRect();
+  add(picker.files, { x: r.left + r.width / 2, y: r.top + r.height / 2 });
+  picker.value = '';
+});
+
+addEventListener('paste', e => {
+  if (!e.clipboardData || !e.clipboardData.files.length) return;
+  const r = zone.getBoundingClientRect();
+  add(e.clipboardData.files, { x: r.left + r.width / 2, y: r.top + r.height / 2 });
+});
+
+/* ---- samples, so it demos with no files to hand ---- */
+const SAMPLES = [
+  ['sneaker-lilac.png',      ['#b9a7ff','#6d5bd0']],
+  ['sneaker-mint.png',       ['#8ef0c8','#35a887']],
+  ['sneaker-terracotta.png', ['#f0a184','#c9563a']]
+];
+$('#sampleBtn').addEventListener('click', () => {
+  const r = $('#sampleBtn').getBoundingClientRect();
+  const from = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  SAMPLES.forEach(([name, [c1, c2]], i) => {
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 220;
+    const g = cv.getContext('2d');
+    const grad = g.createLinearGradient(0, 0, 220, 220);
+    grad.addColorStop(0, c1); grad.addColorStop(1, c2);
+    g.fillStyle = grad; g.fillRect(0, 0, 220, 220);
+    g.fillStyle = 'rgba(255,255,255,.28)';
+    g.beginPath(); g.ellipse(150, 70, 74, 74, 0, 0, 7); g.fill();
+    g.beginPath(); g.ellipse(60, 168, 52, 52, 0, 0, 7); g.fill();
+    cv.toBlob(blob => {
+      setTimeout(() => add([new File([blob], name, { type: 'image/png' })], from), i * 130);
+    }, 'image/png');
+  });
+});
+
+retally();
+</script>
+</body>
+</html>

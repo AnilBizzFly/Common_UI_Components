@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Toast System</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<section class="demo">
+  <h1>Toast system</h1>
+  <p>Stacked, auto-dismissing, pause on hover, drag right to throw away.</p>
+  <div class="grid">
+    <button class="trig" type="button" data-t="success"><i style="background:var(--ok)"></i>Success</button>
+    <button class="trig" type="button" data-t="error"><i style="background:var(--bad)"></i>Error</button>
+    <button class="trig" type="button" data-t="warning"><i style="background:var(--warn)"></i>Warning</button>
+    <button class="trig" type="button" data-t="info"><i style="background:var(--a)"></i>Info</button>
+  </div>
+  <p class="note">max 4 on screen &middot; oldest retires first</p>
+</section>
+
+<div class="toaster" id="toaster" role="region" aria-live="polite" aria-label="Notifications"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

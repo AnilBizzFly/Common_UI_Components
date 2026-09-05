@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Data Table</title>
+<style>
+:root{--bg:#080c17;--card:#141b2b;--card2:#0e1422;--line:rgba(255,255,255,.08);
+--txt:#e9edf8;--mut:#8b95b3;--dim:#5a6482;--faint:#3c4562;--a:#7cc4ff;--b:#a98bff;--ok:#5fe0ac;--warn:#ffb057;--bad:#ff6b81}
+*{box-sizing:border-box}html{height:100%}
+body{margin:0;min-height:100%;display:flex;align-items:center;justify-content:center;padding:26px 20px;
+font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--txt);background:var(--bg)}
+body::before{content:"";position:fixed;width:620px;height:620px;border-radius:50%;filter:blur(140px);
+background:rgba(169,139,255,.11);top:-240px;right:-200px;pointer-events:none}
+
+.panel{position:relative;z-index:1;width:min(820px,100%);
+background:linear-gradient(168deg,var(--card),var(--card2));border:1px solid var(--line);
+border-radius:22px;overflow:hidden;box-shadow:0 38px 84px -28px rgba(0,0,0,.86)}
+
+.bar{display:flex;align-items:center;gap:10px;padding:15px 17px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.bar h1{margin:0;flex:1;font-size:16px;letter-spacing:-.02em;white-space:nowrap}
+.search{position:relative;display:flex;align-items:center}
+.search svg{position:absolute;left:10px;width:14px;height:14px;fill:none;stroke:var(--faint);stroke-width:2;stroke-linecap:round}
+.search input{width:190px;padding:8px 11px 8px 31px;font:inherit;font-size:12.5px;color:var(--txt);
+background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:10px;outline:none;transition:.2s}
+.search input::placeholder{color:var(--faint)}
+.search input:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(124,196,255,.13);width:220px}
+.chipbar{display:flex;gap:4px}
+.fchip{padding:7px 11px;font:600 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.05em;color:var(--dim);
+background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:9px;cursor:pointer;transition:.2s}
+.fchip[aria-pressed="true"]{color:var(--txt);background:rgba(124,196,255,.14);border-color:rgba(124,196,255,.4)}
+
+.selbar{display:flex;align-items:center;gap:10px;padding:0 17px;
+background:rgba(124,196,255,.09);border-bottom:1px solid rgba(124,196,255,.2);
+overflow:hidden;max-height:0;transition:max-height .26s cubic-bezier(.3,1,.4,1)}
+.selbar.on{max-height:52px}
+.selbar b{flex:1;padding:14px 0;font-size:12.5px;font-weight:600;color:var(--a)}
+.selbar button{padding:6px 11px;font:inherit;font-size:11.5px;font-weight:600;color:var(--txt);
+background:rgba(255,255,255,.08);border:1px solid var(--line);border-radius:8px;cursor:pointer}
+.selbar button:hover{background:rgba(255,255,255,.14)}
+
+.scroll{max-height:min(430px,54vh);overflow:auto;scrollbar-width:thin}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{position:sticky;top:0;z-index:2;padding:10px 14px;text-align:left;white-space:nowrap;
+background:#131a29;border-bottom:1px solid var(--line);
+font:600 9.5px/1.6 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+thead th.s{cursor:pointer;user-select:none}
+thead th.s:hover{color:var(--mut)}
+thead th i{font-style:normal;margin-left:5px;opacity:.35}
+thead th[aria-sort] i{opacity:1;color:var(--a)}
+tbody td{padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.05);color:var(--mut);vertical-align:middle}
+tbody tr{transition:background .15s}
+tbody tr:hover{background:rgba(255,255,255,.035)}
+tbody tr.sel{background:rgba(124,196,255,.08)}
+td.name{color:var(--txt);font-weight:550}
+td.name span{display:block;font-size:11px;font-weight:400;color:var(--faint)}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.cbx{width:40px}
+input[type=checkbox]{width:15px;height:15px;accent-color:var(--a);cursor:pointer}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:99px;
+font:600 10.5px/1.6 ui-monospace,Menlo,monospace;letter-spacing:.04em}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.st-live{background:rgba(95,224,172,.13);color:var(--ok);border:1px solid rgba(95,224,172,.28)}
+.st-build{background:rgba(255,176,87,.13);color:var(--warn);border:1px solid rgba(255,176,87,.28)}
+.st-fail{background:rgba(255,107,129,.13);color:var(--bad);border:1px solid rgba(255,107,129,.3)}
+.av{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:8px;
+font:700 10px/1 ui-sans-serif;color:#07121d;margin-right:8px;vertical-align:-7px}
+
+.empty{padding:44px 20px;text-align:center;color:var(--dim);font-size:13px}
+.empty b{display:block;color:var(--mut);margin-bottom:3px}
+
+.foot{display:flex;align-items:center;gap:10px;padding:12px 17px;border-top:1px solid var(--line);
+font:600 10.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.06em;color:var(--faint)}
+.foot .grow{flex:1}
+.pg{display:flex;gap:4px}
+.pg button{min-width:29px;padding:6px 8px;font:inherit;color:var(--dim);
+background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:8px;cursor:pointer;transition:.18s}
+.pg button:hover:not(:disabled){color:var(--txt)}
+.pg button[aria-current="true"]{color:#07121d;background:var(--a);border-color:var(--a)}
+.pg button:disabled{opacity:.32;cursor:default}
+</style>
+</head>
+<body>
+
+<section class="panel">
+  <div class="bar">
+    <h1>Deployments</h1>
+    <div class="chipbar" id="chips">
+      <button class="fchip" type="button" data-f="all" aria-pressed="true">ALL</button>
+      <button class="fchip" type="button" data-f="live" aria-pressed="false">LIVE</button>
+      <button class="fchip" type="button" data-f="build" aria-pressed="false">BUILDING</button>
+      <button class="fchip" type="button" data-f="fail" aria-pressed="false">FAILED</button>
+    </div>
+    <label class="search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" placeholder="Search service or author…" aria-label="Search">
+    </label>
+  </div>
+
+  <div class="selbar" id="selbar">
+    <b id="selcount"></b>
+    <button type="button" id="redeploy">Redeploy</button>
+    <button type="button" id="clearsel">Clear</button>
+  </div>
+
+  <div class="scroll">
+    <table>
+      <thead><tr>
+        <th class="cbx"><input type="checkbox" id="all" aria-label="Select all"></th>
+        <th class="s" data-k="service">Service <i>↕</i></th>
+        <th class="s" data-k="status">Status <i>↕</i></th>
+        <th class="s" data-k="author">Author <i>↕</i></th>
+        <th class="s num" data-k="dur">Duration <i>↕</i></th>
+        <th class="s num" data-k="when">Deployed <i>↕</i></th>
+      </tr></thead>
+      <tbody id="body"></tbody>
+    </table>
+    <div class="empty" id="empty" hidden><b>Nothing matches</b>Try a different service or clear the filter</div>
+  </div>
+
+  <div class="foot">
+    <span id="range"></span><span class="grow"></span>
+    <div class="pg" id="pg"></div>
+  </div>
+</section>
+
+<script>
+const AV = { 'P. Raman':'#7cc4ff','M. Webb':'#a98bff','S. Alvarez':'#5fe0ac','J. Kim':'#ffb057','R. Osei':'#ff6b81' };
+const ROWS = [
+  ['checkout-api','fail','J. Kim',214,2,'a1f4c9'],  ['search-index','live','M. Webb',486,5,'7b21e0'],
+  ['web-app','live','P. Raman',132,7,'3cd811'],     ['billing-worker','build','S. Alvarez',97,0,'9e42aa'],
+  ['auth-service','live','R. Osei',168,11,'2b70fd'],['notify-fan','live','M. Webb',75,14,'6c19ba'],
+  ['web-app','live','P. Raman',129,20,'88e0d2'],    ['media-cdn','fail','R. Osei',312,26,'41ba07'],
+  ['checkout-api','live','J. Kim',201,31,'ce55a1'], ['docs-site','live','P. Raman',44,36,'1d9f3e'],
+  ['search-index','build','M. Webb',402,41,'af6b22'],['auth-service','live','S. Alvarez',155,47,'50c8e9'],
+  ['billing-worker','live','S. Alvarez',88,55,'7fa130'],['media-cdn','live','R. Osei',298,62,'e2b845'],
+  ['notify-fan','fail','M. Webb',61,70,'34d7c1']
+].map(([service,status,author,dur,when,sha]) => ({ service, status, author, dur, when, sha }));
+
+const LABEL = { live:'Live', build:'Building', fail:'Failed' };
+const PER = 6;
+let sortK = 'when', sortDir = 1, filter = 'all', term = '', page = 1;
+const sel = new Set();
+
+const $ = s => document.querySelector(s);
+const ago = h => h === 0 ? 'just now' : h < 24 ? h + 'h ago' : Math.round(h / 24) + 'd ago';
+const dur = s => Math.floor(s / 60) + 'm ' + String(s % 60).padStart(2,'0') + 's';
+
+function view(){
+  let r = ROWS.filter(x => filter === 'all' || x.status === filter);
+  if (term) r = r.filter(x => (x.service + ' ' + x.author).toLowerCase().includes(term));
+  return r.sort((a, b) => {
+    const A = a[sortK], B = b[sortK];
+    return (typeof A === 'number' ? A - B : String(A).localeCompare(String(B))) * sortDir;
+  });
+}
+
+function render(){
+  const all = view();
+  const pages = Math.max(1, Math.ceil(all.length / PER));
+  page = Math.min(page, pages);
+  const slice = all.slice((page - 1) * PER, page * PER);
+
+  $('#body').innerHTML = slice.map(r => {
+    const key = r.sha;
+    return `<tr class="${sel.has(key) ? 'sel' : ''}" data-k="${key}">
+      <td class="cbx"><input type="checkbox" ${sel.has(key) ? 'checked' : ''} aria-label="Select ${r.service}"></td>
+      <td class="name">${r.service}<span>${r.sha}</span></td>
+      <td><span class="pill st-${r.status}">${LABEL[r.status]}</span></td>
+      <td><span class="av" style="background:${AV[r.author]}">${r.author.split('.')[0][0] + r.author.split(' ')[1][0]}</span>${r.author}</td>
+      <td class="num">${dur(r.dur)}</td>
+      <td class="num">${ago(r.when)}</td></tr>`;
+  }).join('');
+
+  $('#empty').hidden = all.length > 0;
+  $('#range').textContent = all.length
+    ? `${(page - 1) * PER + 1}–${Math.min(page * PER, all.length)} OF ${all.length}` : '0 OF 0';
+
+  $('#pg').innerHTML =
+    `<button type="button" data-p="${page - 1}" ${page === 1 ? 'disabled' : ''}>‹</button>` +
+    Array.from({ length: pages }, (_, i) =>
+      `<button type="button" data-p="${i + 1}" aria-current="${i + 1 === page}">${i + 1}</button>`).join('') +
+    `<button type="button" data-p="${page + 1}" ${page === pages ? 'disabled' : ''}>›</button>`;
+
+  const onPage = slice.map(r => r.sha);
+  $('#all').checked = onPage.length > 0 && onPage.every(k => sel.has(k));
+  $('#all').indeterminate = !$('#all').checked && onPage.some(k => sel.has(k));
+  $('#selbar').classList.toggle('on', sel.size > 0);
+  $('#selcount').textContent = sel.size + (sel.size === 1 ? ' deployment selected' : ' deployments selected');
+
+  document.querySelectorAll('thead th.s').forEach(th => {
+    if (th.dataset.k === sortK){ th.setAttribute('aria-sort', sortDir > 0 ? 'ascending' : 'descending');
+      th.querySelector('i').textContent = sortDir > 0 ? '↑' : '↓'; }
+    else { th.removeAttribute('aria-sort'); th.querySelector('i').textContent = '↕'; }
+  });
+}
+
+document.querySelectorAll('thead th.s').forEach(th => th.addEventListener('click', () => {
+  const k = th.dataset.k;
+  if (k === sortK) sortDir *= -1; else { sortK = k; sortDir = 1; }
+  render();
+}));
+$('#q').addEventListener('input', e => { term = e.target.value.trim().toLowerCase(); page = 1; render(); });
+$('#chips').addEventListener('click', e => {
+  const b = e.target.closest('.fchip'); if (!b) return;
+  filter = b.dataset.f; page = 1;
+  document.querySelectorAll('.fchip').forEach(x => x.setAttribute('aria-pressed', x === b));
+  render();
+});
+$('#body').addEventListener('change', e => {
+  const tr = e.target.closest('tr'); if (!tr) return;
+  e.target.checked ? sel.add(tr.dataset.k) : sel.delete(tr.dataset.k);
+  render();
+});
+$('#all').addEventListener('change', e => {
+  view().slice((page - 1) * PER, page * PER).forEach(r => e.target.checked ? sel.add(r.sha) : sel.delete(r.sha));
+  render();
+});
+$('#pg').addEventListener('click', e => {
+  const b = e.target.closest('button[data-p]'); if (!b || b.disabled) return;
+  page = +b.dataset.p; render();
+});
+$('#clearsel').addEventListener('click', () => { sel.clear(); render(); });
+$('#redeploy').addEventListener('click', () => { alert('Redeploying ' + sel.size + ' service(s)'); sel.clear(); render(); });
+
+render();
+</script>
+</body>
+</html>

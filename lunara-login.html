@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lunara &mdash; Sign in</title>
+<style>
+:root{
+  --nx:0; --ny:0;                       /* pointer, -0.5 .. 0.5 */
+  --sand:#e8e2d2; --ink:#0a1024;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; display:grid; place-items:center; padding:24px;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#f2f0ea; overflow:hidden;
+  background:#0a1024;
+}
+
+/* ============ the world ============ */
+/* sky lives on .world itself so .moonglow has something to screen against --
+   mix-blend-mode only reaches the nearest stacking context. */
+.world{
+  position:fixed; inset:0; overflow:hidden; z-index:0;
+  background:
+    radial-gradient(120% 78% at 50% 100%, #4b5a7c 0%, #2a3757 34%, #141d3a 66%, #0a1024 100%);
+}
+.lyr{
+  position:absolute; inset:-9%;
+  transform:translate3d(calc(var(--nx) * var(--d) * -1px), calc(var(--ny) * var(--d) * -.5px), 0);
+  transition:transform .55s cubic-bezier(.2,.85,.25,1);
+  will-change:transform;
+}
+.lyr svg{position:absolute;left:0;bottom:0;width:100%;height:auto;display:block}
+
+/* --- stars --- */
+.star{position:absolute;border-radius:50%;background:#fdfbf4;animation:tw 4s ease-in-out infinite alternate}
+@keyframes tw{from{opacity:.18}to{opacity:.95}}
+
+/* --- moon --- */
+.moon{
+  position:absolute; left:50%; top:16%; width:118px; height:118px; margin-left:-59px;
+  border-radius:50%;
+  background:radial-gradient(circle at 36% 32%, #fffdf3 0%, #f4ecd6 46%, #d9cfb4 78%, #bdb198 100%);
+  box-shadow:0 0 40px rgba(246,240,220,.35);
+  transform:translate3d(calc(var(--nx) * -14px), calc(var(--ny) * -7px), 0);
+  transition:transform .55s cubic-bezier(.2,.85,.25,1);
+}
+.moon::before,.moon::after{content:"";position:absolute;border-radius:50%;background:rgba(150,141,118,.28)}
+.moon::before{width:22px;height:22px;left:26px;top:34px}
+.moon::after{width:13px;height:13px;left:66px;top:22px;background:rgba(150,141,118,.2)}
+
+.moonglow{
+  position:absolute; left:50%; top:16%; width:520px; height:520px; margin:-201px 0 0 -260px;
+  border-radius:50%; pointer-events:none;
+  background:radial-gradient(circle,
+    rgba(226,234,255,.55) 0%, rgba(196,211,255,.24) 26%,
+    rgba(150,175,240,.10) 48%, rgba(120,150,220,0) 72%);
+  mix-blend-mode:screen;
+  animation:moonbreathe 9s ease-in-out infinite;
+}
+@keyframes moonbreathe{
+  0%,100%{opacity:.62;transform:scale(1)}
+  50%    {opacity:1;  transform:scale(1.09)}
+}
+
+/* --- ground --- */
+.far  {fill:#33405f}
+.ridge{fill:#1e2843}
+.near {fill:#101830}
+.caravan{fill:#080d1a}
+.trek{animation:trek 74s linear infinite}
+@keyframes trek{from{transform:translateX(-70px)}to{transform:translateX(1270px)}}
+
+/* haze along the horizon */
+.haze{position:absolute;left:0;right:0;bottom:0;height:52%;pointer-events:none;
+  background:linear-gradient(180deg,rgba(120,146,200,0) 0%,rgba(96,120,175,.16) 46%,rgba(10,16,36,.5) 100%)}
+
+/* ============ the card ============ */
+.login{
+  position:relative; z-index:2; width:min(370px,100%);
+  padding:34px 30px 30px;
+  background:rgba(255,255,255,.07);
+  backdrop-filter:blur(24px) saturate(1.3);
+  -webkit-backdrop-filter:blur(24px) saturate(1.3);
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:26px;
+  box-shadow:0 30px 70px -24px rgba(4,8,22,.8), 0 1px 0 rgba(255,255,255,.22) inset;
+  --tilt:perspective(1100px) rotateY(var(--ry,0deg)) rotateX(var(--rx,0deg));
+  transform:var(--tilt);
+  transform-style:preserve-3d;
+  transition:transform .45s cubic-bezier(.2,.85,.25,1);
+}
+.login.shake{animation:shake .4s cubic-bezier(.36,.07,.19,.97)}
+/* keep the tilt while it shakes, or the card snaps flat mid-animation */
+@keyframes shake{
+  10%,90%     {transform:var(--tilt) translateX(-2px)}
+  20%,80%     {transform:var(--tilt) translateX(4px)}
+  30%,50%,70% {transform:var(--tilt) translateX(-7px)}
+  40%,60%     {transform:var(--tilt) translateX(7px)}}
+
+.brand{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:16px;
+  font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.62)}
+.brand svg{width:15px;height:15px;fill:#f4ecd6}
+.login h1{margin:0 0 4px;font-size:23px;font-weight:600;letter-spacing:-.02em;text-align:center}
+.login .sub{margin:0 0 26px;text-align:center;font-size:13px;color:rgba(255,255,255,.55)}
+
+/* --- floating labels --- */
+.field{position:relative;margin-bottom:14px}
+.field input{
+  width:100%; height:56px; padding:22px 15px 7px; font:inherit; font-size:14.5px; color:#fff;
+  background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.16);
+  border-radius:15px; outline:none;
+  transition:border-color .22s,background .22s,box-shadow .22s;
+}
+.field input::placeholder{color:transparent}
+.field input:focus{border-color:rgba(233,240,255,.6);background:rgba(255,255,255,.1);
+  box-shadow:0 0 0 3px rgba(210,224,255,.14)}
+.field label{
+  position:absolute; left:16px; top:18px; pointer-events:none;
+  font-size:14.5px; color:rgba(255,255,255,.5);
+  transition:top .2s cubic-bezier(.3,1.2,.5,1),font-size .2s,color .2s,letter-spacing .2s;
+}
+.field input:focus + label,
+.field input:not(:placeholder-shown) + label{
+  top:8px; font-size:10px; letter-spacing:.11em; text-transform:uppercase; color:rgba(233,240,255,.72);
+}
+.field.bad input{border-color:#ff8098;box-shadow:0 0 0 3px rgba(255,128,152,.16)}
+
+.row{display:flex;align-items:center;justify-content:space-between;margin:4px 0 20px;font-size:12.5px}
+.cbx{display:flex;align-items:center;gap:8px;color:rgba(255,255,255,.6);cursor:pointer;user-select:none}
+.cbx input{accent-color:#e6ecff;width:15px;height:15px;cursor:pointer}
+a.lnk{color:#dbe4ff;font-weight:600;text-decoration:none}
+a.lnk:hover{text-decoration:underline}
+
+/* ============ the door you walk through ============ */
+.btn{
+  position:relative; display:flex; align-items:center; justify-content:center; gap:12px;
+  width:100%; padding:14px 16px; font:inherit; font-size:14.5px; font-weight:650;
+  color:#101830; background:linear-gradient(115deg,#f6f1e2,#dfe6f7);
+  border:0; border-radius:15px; cursor:pointer; overflow:hidden;
+  box-shadow:0 12px 30px -12px rgba(240,238,225,.6);
+  transition:transform .16s,box-shadow .22s;
+}
+.btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 16px 34px -12px rgba(240,238,225,.75)}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn:disabled{cursor:default}
+.btn_label{transition:opacity .3s}
+.btn.dooropen .btn_label{opacity:.45}
+
+.dooric{position:absolute;right:16px;top:50%;margin-top:-15px;
+  width:24px;height:30px;perspective:200px}
+.dooric_frame{position:absolute;inset:0;border:2px solid currentColor;border-bottom:0;border-radius:4px 4px 0 0;opacity:.85}
+.dooric_glow{
+  position:absolute;inset:2px 2px 0;border-radius:2px 2px 0 0;opacity:0;
+  background:linear-gradient(180deg,#fff6d8,#ffc978);
+  box-shadow:0 0 15px 3px rgba(255,206,128,.8);
+  transition:opacity .34s ease;
+}
+.dooric_panel{
+  position:absolute;inset:2px 2px 0;border-radius:2px 2px 0 0;
+  background:linear-gradient(90deg,#2a3350,#161e35);
+  transform-origin:left center;transform:rotateY(0deg);
+  transition:transform .44s cubic-bezier(.32,.78,.28,1);
+  box-shadow:1px 0 4px rgba(0,0,0,.35) inset;
+}
+.dooric_panel::after{content:"";position:absolute;right:3px;top:50%;width:2.5px;height:2.5px;border-radius:50%;background:#93a0b6}
+
+/* the door swings open */
+.btn.dooropen .dooric_panel{transform:rotateY(72deg)}
+.btn.dooropen .dooric_glow{opacity:.95}
+
+.dooric_person{
+  position:absolute;left:-30px;bottom:0;width:15px;height:23px;
+  transition:transform .92s linear,opacity .92s linear;
+}
+.dooric_person svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;overflow:visible}
+
+/* then walk on through */
+.btn.out .dooric_person{transform:translateX(50px) scale(.82);opacity:0}
+
+/* legs swing, knees bend */
+.leg,.arm,.shin{transform-box:fill-box;transform-origin:50% 0}
+.btn.walking .leg--front{animation:thighF .46s linear infinite}
+.btn.walking .leg--back {animation:thighB .46s linear infinite}
+.btn.walking .leg--front .shin{animation:shinF .46s linear infinite}
+.btn.walking .leg--back  .shin{animation:shinB .46s linear infinite}
+.btn.walking .arm--front{animation:thighB .46s linear infinite}
+.btn.walking .arm--back {animation:thighF .46s linear infinite}
+.btn.walking .torso{animation:bobW .23s linear infinite}
+@keyframes thighF{0%{transform:rotate(26deg)}50%{transform:rotate(-24deg)}100%{transform:rotate(26deg)}}
+@keyframes thighB{0%{transform:rotate(-24deg)}50%{transform:rotate(26deg)}100%{transform:rotate(-24deg)}}
+@keyframes shinF{0%{transform:rotate(2deg)}30%{transform:rotate(38deg)}60%{transform:rotate(16deg)}100%{transform:rotate(2deg)}}
+@keyframes shinB{0%{transform:rotate(20deg)}30%{transform:rotate(4deg)}60%{transform:rotate(40deg)}100%{transform:rotate(20deg)}}
+@keyframes bobW{0%,100%{transform:translateY(0)}50%{transform:translateY(-.7px)}}
+.no-anim .dooric_person{transition:none!important}
+
+.note{margin:16px 0 0;text-align:center;font-size:12.5px;color:rgba(255,255,255,.5)}
+.note a{color:#dbe4ff;font-weight:600;text-decoration:none}
+
+@media (prefers-reduced-motion:reduce){
+  .lyr,.moon{transition:none}
+  .moonglow,.trek,.star{animation:none}
+}
+@media (max-width:420px){
+  .login{padding:28px 22px 26px}
+  .moon{width:92px;height:92px;margin-left:-46px}
+}
+</style>
+</head>
+<body>
+
+<div class="world" id="world">
+
+  <div class="lyr" style="--d:9" id="stars"></div>
+
+  <div class="moonglow"></div>
+  <div class="moon"></div>
+
+  <!-- far dunes -->
+  <div class="lyr" style="--d:22">
+    <svg viewBox="0 0 1200 300" preserveAspectRatio="xMidYMax slice">
+      <path class="far" d="M0 168 C 96 140, 178 186, 268 176 C 372 164, 430 118, 540 128
+        C 648 138, 706 184, 812 178 C 918 172, 986 132, 1078 142 C 1140 149, 1170 166, 1200 162 L1200 300 L0 300 Z"/>
+    </svg>
+  </div>
+
+  <!-- the ridge, with the caravan on it -->
+  <div class="lyr" style="--d:36">
+    <svg viewBox="0 0 1200 300" preserveAspectRatio="xMidYMax slice">
+      <path class="ridge" d="M0 226 C 130 206, 236 214, 352 198 C 470 182, 556 150, 676 156
+        C 796 162, 872 198, 986 206 C 1090 213, 1150 206, 1200 200 L1200 300 L0 300 Z"/>
+      <g class="trek">
+        <g class="caravan" transform="translate(0,150) scale(.86)">
+          <g transform="translate(0,0)">
+            <rect x="6" y="15" width="2.2" height="11"/><rect x="10.5" y="15" width="2.2" height="11"/>
+            <rect x="20.5" y="15" width="2.2" height="11"/><rect x="25" y="15" width="2.2" height="11"/>
+            <ellipse cx="16" cy="13" rx="11" ry="5.2"/>
+            <path d="M11.5 9.5 Q16 1.5 20.5 9.5 Z"/>
+            <path d="M23.5 12 Q27.5 11 28.6 5 L31 5 Q30.6 12.5 27 14.4 Z"/>
+            <ellipse cx="32.4" cy="4.2" rx="3" ry="2.1"/>
+            <path d="M5 11.5 L1.4 7.6 L2.8 7 L6.4 10.6 Z"/>
+            <circle cx="16" cy="3.6" r="2.2"/><path d="M13.4 8.4 Q16 3.6 18.6 8.4 Z"/>
+          </g>
+          <g transform="translate(44,2) scale(.94)">
+            <rect x="6" y="15" width="2.2" height="11"/><rect x="10.5" y="15" width="2.2" height="11"/>
+            <rect x="20.5" y="15" width="2.2" height="11"/><rect x="25" y="15" width="2.2" height="11"/>
+            <ellipse cx="16" cy="13" rx="11" ry="5.2"/>
+            <path d="M11.5 9.5 Q16 1.5 20.5 9.5 Z"/>
+            <path d="M23.5 12 Q27.5 11 28.6 5 L31 5 Q30.6 12.5 27 14.4 Z"/>
+            <ellipse cx="32.4" cy="4.2" rx="3" ry="2.1"/>
+            <path d="M5 11.5 L1.4 7.6 L2.8 7 L6.4 10.6 Z"/>
+            <rect x="11" y="6" width="10" height="4" rx="1.4"/>
+          </g>
+          <g transform="translate(88,4) scale(.9)">
+            <rect x="6" y="15" width="2.2" height="11"/><rect x="10.5" y="15" width="2.2" height="11"/>
+            <rect x="20.5" y="15" width="2.2" height="11"/><rect x="25" y="15" width="2.2" height="11"/>
+            <ellipse cx="16" cy="13" rx="11" ry="5.2"/>
+            <path d="M11.5 9.5 Q16 1.5 20.5 9.5 Z"/>
+            <path d="M23.5 12 Q27.5 11 28.6 5 L31 5 Q30.6 12.5 27 14.4 Z"/>
+            <ellipse cx="32.4" cy="4.2" rx="3" ry="2.1"/>
+            <path d="M5 11.5 L1.4 7.6 L2.8 7 L6.4 10.6 Z"/>
+            <circle cx="16" cy="3.6" r="2.2"/><path d="M13.4 8.4 Q16 3.6 18.6 8.4 Z"/>
+          </g>
+        </g>
+      </g>
+    </svg>
+  </div>
+
+  <!-- near dunes -->
+  <div class="lyr" style="--d:56">
+    <svg viewBox="0 0 1200 300" preserveAspectRatio="xMidYMax slice">
+      <path class="near" d="M0 262 C 150 232, 268 258, 402 244 C 540 230, 620 196, 762 206
+        C 900 216, 1006 254, 1130 250 C 1160 249, 1182 246, 1200 244 L1200 300 L0 300 Z"/>
+    </svg>
+  </div>
+
+  <div class="haze"></div>
+</div>
+
+<form class="login" id="card" novalidate autocomplete="off">
+  <p class="brand">
+    <svg viewBox="0 0 24 24"><path d="M21 13.2A9 9 0 1 1 10.8 3a7 7 0 0 0 10.2 10.2Z"/></svg>
+    Lunara
+  </p>
+  <h1>Welcome back</h1>
+  <p class="sub">The caravan waited for you.</p>
+
+  <div class="field" id="f-email">
+    <input id="email" type="email" placeholder=" " autocomplete="username">
+    <label for="email">Email</label>
+  </div>
+
+  <div class="field" id="f-pw">
+    <input id="pw" type="password" placeholder=" " autocomplete="current-password">
+    <label for="pw">Password</label>
+  </div>
+
+  <div class="row">
+    <label class="cbx"><input type="checkbox" checked> Stay signed in</label>
+    <a class="lnk" href="#" onclick="return false">Forgot?</a>
+  </div>
+
+  <button class="btn" id="btn" type="submit">
+    <span class="btn_label">Sign In</span>
+    <span class="dooric" aria-hidden="true">
+      <span class="dooric_frame"></span>
+      <span class="dooric_glow"></span>
+      <span class="dooric_panel"></span>
+      <span class="dooric_person">
+        <svg viewBox="0 0 15 23">
+          <g class="torso">
+            <circle cx="7.5" cy="3.4" r="2.9"/>
+            <path d="M7.5 6.3 V13.6"/>
+            <g class="arm arm--back"><path d="M7.5 8 V12.6"/></g>
+            <g class="arm arm--front"><path d="M7.5 8 V12.6"/></g>
+            <g class="leg leg--back"><path d="M7.5 13.6 V17.9"/><g class="shin"><path d="M7.5 17.9 V22.2"/></g></g>
+            <g class="leg leg--front"><path d="M7.5 13.6 V17.9"/><g class="shin"><path d="M7.5 17.9 V22.2"/></g></g>
+          </g>
+        </svg>
+      </span>
+    </span>
+  </button>
+
+  <p class="note">New to Lunara? <a href="#" onclick="return false">Join the caravan</a></p>
+</form>
+
+<script>
+const $ = s => document.querySelector(s);
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+const root = document.documentElement;
+const card = $('#card'), form = card, btn = $('#btn'),
+      email = $('#email'), pw = $('#pw'), stars = $('#stars');
+
+/* ---- stars: seeded so the sky is the same every load ---- */
+let seed = 20260820;
+const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
+for (let i = 0; i < 90; i++){
+  const s = document.createElement('i');
+  const r = 0.6 + rnd() * 1.5;
+  s.className = 'star';
+  s.style.cssText =
+    'left:' + (rnd() * 100).toFixed(2) + '%;' +
+    'top:'  + (rnd() * 62).toFixed(2)  + '%;' +
+    'width:' + r.toFixed(2) + 'px;height:' + r.toFixed(2) + 'px;' +
+    'animation-duration:' + (2.4 + rnd() * 4.5).toFixed(2) + 's;' +
+    'animation-delay:-' + (rnd() * 6).toFixed(2) + 's';
+  stars.appendChild(s);
+}
+
+/* ---- Card tilts toward the cursor ---- */
+addEventListener('pointermove', e => {
+  const nx = (e.clientX / innerWidth) - 0.5;
+  const ny = (e.clientY / innerHeight) - 0.5;
+  card.style.setProperty('--ry', nx * 9 + 'deg');
+  card.style.setProperty('--rx', ny * -6 + 'deg');
+  root.style.setProperty('--nx', nx);
+  root.style.setProperty('--ny', ny);
+});
+
+/* ---- Sign In: a door opens, walk through ---- */
+const walk = async () => {
+  await wait(380);                 // the panel finishes swinging
+  btn.classList.add('walking');    // legs pick up
+  await wait(240);                 // a couple of steps at the threshold
+};
+
+let busy = false;
+form.onsubmit = async e => {
+  e.preventDefault();
+  if (busy) return;
+
+  const badMail = !email.value.trim(), badPw = !pw.value;
+  $('#f-email').classList.toggle('bad', badMail);
+  $('#f-pw').classList.toggle('bad', badPw);
+  if (badMail || badPw){
+    card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake');
+    (badMail ? email : pw).focus();
+    return;
+  }
+
+  busy = true;
+  btn.disabled = true;
+  btn.classList.add('dooropen');
+  await walk();
+  btn.classList.add('out');
+
+  await wait(980);
+  btn.classList.remove('walking', 'dooropen');
+  await wait(1400);                // replayable
+  btn.classList.add('no-anim');
+  btn.classList.remove('out');
+  void btn.offsetWidth;
+  btn.classList.remove('no-anim');
+  btn.disabled = false;
+  busy = false;
+};
+
+[email, pw].forEach(el => el.addEventListener('input', () =>
+  el.closest('.field').classList.remove('bad')));
+</script>
+</body>
+</html>

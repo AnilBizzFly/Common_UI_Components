@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tap a tab and the light reaches for it</title>
+<style>
+@property --acc   { syntax:'<color>';  inherits:true; initial-value:#7cc4ff }
+@property --speed { syntax:'<number>'; inherits:true; initial-value:0 }
+
+:root{
+  --bg:#080c17; --card:#141b2b; --card2:#0e1422;
+  --line:rgba(255,255,255,.08);
+  --txt:#e9edf8; --mut:#8b95b3; --dim:#5a6482; --faint:#3c4562;
+}
+*{box-sizing:border-box}
+html{height:100%}
+body{
+  margin:0; min-height:100%; display:flex; align-items:center; justify-content:center; padding:30px 22px;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:var(--txt); background:var(--bg);
+}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(130px);pointer-events:none;z-index:0}
+body::before{width:560px;height:560px;background:rgba(124,196,255,.12);top:-210px;left:-170px}
+body::after{width:500px;height:500px;background:rgba(169,139,255,.11);bottom:-200px;right:-160px}
+
+.shell{
+  position:relative; z-index:1; width:min(560px,100%);
+  background:linear-gradient(168deg,var(--card),var(--card2));
+  border:1px solid var(--line); border-radius:26px; padding:22px;
+  box-shadow:0 38px 84px -28px rgba(0,0,0,.86),0 0 0 1px rgba(255,255,255,.03) inset;
+}
+.kicker{margin:0 0 14px;font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.18em;color:var(--faint)}
+
+/* ============ the bar ============ */
+.bar{position:relative;padding:7px;border-radius:19px;background:rgba(255,255,255,.03);touch-action:none}
+
+.light{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:0;
+  transition:--acc .42s ease}   /* registered above, so the colour hands over instead of cutting */
+
+/* stretched over 3x the run, a line of constant weight reads DIMMER exactly
+   when it is doing the most - so weight goes UP as the rod opens */
+.light_core{
+  fill:none;
+  stroke:var(--acc);
+  stroke-width: calc(2px + var(--speed) * .7px);
+  filter:drop-shadow(0 0 7px var(--acc));
+}
+.rim{fill:none;stroke-width:1.4px;opacity:.85}
+/* the rim catches the light */
+.rim_lit{ stroke: url(#lit) }
+
+[role="tablist"]{position:relative;z-index:1;display:flex;gap:2px}
+[role="tab"]{
+  flex:1; padding:11px 8px; font:inherit; font-size:13px; font-weight:600;
+  color:var(--dim); background:none; border:0; border-radius:13px; cursor:pointer;
+  transition:color .3s ease;
+  -webkit-tap-highlight-color:transparent;
+}
+[role="tab"]:hover{color:var(--mut)}
+[role="tab"][aria-selected="true"]{color:var(--txt)}
+[role="tab"]:focus-visible{outline:2px solid var(--acc);outline-offset:-3px}
+
+/* ============ panes ============ */
+.panes{position:relative;margin-top:18px;min-height:132px}
+.pane{
+  position:absolute;inset:0;opacity:0;visibility:hidden;
+  transform:translateY(6px);transition:opacity .3s ease,transform .3s ease,visibility .3s;
+}
+.pane.on{opacity:1;visibility:visible;transform:none}
+.pane h2{margin:0 0 4px;font-size:16px;letter-spacing:-.01em}
+.pane h2::before{
+  content:"";display:inline-block;width:7px;height:7px;border-radius:50%;
+  margin-right:9px;vertical-align:middle;background:var(--acc);box-shadow:0 0 10px var(--acc);
+}
+.pane p{margin:0 0 14px;font-size:13px;color:var(--dim);line-height:1.6}
+.stats{display:flex;gap:9px}
+.stat{flex:1;padding:11px 12px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.025)}
+.stat b{display:block;font-size:19px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stat span{font:600 9.5px/1.4 ui-monospace,Menlo,monospace;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--faint)}
+
+.hint{margin:16px 0 0;text-align:center;font:600 10px/1 ui-monospace,Menlo,monospace;
+  letter-spacing:.13em;text-transform:uppercase;color:var(--faint)}
+
+@media (max-width:460px){ [role="tab"]{font-size:12px;padding:10px 4px} }
+</style>
+</head>
+<body>
+
+<section class="shell">
+  <p class="kicker">TAP A TAB &mdash; OR DRAG THE LIGHT ALONG THE BAR</p>
+
+  <div class="bar" id="bar">
+    <!-- Only ever a RING on one tab or a straight ROD between two.
+         Never a curve, never an end left in mid-air. -->
+    <svg class="light" id="lightSvg">
+      <defs>
+        <linearGradient id="lit" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="0">
+          <stop offset="0"   stop-color="var(--acc)" stop-opacity="0"/>
+          <stop offset=".5"  stop-color="var(--acc)" stop-opacity=".85"/>
+          <stop offset="1"   stop-color="var(--acc)" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <path class="rim rim_lit" id="rim"/>
+      <path class="light_core" id="core"/>
+    </svg>
+
+    <div role="tablist" id="tablist" aria-label="Workspace sections">
+      <button role="tab" style="--acc:#5fe0ac" aria-selected="true"  tabindex="0"  data-pane="0">Overview</button>
+      <button role="tab" style="--acc:#7cc4ff" aria-selected="false" tabindex="-1" data-pane="1">Activity</button>
+      <button role="tab" style="--acc:#a98bff" aria-selected="false" tabindex="-1" data-pane="2">Members</button>
+      <button role="tab" style="--acc:#ffb057" aria-selected="false" tabindex="-1" data-pane="3">Settings</button>
+    </div>
+  </div>
+
+  <div class="panes">
+    <div class="pane on" style="--acc:#5fe0ac"><h2>Overview</h2>
+      <p>Everything at a glance — throughput, open threads and the week&rsquo;s drift.</p>
+      <div class="stats"><div class="stat"><b>1,284</b><span>events</span></div>
+        <div class="stat"><b>96.4%</b><span>uptime</span></div>
+        <div class="stat"><b>12</b><span>open</span></div></div></div>
+
+    <div class="pane" style="--acc:#7cc4ff"><h2>Activity</h2>
+      <p>Every deploy, comment and revert, newest first, across all connected repos.</p>
+      <div class="stats"><div class="stat"><b>318</b><span>today</span></div>
+        <div class="stat"><b>27</b><span>deploys</span></div>
+        <div class="stat"><b>4</b><span>reverts</span></div></div></div>
+
+    <div class="pane" style="--acc:#a98bff"><h2>Members</h2>
+      <p>Seats, roles and the invitations still waiting to be accepted.</p>
+      <div class="stats"><div class="stat"><b>24</b><span>seats</span></div>
+        <div class="stat"><b>6</b><span>admins</span></div>
+        <div class="stat"><b>3</b><span>pending</span></div></div></div>
+
+    <div class="pane" style="--acc:#ffb057"><h2>Settings</h2>
+      <p>Region, retention and the keys that let the rest of your stack talk to this one.</p>
+      <div class="stats"><div class="stat"><b>eu-2</b><span>region</span></div>
+        <div class="stat"><b>90d</b><span>retention</span></div>
+        <div class="stat"><b>2</b><span>keys</span></div></div></div>
+  </div>
+
+  <p class="hint">drag the light &middot; &larr; &rarr; to step</p>
+</section>
+
+<script>
+const $  = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const clamp = (v, lo, hi) => v < lo ? lo : v > hi ? hi : v;
+const ease = t => t * t * (3 - 2 * t);          // smoothstep
+
+const bar = $('#bar'), svg = $('#lightSvg'), core = $('#core'), rim = $('#rim'), grad = $('#lit');
+const tabs = $$('[role="tab"]'), panes = $$('.pane');
+
+/* ---- ONE spring per end. The gap between them IS the animation ---- */
+const KA = 235, CA = 22;                        // head: stiff and underdamped, so it overshoots
+const E = [{ x:0, v:0, to:0 }, { x:0, v:0, to:0 }];   // 0 = left edge, 1 = right edge
+let head = 1, trip = 1;
+
+let slots = [], geo = { y:0, h:0, w:0, top:0 }, active = 0, dragging = false;
+
+function measure(){
+  const b = bar.getBoundingClientRect();
+  svg.setAttribute('viewBox', '0 0 ' + b.width + ' ' + b.height);
+  svg.setAttribute('width', b.width); svg.setAttribute('height', b.height);
+  slots = tabs.map(t => {
+    const r = t.getBoundingClientRect();
+    return { l: r.left - b.left, r: r.right - b.left, c: r.left - b.left + r.width / 2 };
+  });
+  const t0 = tabs[0].getBoundingClientRect();
+  geo = { top: t0.top - b.top, h: t0.height, w: t0.width, cy: t0.top - b.top + t0.height / 2 };
+
+  rim.setAttribute('d', stadium(0.8, b.width - 0.8, b.height / 2, b.height / 2 - 0.8));
+}
+
+/* straight sides, round caps: a ring when short, a rod when long */
+function stadium(L, R, cy, r){
+  if (R - L < r * 2) { const m = (L + R) / 2; L = m - r; R = m + r; }
+  const t = cy - r, bm = cy + r;
+  return 'M' + (L + r).toFixed(2) + ' ' + t.toFixed(2) +
+         'H' + (R - r).toFixed(2) +
+         'A' + r.toFixed(2) + ' ' + r.toFixed(2) + ' 0 0 1 ' + (R - r).toFixed(2) + ' ' + bm.toFixed(2) +
+         'H' + (L + r).toFixed(2) +
+         'A' + r.toFixed(2) + ' ' + r.toFixed(2) + ' 0 0 1 ' + (L + r).toFixed(2) + ' ' + t.toFixed(2) + 'Z';
+}
+
+function aim(l, r){
+  const wasL = E[0].to, wasR = E[1].to;
+  E[0].to = l; E[1].to = r;
+  // whichever end is travelling further is the head
+  head = Math.abs(r - wasR) >= Math.abs(l - wasL) ? 1 : 0;
+  trip = Math.max(1, Math.abs(E[head].to - E[head].x));
+}
+
+function integrate(h){
+  const H = E[head], T = E[1 - head];
+
+  H.v += (-KA * (H.x - H.to) - CA * H.v) * h;
+  H.x += H.v * h;
+
+  // The tail is soft while there is trip left to run and stiff once the head
+  // has landed - distance left, NOT speed: speed is 0 at the overshoot.
+  const d = Math.abs(H.x - H.to);
+  const home = 1 - ease(clamp(d / trip, 0, 1));
+  const KB = 62 + 155 * home;
+  const CB = 2 * Math.sqrt(KB) * .92;
+
+  T.v += (-KB * (T.x - T.to) - CB * T.v) * h;
+  T.x += T.v * h;
+}
+
+function paint(){
+  const L = Math.min(E[0].x, E[1].x), R = Math.max(E[0].x, E[1].x);
+  const r = geo.h / 2;
+  core.setAttribute('d', stadium(L, R, geo.cy, r));
+
+  // weight goes UP as the rod opens
+  const stretch = clamp((R - L - geo.w) / Math.max(geo.w, 1) * 1.6, 0, 3);
+  svg.style.setProperty('--speed', stretch.toFixed(3));
+
+  // the rim catches the light: the gradient rides with it
+  const c = (L + R) / 2, spread = Math.max(96, (R - L) * .85);
+  grad.setAttribute('x1', (c - spread).toFixed(1));
+  grad.setAttribute('x2', (c + spread).toFixed(1));
+}
+
+let last = performance.now(), acc = 0;
+(function loop(now){
+  let dt = Math.min((now - last) / 1000, .05); last = now;
+  acc += dt;
+  while (acc >= 1 / 120){ integrate(1 / 120); acc -= 1 / 120; }
+  paint();
+  requestAnimationFrame(loop);
+})(last);
+
+/* ---- selection ---- */
+function select(i, focus){
+  active = i;
+  tabs.forEach((t, n) => {
+    t.setAttribute('aria-selected', n === i);
+    t.tabIndex = n === i ? 0 : -1;
+  });
+  panes.forEach((p, n) => p.classList.toggle('on', n === i));
+  svg.style.setProperty('--acc', getComputedStyle(tabs[i]).getPropertyValue('--acc').trim());
+  aim(slots[i].l, slots[i].r);
+  if (focus) tabs[i].focus();
+}
+
+tabs.forEach((t, i) => t.addEventListener('click', () => select(i)));
+
+$('#tablist').addEventListener('keydown', e => {
+  const map = { ArrowRight: active + 1, ArrowLeft: active - 1, Home: 0, End: tabs.length - 1 };
+  if (!(e.key in map)) return;
+  e.preventDefault();
+  select((map[e.key] + tabs.length) % tabs.length, true);
+});
+
+/* ---- drag the light along the bar ---- */
+const nearest = px => slots.reduce((best, s, i) =>
+  Math.abs(s.c - px) < Math.abs(slots[best].c - px) ? i : best, 0);
+
+bar.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  dragging = true;
+  bar.setPointerCapture(e.pointerId);
+  drag(e);
+});
+bar.addEventListener('pointermove', e => { if (dragging) drag(e); });
+bar.addEventListener('pointerup', e => {
+  if (!dragging) return;
+  dragging = false;
+  select(nearest(e.clientX - bar.getBoundingClientRect().left));
+});
+bar.addEventListener('pointercancel', () => { if (dragging){ dragging = false; select(active); } });
+
+function drag(e){
+  const b = bar.getBoundingClientRect();
+  const px = clamp(e.clientX - b.left, geo.w / 2, b.width - geo.w / 2);
+  aim(px - geo.w / 2, px + geo.w / 2);
+  const n = nearest(px);
+  if (n !== active){
+    tabs.forEach((t, i) => t.setAttribute('aria-selected', i === n));
+    panes.forEach((p, i) => p.classList.toggle('on', i === n));
+    svg.style.setProperty('--acc', getComputedStyle(tabs[n]).getPropertyValue('--acc').trim());
+    active = n;
+  }
+}
+
+addEventListener('resize', () => { measure(); aim(slots[active].l, slots[active].r); });
+
+measure();
+E[0].x = E[0].to = slots[0].l;
+E[1].x = E[1].to = slots[0].r;
+select(0);
+</script>
+</body>
+</html>

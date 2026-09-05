@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Onboarding Wizard</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<section class="wz">
+  <div class="rail" id="rail"></div>
+
+  <div class="stepwrap">
+    <div class="step on" data-step="0">
+      <h2>Welcome aboard</h2>
+      <p>Two minutes and your workspace is ready.</p>
+      <div class="field" id="f-name"><label for="ws">Workspace name</label>
+        <input class="inp" id="ws" placeholder="Northwind Studio">
+        <p class="err"><span>Give your workspace a name</span></p></div>
+      <div class="field" id="f-url"><label for="url">Workspace URL</label>
+        <input class="inp" id="url" placeholder="northwind">
+        <p class="err"><span>Lowercase letters, numbers and dashes only</span></p></div>
+    </div>
+
+    <div class="step" data-step="1">
+      <h2>What will you build?</h2>
+      <p>We&rsquo;ll switch on the right defaults. You can change this later.</p>
+      <div class="picks" id="use">
+        <label class="pick"><input type="radio" name="use" value="Product analytics" checked>
+          <span><b>Product analytics</b><span>Events, funnels and retention out of the box</span></span></label>
+        <label class="pick"><input type="radio" name="use" value="Error monitoring">
+          <span><b>Error monitoring</b><span>Stack traces, release health and alerting</span></span></label>
+        <label class="pick"><input type="radio" name="use" value="Both">
+          <span><b>Both</b><span>The full platform &mdash; recommended for teams</span></span></label>
+      </div>
+    </div>
+
+    <div class="step" data-step="2">
+      <h2>Invite your team</h2>
+      <p>Optional &mdash; you can skip and do this later.</p>
+      <div class="field" id="f-mail"><label for="mails">Email addresses</label>
+        <input class="inp" id="mails" placeholder="ana@studio.com, ben@studio.com">
+        <p class="err"><span>One of those doesn&rsquo;t look like an email address</span></p></div>
+      <div class="picks">
+        <label class="pick"><input type="checkbox" id="seat" checked>
+          <span><b>Let them invite others</b><span>Members can add teammates without an admin</span></span></label>
+      </div>
+    </div>
+
+    <div class="step" data-step="3">
+      <h2>Check it over</h2>
+      <p>Everything look right?</p>
+      <dl class="review" id="review"></dl>
+    </div>
+
+    <div class="step" data-step="4">
+      <div class="done">
+        <div class="ring"><svg viewBox="0 0 24 24"><path d="m4 12.5 5 5L20 6.5"/></svg></div>
+        <h2>You&rsquo;re all set</h2>
+        <p id="doneline">Workspace created.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav" id="nav"></div>
+</section>
+
+<script src="app.js"></script>
+</body>
+</html>

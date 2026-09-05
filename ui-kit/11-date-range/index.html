@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Date Range Picker</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<section class="pk">
+  <div class="presets" id="presets">
+    <h2>Quick ranges</h2>
+    <button type="button" data-p="7">Last 7 days</button>
+    <button type="button" data-p="30" aria-pressed="true">Last 30 days</button>
+    <button type="button" data-p="90">Last 90 days</button>
+    <button type="button" data-p="tm">This month</button>
+    <button type="button" data-p="lm">Last month</button>
+    <button type="button" data-p="ytd">Year to date</button>
+  </div>
+
+  <div class="right">
+    <div class="cal_hd">
+      <button class="arrow" type="button" id="back" aria-label="Previous month"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button>
+      <b id="span"></b>
+      <button class="arrow" type="button" id="fwd" aria-label="Next month"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button>
+    </div>
+    <div class="months" id="months"></div>
+    <div class="ft">
+      <span class="out" id="out"></span>
+      <button class="ghost" type="button" id="clear">Clear</button>
+      <button class="apply" type="button" id="apply">Apply</button>
+    </div>
+  </div>
+</section>
+
+<script src="app.js"></script>
+</body>
+</html>

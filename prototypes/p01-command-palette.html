@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Command Palette</title>
+<style>
+:root{--bg:#080c17;--card:#141b2b;--card2:#0e1422;--line:rgba(255,255,255,.08);
+--txt:#e9edf8;--mut:#8b95b3;--dim:#5a6482;--faint:#3c4562;--a:#7cc4ff;--b:#a98bff;--ok:#5fe0ac}
+*{box-sizing:border-box}html{height:100%}
+body{margin:0;min-height:100%;display:flex;align-items:center;justify-content:center;padding:30px 22px;
+font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--txt);background:var(--bg)}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;
+background:radial-gradient(60% 50% at 50% 0%,rgba(124,196,255,.1),transparent 70%)}
+
+.stage{text-align:center;z-index:1}
+.stage h1{margin:0 0 6px;font-size:22px;letter-spacing:-.02em}
+.stage p{margin:0 0 20px;font-size:13px;color:var(--dim)}
+kbd{display:inline-block;padding:2px 7px;border:1px solid var(--line);border-radius:6px;
+background:rgba(255,255,255,.05);font:600 11px/1.5 ui-monospace,Menlo,monospace;color:var(--mut)}
+.open{padding:12px 20px;font:inherit;font-size:13.5px;font-weight:650;color:#07121d;
+background:linear-gradient(115deg,var(--a),var(--b));border:0;border-radius:12px;cursor:pointer;
+box-shadow:0 12px 28px -10px rgba(124,196,255,.6)}
+
+/* ---------- palette ---------- */
+.scrim{position:fixed;inset:0;z-index:20;display:flex;justify-content:center;padding-top:12vh;
+background:rgba(4,7,14,.72);backdrop-filter:blur(6px);opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s}
+.scrim.on{opacity:1;visibility:visible}
+.pal{width:min(560px,100%);max-height:min(460px,70vh);display:flex;flex-direction:column;
+background:linear-gradient(168deg,var(--card),var(--card2));border:1px solid rgba(255,255,255,.12);
+border-radius:18px;overflow:hidden;box-shadow:0 40px 90px -30px rgba(0,0,0,.95);
+transform:translateY(-10px) scale(.97);transition:transform .24s cubic-bezier(.3,1.2,.4,1)}
+.scrim.on .pal{transform:none}
+
+.pal_top{display:flex;align-items:center;gap:11px;padding:15px 17px;border-bottom:1px solid var(--line)}
+.pal_top svg{width:17px;height:17px;flex:0 0 auto;fill:none;stroke:var(--dim);stroke-width:2;stroke-linecap:round}
+.pal_top input{flex:1;min-width:0;font:inherit;font-size:15px;color:var(--txt);background:none;border:0;outline:none}
+.pal_top input::placeholder{color:var(--faint)}
+
+.pal_list{flex:1;overflow-y:auto;padding:7px;scrollbar-width:thin}
+.grp{padding:9px 10px 5px;font:600 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;
+text-transform:uppercase;color:var(--faint)}
+.row{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:10px;cursor:pointer}
+.row[aria-selected="true"]{background:rgba(124,196,255,.13);box-shadow:inset 0 0 0 1px rgba(124,196,255,.25)}
+.row_ico{display:grid;place-items:center;width:28px;height:28px;flex:0 0 auto;border-radius:8px;
+background:rgba(255,255,255,.06)}
+.row_ico svg{width:14px;height:14px;fill:none;stroke:var(--mut);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.row[aria-selected="true"] .row_ico{background:rgba(124,196,255,.2)}
+.row[aria-selected="true"] .row_ico svg{stroke:var(--a)}
+.row_t{flex:1;min-width:0}
+.row_t b{display:block;font-size:13.5px;font-weight:550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row_t b mark{background:none;color:var(--a);font-weight:750}
+.row_t span{font-size:11.5px;color:var(--faint)}
+.row_k{font:600 10px/1 ui-monospace,Menlo,monospace;color:var(--faint);letter-spacing:.06em}
+
+.empty{padding:38px 20px;text-align:center;color:var(--dim);font-size:13px}
+.empty b{display:block;color:var(--mut);margin-bottom:3px}
+
+.pal_foot{display:flex;align-items:center;gap:14px;padding:9px 15px;border-top:1px solid var(--line);
+font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.08em;color:var(--faint)}
+.pal_foot span{display:flex;align-items:center;gap:5px}
+.pal_foot i{font-style:normal;padding:2px 5px;border:1px solid var(--line);border-radius:4px;background:rgba(255,255,255,.04)}
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <h1>Command Palette</h1>
+  <p>Press <kbd>Ctrl</kbd> <kbd>K</kbd> &mdash; or</p>
+  <button class="open" id="openBtn" type="button">Open palette</button>
+</div>
+
+<div class="scrim" id="scrim">
+  <div class="pal" role="dialog" aria-modal="true" aria-label="Command palette">
+    <div class="pal_top">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" placeholder="Search commands, people, files…" aria-label="Search" autocomplete="off">
+    </div>
+    <div class="pal_list" id="list" role="listbox"></div>
+    <div class="pal_foot">
+      <span><i>↑</i><i>↓</i> navigate</span><span><i>↵</i> select</span><span><i>esc</i> close</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const I = {
+  doc:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5"/>',
+  user:'<circle cx="12" cy="8" r="3.4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/>',
+  cog:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>',
+  bolt:'<path d="M13 2 4 14h6l-1 8 9-12h-6Z"/>',
+  moon:'<path d="M21 13.2A9 9 0 1 1 10.8 3a7 7 0 0 0 10.2 10.2Z"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  git:'<circle cx="7" cy="6" r="2.4"/><circle cx="7" cy="18" r="2.4"/><circle cx="17" cy="12" r="2.4"/><path d="M7 8.4v7.2M9.4 6h3a2 2 0 0 1 2 2v2"/>',
+  mail:'<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3.5 7 8.5 6 8.5-6"/>'
+};
+const DATA = [
+  { g:'Actions',   t:'New project',        s:'Create a workspace',      k:'⌘ N', i:'plus' },
+  { g:'Actions',   t:'Invite teammate',    s:'Send an email invite',    k:'⌘ I', i:'mail' },
+  { g:'Actions',   t:'Deploy to production', s:'Runs the release pipeline', k:'⌘ ⇧ D', i:'bolt' },
+  { g:'Navigate',  t:'Open settings',      s:'Workspace preferences',   k:'⌘ ,', i:'cog' },
+  { g:'Navigate',  t:'Pull requests',      s:'12 open',                 k:'G P', i:'git' },
+  { g:'Navigate',  t:'Documentation',      s:'Guides and API reference', k:'G D', i:'doc' },
+  { g:'People',    t:'Priya Raman',        s:'Design lead',             k:'',    i:'user' },
+  { g:'People',    t:'Marcus Webb',        s:'Platform engineering',    k:'',    i:'user' },
+  { g:'People',    t:'Sofia Alvarez',      s:'Product manager',         k:'',    i:'user' },
+  { g:'Preferences', t:'Toggle dark mode', s:'Currently dark',          k:'⌘ ⇧ L', i:'moon' }
+];
+
+const scrim = document.getElementById('scrim'), q = document.getElementById('q'), list = document.getElementById('list');
+let rows = [], sel = 0;
+
+/* subsequence match, so "dpr" finds "Deploy to production" */
+function score(item, term){
+  if (!term) return { ok:true, marks:null };
+  const hay = item.t.toLowerCase(), t = term.toLowerCase();
+  const at = hay.indexOf(t);
+  if (at > -1) return { ok:true, marks:[[at, at + t.length]] };
+  let i = 0, out = [];
+  for (let n = 0; n < hay.length && i < t.length; n++){
+    if (hay[n] === t[i]){ out.push([n, n + 1]); i++; }
+  }
+  return i === t.length ? { ok:true, marks:out } : { ok:false };
+}
+const hl = (s, marks) => {
+  if (!marks) return s;
+  let out = '', at = 0;
+  for (const [a, b] of marks){ out += s.slice(at, a) + '<mark>' + s.slice(a, b) + '</mark>'; at = b; }
+  return out + s.slice(at);
+};
+
+function render(){
+  const term = q.value.trim();
+  const hits = DATA.map(d => ({ d, m: score(d, term) })).filter(x => x.m.ok);
+  list.innerHTML = '';
+  rows = [];
+  if (!hits.length){
+    list.innerHTML = '<div class="empty"><b>No matches</b>Try “deploy”, “settings” or a name</div>';
+    return;
+  }
+  let group = '';
+  hits.forEach(({ d, m }) => {
+    if (d.g !== group){ group = d.g; list.insertAdjacentHTML('beforeend', '<div class="grp">' + group + '</div>'); }
+    const el = document.createElement('div');
+    el.className = 'row'; el.role = 'option';
+    el.innerHTML = '<span class="row_ico"><svg viewBox="0 0 24 24">' + I[d.i] + '</svg></span>' +
+      '<span class="row_t"><b>' + hl(d.t, m.marks) + '</b><span>' + d.s + '</span></span>' +
+      (d.k ? '<span class="row_k">' + d.k + '</span>' : '');
+    el.addEventListener('click', () => run(d));
+    el.addEventListener('pointermove', () => { sel = rows.indexOf(el); mark(); });
+    list.appendChild(el); rows.push(el);
+  });
+  sel = 0; mark();
+}
+function mark(){
+  rows.forEach((r, i) => r.setAttribute('aria-selected', i === sel));
+  rows[sel] && rows[sel].scrollIntoView({ block:'nearest' });
+}
+function run(d){ close(); setTimeout(() => alert('Ran: ' + d.t), 120); }
+
+function open(){ scrim.classList.add('on'); q.value = ''; render(); setTimeout(() => q.focus(), 40); }
+function close(){ scrim.classList.remove('on'); }
+
+document.getElementById('openBtn').addEventListener('click', open);
+scrim.addEventListener('pointerdown', e => { if (e.target === scrim) close(); });
+q.addEventListener('input', render);
+
+addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k'){ e.preventDefault(); scrim.classList.contains('on') ? close() : open(); return; }
+  if (!scrim.classList.contains('on')) return;
+  if (e.key === 'Escape'){ close(); }
+  else if (e.key === 'ArrowDown'){ e.preventDefault(); if (rows.length){ sel = (sel + 1) % rows.length; mark(); } }
+  else if (e.key === 'ArrowUp'){ e.preventDefault(); if (rows.length){ sel = (sel - 1 + rows.length) % rows.length; mark(); } }
+  else if (e.key === 'Enter' && rows[sel]){ e.preventDefault(); rows[sel].click(); }
+});
+render();
+</script>
+</body>
+</html>

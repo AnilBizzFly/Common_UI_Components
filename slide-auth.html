@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Login / Sign Up</title>
+<style>
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; display:grid; place-items:center; padding:24px;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#212625; background:#e9ecf1; overflow:hidden;
+}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(110px);pointer-events:none}
+body::before{width:520px;height:520px;background:rgba(240,120,74,.28);top:-180px;left:-140px}
+body::after{width:470px;height:470px;background:rgba(123,63,160,.24);bottom:-180px;right:-140px}
+
+/* ============================================================
+   Login.css  --  verbatim from the source
+   ============================================================ */
+.card {
+  position: relative;
+  overflow: hidden;
+  width: 660px;
+  height: 440px;
+  border-radius: 24px;
+  background: #ffffff;
+  border: 8px solid #ffffff;
+}
+
+.card-bg {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 50%;
+  background: url("hero.jpg");
+  border-radius: 18px;
+  translate: 0 0;
+  transition: 0.65s ease-in-out;
+}
+
+.card-bg.login {
+  translate: 100% 0;
+}
+
+.hero, .form {
+  position: absolute;
+  width: 50%;
+  height: 100%;
+  opacity: 0;
+  visibility: hidden;
+  transition: 0.65s ease-in-out;
+}
+
+.hero.active, .form.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.form.register {
+  left: 50%;
+}
+
+.hero.login {
+  left: 50%;
+  translate: 100% 0;
+}
+
+.hero.login.active {
+  translate: 0;
+}
+
+.hero.register {
+  translate: -100% 0;
+}
+
+.hero.register.active {
+  translate: 0;
+}
+
+.hero {
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 50%;
+  color: #f9f9f9;
+  text-align: center;
+  padding: 0 24px;
+}
+
+.form.login {
+  translate: 100% 0;
+}
+
+.form.login.active {
+  translate: 0;
+}
+
+.form.register {
+  translate: -100% 0;
+}
+
+.form.register.active {
+  translate: 0;
+}
+
+.hero p {
+  margin: 0 0 6px;
+  opacity: 0.85;
+  line-height: 1.45;
+}
+
+.hero button {
+  padding: 12px 40px;
+  border-radius: 32px;
+  letter-spacing: 1px;
+  font-family: inherit;
+  color: inherit;
+  border: 1px solid #f9f9f9;
+  background: transparent;
+  transition: 0.3s;
+  cursor: pointer;
+}
+
+.hero button:hover {
+  color: #212625;
+  background: #f9f9f9;
+}
+
+.form {
+  background: #ffffff;
+  z-index: 1;
+  width: 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 32px;
+}
+
+/* ============================================================
+   below here was cut off in the screenshots -- reconstructed
+   ============================================================ */
+
+/* stand-in for hero.jpg so the file runs with no assets */
+.card-bg{
+  background:
+    radial-gradient(circle at 22% 16%, rgba(255,255,255,.30), transparent 46%),
+    radial-gradient(circle at 82% 88%, rgba(255,255,255,.16), transparent 42%),
+    linear-gradient(150deg,#f0784a 0%,#e0455f 38%,#7b3fa0 72%,#33306e 100%);
+  background-size: cover;
+  background-position: center;
+}
+
+.hero h2{margin:0;font-size:28px;font-weight:700;letter-spacing:-.01em}
+.hero p{font-size:13.5px}
+
+.form h2{margin:0;font-size:26px;font-weight:700;letter-spacing:-.01em}
+.form > p{margin:0;font-size:12.5px;color:#8a8f95}
+.form form{display:flex;flex-direction:column;align-items:stretch;gap:10px;width:100%}
+.form input{
+  width:100%;padding:13px 15px;font:inherit;font-size:13.5px;color:#212625;
+  background:#eef0f3;border:1px solid transparent;border-radius:10px;outline:none;
+  transition:border-color .2s,background .2s;
+}
+.form input::placeholder{color:#9aa0a6}
+.form input:focus{background:#fff;border-color:#212625}
+.form form button{
+  margin-top:6px;padding:13px 40px;font:inherit;font-size:12.5px;font-weight:700;letter-spacing:1px;
+  color:#f9f9f9;background:#212625;border:1px solid #212625;border-radius:32px;cursor:pointer;
+  transition:.3s;
+}
+.form form button:hover{color:#212625;background:transparent}
+.form form a{font-size:12.5px;color:#8a8f95;text-decoration:none;cursor:pointer;text-align:center}
+.form form a:hover{color:#212625}
+
+.sso{display:flex;gap:10px}
+.sso a{
+  display:grid;place-items:center;width:38px;height:38px;
+  border:1px solid #dcdfe4;border-radius:50%;color:#212625;cursor:pointer;
+  transition:border-color .25s,background .25s,color .25s;
+}
+.sso a:hover{border-color:#212625;background:#212625;color:#fff}
+.sso svg{width:16px;height:16px;fill:currentColor}
+
+@media (max-width:700px){
+  .card{width:min(400px,100%);height:560px}
+  .hero,.form{width:100%;height:50%}
+  .card-bg{width:100%;height:50%;bottom:auto}
+  .card-bg.login{translate:0 100%}
+  .form.register{left:0;top:50%;translate:0 -100%}
+  .form.register.active{translate:0}
+  .form.login{translate:0 100%}
+  .form.login.active{translate:0}
+  .hero.login{left:0;top:50%;translate:0 100%}
+  .hero.login.active{translate:0}
+  .hero.register{translate:0 -100%}
+  .hero.register.active{translate:0}
+  .hero h2{font-size:24px}
+}
+</style>
+</head>
+<body>
+
+<div class="card" id="card">
+
+  <!-- CardBackground -->
+  <div class="card-bg login" id="cardBg"></div>
+
+  <!-- HeroPanel type="register" -->
+  <div class="hero register" data-type="register">
+    <h2>Welcome back</h2>
+    <p>Login to review your saved boards and pick up right where you left off.</p>
+    <button type="button" data-toggle>LOGIN</button>
+  </div>
+
+  <!-- RegisterForm -->
+  <div class="form register" data-type="register">
+    <h2>Sign Up</h2>
+    <div class="sso">
+      <a class="fa-brands fa-facebook" aria-label="Facebook"><svg viewBox="0 0 24 24"><path d="M14 9h3V6h-3c-2.2 0-4 1.8-4 4v2H8v3h2v7h3v-7h3l1-3h-4v-2c0-.6.4-1 1-1Z"/></svg></a>
+      <a class="fa-brands fa-twitter" aria-label="Twitter"><svg viewBox="0 0 24 24"><path d="M22 5.9c-.7.3-1.5.6-2.4.7.9-.5 1.5-1.3 1.8-2.3-.8.5-1.7.8-2.6 1a4.1 4.1 0 0 0-7 3.7A11.6 11.6 0 0 1 3.4 4.7a4.1 4.1 0 0 0 1.3 5.5c-.7 0-1.3-.2-1.9-.5 0 2 1.4 3.7 3.3 4.1-.6.2-1.2.2-1.8.1a4.1 4.1 0 0 0 3.8 2.9A8.3 8.3 0 0 1 2 18.6a11.6 11.6 0 0 0 6.3 1.8c7.5 0 11.7-6.3 11.7-11.8v-.5c.8-.6 1.5-1.3 2-2.2Z"/></svg></a>
+      <a class="fa-brands fa-linkedin" aria-label="LinkedIn"><svg viewBox="0 0 24 24"><path d="M6.9 8.5H4V20h2.9V8.5ZM5.4 3.6a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4ZM20 13.6c0-3.2-1.7-4.6-4-4.6-1.8 0-2.6 1-3.1 1.7V8.5H10V20h2.9v-6.3c0-1.3.3-2.6 1.9-2.6s1.7 1.5 1.7 2.7V20H20v-6.4Z"/></svg></a>
+    </div>
+    <p>Or use your email address</p>
+    <form onsubmit="return false">
+      <input type="text" placeholder="Full name">
+      <input type="email" placeholder="Email address">
+      <input type="password" placeholder="Password">
+      <button>SIGN UP</button>
+    </form>
+  </div>
+
+  <!-- HeroPanel type="login" -->
+  <div class="hero login active" data-type="login">
+    <h2>Hello there</h2>
+    <p>Begin your journey with us and get your workspace set up in a minute.</p>
+    <button type="button" data-toggle>SIGN UP</button>
+  </div>
+
+  <!-- LoginForm -->
+  <div class="form login active" data-type="login">
+    <h2>Login</h2>
+    <div class="sso">
+      <a class="fa-brands fa-facebook" aria-label="Facebook"><svg viewBox="0 0 24 24"><path d="M14 9h3V6h-3c-2.2 0-4 1.8-4 4v2H8v3h2v7h3v-7h3l1-3h-4v-2c0-.6.4-1 1-1Z"/></svg></a>
+      <a class="fa-brands fa-twitter" aria-label="Twitter"><svg viewBox="0 0 24 24"><path d="M22 5.9c-.7.3-1.5.6-2.4.7.9-.5 1.5-1.3 1.8-2.3-.8.5-1.7.8-2.6 1a4.1 4.1 0 0 0-7 3.7A11.6 11.6 0 0 1 3.4 4.7a4.1 4.1 0 0 0 1.3 5.5c-.7 0-1.3-.2-1.9-.5 0 2 1.4 3.7 3.3 4.1-.6.2-1.2.2-1.8.1a4.1 4.1 0 0 0 3.8 2.9A8.3 8.3 0 0 1 2 18.6a11.6 11.6 0 0 0 6.3 1.8c7.5 0 11.7-6.3 11.7-11.8v-.5c.8-.6 1.5-1.3 2-2.2Z"/></svg></a>
+      <a class="fa-brands fa-linkedin" aria-label="LinkedIn"><svg viewBox="0 0 24 24"><path d="M6.9 8.5H4V20h2.9V8.5ZM5.4 3.6a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4ZM20 13.6c0-3.2-1.7-4.6-4-4.6-1.8 0-2.6 1-3.1 1.7V8.5H10V20h2.9v-6.3c0-1.3.3-2.6 1.9-2.6s1.7 1.5 1.7 2.7V20H20v-6.4Z"/></svg></a>
+    </div>
+    <p>Or use your email address</p>
+    <form onsubmit="return false">
+      <input type="text" placeholder="Email">
+      <input type="password" placeholder="Password">
+      <a style="padding-top:6px;margin-bottom:7px">Forgot password?</a>
+      <button>LOGIN</button>
+    </form>
+  </div>
+</div>
+
+<script>
+/* the same one-line state the React version holds in useState */
+const card = document.getElementById('card');
+const cardBg = document.getElementById('cardBg');
+const panels = card.querySelectorAll('[data-type]');
+
+let activeView = 'login';
+
+function render(){
+  cardBg.classList.toggle('login', activeView === 'login');
+  panels.forEach(el => el.classList.toggle('active', el.dataset.type === activeView));
+}
+
+const toggleView = () => {
+  activeView = activeView === 'login' ? 'register' : 'login';
+  render();
+};
+
+card.querySelectorAll('[data-toggle]').forEach(b => b.addEventListener('click', toggleView));
+render();
+</script>
+</body>
+</html>

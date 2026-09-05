@@ -1,0 +1,51 @@
+:root{--bg:#080c17;--card:#141b2b;--card2:#0e1422;--line:rgba(255,255,255,.08);
+--txt:#e9edf8;--mut:#8b95b3;--dim:#5a6482;--faint:#3c4562;
+--a:#7cc4ff;--b:#a98bff;--ok:#5fe0ac;--warn:#ffb057;--bad:#ff6b81}
+*{box-sizing:border-box}html{height:100%}
+body{margin:0;min-height:100%;display:flex;align-items:center;justify-content:center;padding:26px 20px;
+font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--txt);background:var(--bg)}
+body::before{content:"";position:fixed;width:620px;height:620px;border-radius:50%;filter:blur(140px);
+background:rgba(95,224,172,.1);bottom:-250px;right:-200px;pointer-events:none}
+
+.demo{position:relative;z-index:1;width:min(420px,100%);text-align:center;
+background:linear-gradient(168deg,var(--card),var(--card2));border:1px solid var(--line);
+border-radius:24px;padding:26px 24px;box-shadow:0 38px 84px -28px rgba(0,0,0,.86)}
+.demo h1{margin:0 0 5px;font-size:20px;letter-spacing:-.02em}
+.demo p{margin:0 0 20px;font-size:13px;color:var(--dim)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.trig{padding:12px;font:inherit;font-size:12.5px;font-weight:650;color:var(--txt);
+background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:12px;cursor:pointer;
+display:flex;align-items:center;justify-content:center;gap:8px;transition:.2s}
+.trig:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2)}
+.trig i{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+.note{margin:18px 0 0;font:600 10px/1.7 ui-monospace,Menlo,monospace;letter-spacing:.1em;
+text-transform:uppercase;color:var(--faint)}
+
+/* ---------- the stack ---------- */
+.toaster{position:fixed;top:20px;right:20px;z-index:50;display:flex;flex-direction:column;gap:10px;
+width:min(340px,calc(100vw - 40px));pointer-events:none}
+.toast{position:relative;display:flex;gap:11px;padding:13px 13px 13px 14px;overflow:hidden;
+background:#131a29;border:1px solid var(--line);border-radius:15px;
+box-shadow:0 22px 44px -16px rgba(0,0,0,.9);pointer-events:auto;cursor:grab;touch-action:pan-y;
+animation:slidein .4s cubic-bezier(.25,1.2,.4,1)}
+@keyframes slidein{from{opacity:0;transform:translateX(28px) scale(.95)}}
+.toast.out{animation:slideout .26s cubic-bezier(.5,0,.75,0) forwards}
+@keyframes slideout{to{opacity:0;transform:translateX(30px) scale(.94);margin-top:-58px}}
+.toast::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--tint)}
+.toast .ico{display:grid;place-items:center;width:26px;height:26px;flex:0 0 auto;border-radius:8px;
+background:color-mix(in srgb,var(--tint) 18%,transparent)}
+.toast .ico svg{width:14px;height:14px;fill:none;stroke:var(--tint);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.toast .body{flex:1;min-width:0}
+.toast b{display:block;font-size:13px;font-weight:650;letter-spacing:-.01em}
+.toast span{display:block;font-size:12px;color:var(--dim);line-height:1.5}
+.toast .act{margin-top:7px;padding:5px 10px;font:inherit;font-size:11.5px;font-weight:650;
+color:var(--tint);background:color-mix(in srgb,var(--tint) 14%,transparent);
+border:1px solid color-mix(in srgb,var(--tint) 32%,transparent);border-radius:8px;cursor:pointer}
+.toast .x{width:22px;height:22px;flex:0 0 auto;display:grid;place-items:center;border:0;border-radius:6px;
+background:none;color:var(--faint);cursor:pointer;transition:.2s}
+.toast .x:hover{color:var(--txt);background:rgba(255,255,255,.08)}
+.toast .x svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+.toast .life{position:absolute;left:0;bottom:0;height:2px;background:var(--tint);opacity:.55;
+transform-origin:left;animation:life var(--ttl) linear forwards}
+@keyframes life{to{transform:scaleX(0)}}
+.toast:hover .life,.toast.held .life{animation-play-state:paused}

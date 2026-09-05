@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Component 95 &mdash; Log in</title>
+<style>
+:root{
+  --bg:#080c18;
+  --card-a:#18203a; --card-b:#0f1626;
+  --line:rgba(255,255,255,.08);
+  --txt:#eaeefb; --mut:#8d98b8; --dim:#5a6484; --faint:#3d4762;
+
+  --mint:#6ee7c7; --azure:#5b9dff;      /* tamed */
+  --amber:#ffb057; --coral:#ff7a59;     /* wild  */
+
+  --cta-h:50px;
+}
+*{box-sizing:border-box}
+html{height:100%}
+body{
+  margin:0; min-height:100%; display:flex; align-items:center; justify-content:center;
+  padding:30px 22px;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:var(--txt); background:var(--bg);
+}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0}
+body::before{width:560px;height:560px;background:rgba(110,231,199,.13);top:-210px;left:-170px}
+body::after{width:500px;height:500px;background:rgba(91,157,255,.13);bottom:-200px;right:-160px}
+
+.card{
+  position:relative; z-index:1; width:min(404px,100%);
+  background:linear-gradient(168deg,var(--card-a),var(--card-b));
+  border:1px solid var(--line); border-radius:24px; padding:24px 26px 20px;
+  box-shadow:0 36px 80px -26px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.035) inset;
+}
+.card.shake{animation:shake .4s cubic-bezier(.36,.07,.19,.97)}
+@keyframes shake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}
+  30%,50%,70%{transform:translateX(-7px)}40%,60%{transform:translateX(7px)}}
+
+/* ---------- head ---------- */
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.brand{display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:700;letter-spacing:-.01em}
+.brand i{
+  display:grid;place-items:center;width:28px;height:28px;border-radius:9px;font-style:normal;
+  background:linear-gradient(135deg,var(--mint),var(--azure));color:#08111d;font-weight:800;font-size:14px;
+  box-shadow:0 6px 14px -5px rgba(91,157,255,.7);
+}
+.no{font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;color:var(--faint)}
+
+h1{margin:0 0 4px;font-size:24px;letter-spacing:-.025em;text-align:center}
+.sub{margin:0 0 20px;text-align:center;font-size:12.5px;color:var(--dim)}
+
+/* ---------- social ---------- */
+.sso{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:16px}
+.sso button{
+  display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;
+  font:inherit;font-size:12.5px;font-weight:600;color:var(--txt);
+  background:rgba(255,255,255,.045);border:1px solid var(--line);border-radius:12px;cursor:pointer;
+  transition:background .2s,border-color .2s,transform .14s;
+}
+.sso button:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.18)}
+.sso button:active{transform:translateY(1px)}
+.sso svg{width:15px;height:15px}
+
+.rule{display:flex;align-items:center;gap:11px;margin:0 0 16px;font-size:10.5px;
+  letter-spacing:.13em;text-transform:uppercase;color:var(--faint)}
+.rule::before,.rule::after{content:"";flex:1;height:1px;background:var(--line)}
+
+/* ---------- fields ---------- */
+.field{display:block;margin-bottom:12px}
+.field__lab{display:flex;justify-content:space-between;font-size:11.5px;font-weight:600;
+  color:var(--mut);margin-bottom:6px}
+.f-wrap{position:relative;display:flex;align-items:center}
+.f-wrap>svg{position:absolute;left:13px;width:16px;height:16px;fill:none;stroke:var(--dim);
+  stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;pointer-events:none;transition:stroke .2s}
+.inp{
+  width:100%;padding:12px 14px 12px 39px;font:inherit;font-size:14px;color:var(--txt);
+  background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;outline:none;
+  transition:border-color .2s,background .2s,box-shadow .2s;
+}
+.inp::placeholder{color:#4f5a78}
+.inp:focus{border-color:var(--mint);background:rgba(110,231,199,.07);box-shadow:0 0 0 3px rgba(110,231,199,.13)}
+.f-wrap:focus-within>svg{stroke:var(--mint)}
+.f-wrap.ok>svg{stroke:var(--mint)}
+.f-wrap.ok .inp{border-color:rgba(110,231,199,.35)}
+
+.row{display:flex;align-items:center;justify-content:space-between;margin:2px 0 16px;font-size:12px}
+.cbx{display:flex;align-items:center;gap:7px;color:var(--mut);cursor:pointer;user-select:none}
+.cbx input{accent-color:var(--mint);width:14px;height:14px;cursor:pointer}
+a.lnk{color:var(--azure);font-weight:600;text-decoration:none}
+a.lnk:hover{text-decoration:underline}
+
+/* ============ the arena ============ */
+/* home is a slot, not a copy of the button */
+.dock{
+  position:relative; display:flex; align-items:center; justify-content:center;
+  height:172px; border-radius:18px; overflow:hidden;
+  border:1px solid rgba(255,255,255,.055);
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.028),rgba(255,255,255,.008));
+  transition:height .4s cubic-bezier(.3,.9,.3,1),border-color .5s ease,background .5s ease;
+}
+/* a finger is never chased */
+html:not(.can-chase) .dock{ height: var(--cta-h); border-color:transparent; background:none }
+html:not(.can-chase) .dock_grid,
+html:not(.can-chase) .dock_tag,
+html:not(.can-chase) .dock_count,
+html:not(.can-chase) .dock_home{display:none}
+
+.dock_grid{
+  position:absolute;inset:0;pointer-events:none;
+  background-image:radial-gradient(circle,rgba(255,255,255,.13) 1px,transparent 1.5px);
+  background-size:17px 17px;
+  -webkit-mask-image:radial-gradient(ellipse 80% 74% at 50% 50%,#000 32%,transparent 80%);
+          mask-image:radial-gradient(ellipse 80% 74% at 50% 50%,#000 32%,transparent 80%);
+  transition:opacity .5s ease;
+}
+.dock_tag,.dock_count{
+  position:absolute;font:600 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--faint);pointer-events:none;transition:color .4s ease
+}
+.dock_tag{left:13px;top:12px}
+.dock_count{right:13px;top:12px}
+
+/* the target it has to be driven back into */
+.dock_home{
+  position:absolute;left:50%;top:50%;width:112px;height:112px;margin:-56px 0 0 -56px;
+  border-radius:50%;border:1.5px dashed rgba(255,255,255,.14);
+  opacity:0;transition:opacity .4s ease;pointer-events:none;
+}
+.dock_home::after{
+  content:"";position:absolute;inset:26px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.09);
+}
+.dock.is-away .dock_home{opacity:1}
+
+.dock_band{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;opacity:0}
+.dock_band path{fill:none;stroke:url(#bandg);stroke-width:2;stroke-linecap:round;stroke-dasharray:3 6}
+
+.dock_socket{position:relative;display:inline-block;height:var(--cta-h)}
+.dock_socket::before{
+  content:"";position:absolute;inset:0;border-radius:14px;
+  border:1.5px dashed rgba(255,255,255,.16);opacity:0;transition:opacity .3s ease;
+}
+.dock.is-away .dock_socket::before{opacity:1}
+
+/* the loop owns this transform -- nothing in here may touch it */
+.cta{
+  position:relative; z-index:2; display:block;
+  height:var(--cta-h); padding:0 44px;
+  font:inherit; font-size:14.5px; font-weight:700; color:#150c04;
+  background:linear-gradient(115deg,var(--amber),var(--coral));
+  border:0; border-radius:14px; cursor:pointer; white-space:nowrap;
+  box-shadow:0 12px 30px -10px rgba(255,140,80,.62);
+  transform: translate3d(var(--x,0px), var(--y,0px), 0) rotate(var(--rot,0deg));
+  transition:background .55s ease,box-shadow .55s ease,color .55s ease;
+}
+.cta:focus-visible{outline:2px solid #fff;outline-offset:3px}
+/* tamed */
+.cta.is-home{
+  color:#06131f;
+  background:linear-gradient(115deg,var(--mint),var(--azure));
+  box-shadow:0 16px 38px -10px rgba(91,157,255,.8);
+}
+.dock.is-won{border-color:rgba(110,231,199,.26);background:rgba(110,231,199,.05)}
+.dock.is-won .dock_grid{opacity:.35}
+.dock.is-won .dock_tag,.dock.is-won .dock_count{color:rgba(110,231,199,.7)}
+
+/* ---------- meter ---------- */
+.meter{display:flex;align-items:center;justify-content:center;gap:10px;margin:14px 0 0;
+  font:600 10.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.pips{display:flex;gap:5px}
+.pip{width:22px;height:4px;border-radius:99px;background:rgba(255,255,255,.11);transition:background .35s ease}
+.pip.on{background:linear-gradient(90deg,var(--amber),var(--coral))}
+.meter.won .pip.on{background:linear-gradient(90deg,var(--mint),var(--azure))}
+.meter.won{color:var(--mint)}
+
+.foot{margin:14px 0 0;text-align:center;font-size:12.5px;color:var(--dim)}
+
+@media (prefers-reduced-motion:reduce){ .dock{transition:none} }
+</style>
+</head>
+<body>
+
+<form class="card" id="form" novalidate autocomplete="off">
+
+  <div class="top">
+    <span class="brand"><i>H</i> Halo</span>
+    <span class="no">COMPONENT 95</span>
+  </div>
+
+  <h1>Log in</h1>
+  <p class="sub">The button runs until you&rsquo;ve earned it.</p>
+
+  <div class="sso">
+    <button type="button">
+      <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M23 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.2a5.3 5.3 0 0 1-2.3 3.5v2.9h3.7c2.2-2 3.4-5 3.4-8.6Z"/><path fill="#34A853" d="M12 24c3.1 0 5.7-1 7.6-2.8l-3.7-2.9c-1 .7-2.3 1.1-3.9 1.1-3 0-5.5-2-6.4-4.7H1.8v3C3.7 21.4 7.6 24 12 24Z"/><path fill="#FBBC05" d="M5.6 14.7a7.2 7.2 0 0 1 0-4.6v-3H1.8a12 12 0 0 0 0 10.6l3.8-3Z"/><path fill="#EA4335" d="M12 4.8c1.7 0 3.2.6 4.4 1.7l3.3-3.3C17.7 1.2 15.1 0 12 0 7.6 0 3.7 2.6 1.8 6.1l3.8 3c.9-2.7 3.4-4.3 6.4-4.3Z"/></svg>
+      Google
+    </button>
+    <button type="button">
+      <svg viewBox="0 0 24 24" fill="#e9edf8"><path d="M12 .5a11.5 11.5 0 0 0-3.6 22.4c.6.1.8-.2.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.8 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.5-2.7 5.5-5.3 5.8.4.4.8 1.1.8 2.2v3.3c0 .4.2.7.8.6A11.5 11.5 0 0 0 12 .5Z"/></svg>
+      GitHub
+    </button>
+  </div>
+
+  <p class="rule">or with email</p>
+
+  <label class="field">
+    <span class="field__lab">Email</span>
+    <span class="f-wrap" id="w-email">
+      <svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="m3 7 9 6 9-6"/></svg>
+      <input class="inp" id="email" type="email" placeholder="you@company.com" autocomplete="username">
+    </span>
+  </label>
+
+  <label class="field">
+    <span class="field__lab">Password</span>
+    <span class="f-wrap" id="w-pw">
+      <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <input class="inp" id="pw" type="password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="current-password">
+    </span>
+  </label>
+
+  <div class="row">
+    <label class="cbx"><input type="checkbox" checked> Keep me signed in</label>
+    <a class="lnk" href="#" onclick="return false">Forgot?</a>
+  </div>
+
+  <div class="dock" id="dock">
+    <div class="dock_grid"></div>
+    <span class="dock_tag" id="tag">full travel</span>
+    <span class="dock_count" id="count">dodged 0&times;</span>
+    <div class="dock_home"></div>
+
+    <svg class="dock_band" id="bandSvg" aria-hidden="true">
+      <defs><linearGradient id="bandg" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#6ee7c7" stop-opacity=".14"/>
+        <stop offset="1" stop-color="#5b9dff" stop-opacity=".8"/>
+      </linearGradient></defs>
+      <path data-band-line/>
+    </svg>
+
+    <span class="dock_socket" id="socket">
+      <button class="cta" id="cta" type="submit" aria-disabled="true">Log in</button>
+    </span>
+  </div>
+
+  <p class="meter" id="meter">
+    <span class="pips"><i class="pip" id="pip1"></i><i class="pip" id="pip2"></i></span>
+    <span id="mtext">0 of 2 &mdash; it bolts</span>
+  </p>
+
+  <p class="foot">New here? <a class="lnk" href="#" onclick="return false">Create an account</a></p>
+</form>
+
+<script>
+const $ = s => document.querySelector(s);
+const clamp = (v, lo, hi) => v < lo ? lo : v > hi ? hi : v;
+
+const html = document.documentElement;
+const form = $('#form'), dock = $('#dock'), socket = $('#socket'), cta = $('#cta'),
+      bandSvg = $('#bandSvg'), band = document.querySelector('[data-band-line]'),
+      email = $('#email'), pw = $('#pw'),
+      tag = $('#tag'), count = $('#count'), meter = $('#meter'), mtext = $('#mtext'),
+      pip1 = $('#pip1'), pip2 = $('#pip2'), wEmail = $('#w-email'), wPw = $('#w-pw');
+
+/* a finger is never chased */
+html.classList.toggle('can-chase', matchMedia('(hover: hover) and (pointer: fine)').matches);
+addEventListener('touchstart', () => html.classList.remove('can-chase'), { once: true, passive: true });
+
+const RADIUS = 132;        // how close the cursor gets before it reacts
+const LETGO  = 214;        // and how far it must retreat before home looks safe
+const PUSH   = 96;         // strongest single shove
+
+const S = { x: 0, y: 0, rot: 0 };
+const T = { x: 0, y: 0, rot: 0 };
+let geo = null, locked = false, pointer = null, dodges = 0, lastDodge = 0;
+
+function filled(){ return (email.value.trim() ? 1 : 0) + (pw.value.trim() ? 1 : 0); }
+function scale(){
+  if (locked) return 0;
+  const n = filled();
+  if (n >= 2){ locked = true; lockIn(); return 0; }
+  return n === 1 ? 0.5 : 1;          // one field halves the travel
+}
+
+function measure(){
+  const d = dock.getBoundingClientRect(), s = socket.getBoundingClientRect();
+  geo = {
+    cx: s.left + s.width / 2, cy: s.top + s.height / 2,
+    sx: s.left - d.left + s.width / 2, sy: s.top - d.top + s.height / 2,
+    hw: s.width / 2, hh: s.height / 2,
+    LX: Math.max((d.width - s.width) / 2 - 8, 0),
+    LY: Math.max((d.height - s.height) / 2 - 8, 0)
+  };
+}
+
+function chase(){
+  if (!pointer || locked || !html.classList.contains('can-chase')) return home();
+  if (document.activeElement === cta) return home();   // Tab reaches it and it stops
+  const k = scale();
+  if (k === 0) return home();
+  if (!geo) measure();
+
+  const bx = geo.cx + S.x, by = geo.cy + S.y;
+  const dx = pointer.x - bx, dy = pointer.y - by;
+
+  // distance to the EDGE of the button, not its centre
+  const ex = Math.max(Math.abs(dx) - geo.hw, 0);
+  const ey = Math.max(Math.abs(dy) - geo.hh, 0);
+  const d  = Math.hypot(ex, ey);
+
+  if (d > LETGO) return home();
+  if (d > RADIUS) return;                       // hysteresis: hold ground
+
+  const now = performance.now();
+  if (now - lastDodge > 280){ lastDodge = now; count.innerHTML = 'dodged ' + (++dodges) + '&times;'; }
+
+  const len = Math.hypot(dx, dy) || 1;
+  const shove = PUSH * (1 - d / RADIUS);
+  const kx = S.x - (dx / len) * shove;
+  const ky = S.y - (dy / len) * shove;
+
+  const LX = geo.LX * k, LY = geo.LY * k;
+  let tx = clamp(kx, -LX, LX);
+  let ty = clamp(ky, -LY, LY);
+  const spillX = Math.abs(kx - tx);
+  const spillY = Math.abs(ky - ty);
+
+  // cornered? spend the clamped axis on the free one - so it runs along
+  // the wall instead of waiting to be clicked
+  T.x = clamp(tx + spillY * .9 * (dx > 0 ? -1 : 1), -LX, LX);
+  T.y = clamp(ty + spillX * .9 * (dy > 0 ? -1 : 1), -LY, LY);
+}
+
+function home(){ T.x = 0; T.y = 0; }
+
+function lockIn(){
+  home();
+  cta.setAttribute('aria-disabled', 'false');
+  cta.classList.add('is-home');
+  dock.classList.add('is-won');
+  meter.classList.add('won');
+  tag.textContent = 'earned';
+  mtext.textContent = '2 of 2 — it stays';
+}
+
+function gauge(){
+  const n = filled();
+  wEmail.classList.toggle('ok', !!email.value.trim());
+  wPw.classList.toggle('ok', !!pw.value.trim());
+  pip1.classList.toggle('on', n >= 1);
+  pip2.classList.toggle('on', n >= 2);
+  if (locked) return;
+  tag.textContent = n === 1 ? 'half travel' : 'full travel';
+  mtext.textContent = n === 1 ? '1 of 2 — it slows' : '0 of 2 — it bolts';
+}
+
+function draw(){
+  const len = Math.hypot(S.x, S.y);
+  cta.style.setProperty('--x', S.x.toFixed(2) + 'px');
+  cta.style.setProperty('--y', S.y.toFixed(2) + 'px');
+  cta.style.setProperty('--rot', S.rot.toFixed(2) + 'deg');
+  dock.classList.toggle('is-away', len > 6);
+
+  if (geo){
+    const bx = geo.sx + S.x, by = geo.sy + S.y;
+    const sag = Math.min(len * .22, 30);
+    band.setAttribute('d',
+      'M' + geo.sx.toFixed(1) + ' ' + geo.sy.toFixed(1) +
+      ' Q' + ((geo.sx + bx) / 2).toFixed(1) + ' ' + ((geo.sy + by) / 2 + sag).toFixed(1) +
+      ' ' + bx.toFixed(1) + ' ' + by.toFixed(1));
+    bandSvg.style.opacity = Math.min(len / 34, 1) * .85;
+  }
+}
+
+(function loop(){
+  chase();
+  S.x += (T.x - S.x) * .19;
+  S.y += (T.y - S.y) * .19;
+  const lean = clamp((T.x - S.x) * .16, -13, 13);
+  S.rot += (lean - S.rot) * .16;
+  draw();
+  requestAnimationFrame(loop);
+})();
+
+addEventListener('pointermove', e => {
+  if (e.pointerType !== 'mouse') { pointer = null; return; }
+  pointer = { x: e.clientX, y: e.clientY };
+});
+addEventListener('pointerleave', () => pointer = null);
+cta.addEventListener('focus', home);
+
+[email, pw].forEach(el => el.addEventListener('input', () => { scale(); gauge(); measure(); }));
+addEventListener('resize', measure);
+
+/* Enter always submits */
+form.addEventListener('submit', e => {
+  e.preventDefault();
+  if (!locked){
+    form.classList.remove('shake'); void form.offsetWidth; form.classList.add('shake');
+    (email.value.trim() ? pw : email).focus();
+    return;
+  }
+  cta.textContent = 'Welcome back';
+  cta.style.pointerEvents = 'none';
+  measure();
+});
+
+measure(); gauge();
+</script>
+</body>
+</html>

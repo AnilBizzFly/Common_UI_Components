@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Blade &mdash; Sign in / Sign up</title>
+<style>
+/* register it, or it is a string and cannot tween */
+@property --sweep { syntax:'<length>'; inherits:true; initial-value:0px }
+
+:root{
+  --bg:#080b14; --surface:#141a2b; --line:rgba(255,255,255,.09);
+  --txt:#e9edf8; --mut:#8b95b3; --dim:#5e6884;
+  --a:#6274ff; --b:#a55cff;
+  --blade:#0a0d16;
+  --rake:-14deg;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; display:grid; place-items:center; padding:24px;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:var(--txt); background:var(--bg); overflow:hidden;
+}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(110px);pointer-events:none}
+body::before{width:560px;height:560px;background:rgba(98,116,255,.16);top:-200px;left:-160px}
+body::after{width:500px;height:500px;background:rgba(165,92,255,.14);bottom:-200px;right:-150px}
+
+/* ============ stage ============ */
+.auth{
+  position:relative; z-index:1; width:min(760px,100%); height:480px;
+  border-radius:24px; overflow:hidden;
+  background:var(--surface); border:1px solid var(--line);
+  box-shadow:0 34px 80px -28px rgba(0,0,0,.85);
+}
+
+/* two panes, mirrored. no opacity anywhere -- visibility only. */
+.pane{position:absolute;inset:0;display:grid;grid-template-columns:1fr 1fr;visibility:hidden}
+.pane.is-on{visibility:visible}
+.pane--in{grid-template-areas:"form panel"}
+.pane--up{grid-template-areas:"panel form"}
+.side--form{grid-area:form}
+.side--panel{grid-area:panel}
+
+/* ============ the blade ============ */
+.auth_band{
+  position:absolute; top:0; bottom:0; left:0; width:var(--blade-w,1290px);
+  overflow:hidden;                       /* which is what slices the headline */
+  transform-origin:0 0;
+  transform:skewX(var(--rake)) translateX(var(--sweep));
+  background:
+    linear-gradient(100deg, #0c1019 0%, #0a0d16 42%, #10141f 100%);
+  z-index:5; pointer-events:none;
+}
+.band_inner{
+  position:absolute; inset:0; transform-origin:0 0;
+  /* its transform, backwards -- the two compose to identity */
+  transform:translateX(calc(-1 * var(--sweep))) skewX(calc(-1 * var(--rake)));
+}
+.band_page{                              /* back in card co-ordinates */
+  position:absolute; left:0; top:0;
+  width:var(--card-w,760px); height:var(--card-h,480px);
+  display:grid; grid-template-columns:1fr 1fr;
+}
+[data-mode="in"] .band_page{grid-template-areas:"form panel"}
+[data-mode="up"] .band_page{grid-template-areas:"panel form"}
+
+/* two lit seams */
+.band_edge{position:absolute;top:0;bottom:0;width:2px;z-index:3}
+.band_edge--lead{
+  right:0;
+  background:linear-gradient(180deg,rgba(150,170,255,0),#93a6ff 22%,#dfe7ff 50%,#93a6ff 78%,rgba(150,170,255,0));
+  box-shadow:0 0 18px 3px rgba(130,155,255,.55);
+}
+.band_edge--trail{
+  left:0;
+  background:linear-gradient(180deg,rgba(165,92,255,0),rgba(178,120,255,.75) 30%,rgba(214,186,255,.9) 50%,rgba(178,120,255,.75) 70%,rgba(165,92,255,0));
+  box-shadow:0 0 14px 2px rgba(165,92,255,.4);
+}
+
+/* ============ the panel half ============ */
+.side--panel{
+  position:relative; display:flex; flex-direction:column;
+  align-items:flex-start; justify-content:center; gap:14px; padding:44px 42px;
+  background:linear-gradient(142deg,var(--a),var(--b));
+  color:#fff; overflow:hidden;
+}
+.side--panel::after{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(120% 90% at 12% 8%,rgba(255,255,255,.22),transparent 58%);
+}
+.welcome_title{margin:0;font-size:38px;line-height:1.06;font-weight:600;letter-spacing:-.03em}
+.welcome_title em{display:block;font-style:italic;font-weight:400;opacity:.86}
+.side--panel p{margin:0;max-width:24ch;font-size:13.5px;line-height:1.6;color:rgba(255,255,255,.82)}
+.ghost{
+  margin-top:10px; padding:11px 24px; font:inherit; font-size:13px; font-weight:650; color:#fff;
+  background:transparent; border:1.5px solid rgba(255,255,255,.55); border-radius:999px;
+  cursor:pointer; transition:background .2s,border-color .2s;
+}
+.ghost:hover{background:rgba(255,255,255,.14);border-color:#fff}
+
+/* ============ the form half ============ */
+.side--form{display:flex;flex-direction:column;justify-content:center;padding:44px 42px}
+.side--form h2{margin:0 0 4px;font-size:24px;letter-spacing:-.02em}
+.side--form .lede{margin:0 0 22px;font-size:13px;color:var(--dim)}
+
+.field{position:relative;margin-bottom:12px}
+.field input{
+  width:100%; height:50px; padding:19px 14px 6px; font:inherit; font-size:14px; color:var(--txt);
+  background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:12px; outline:none;
+  transition:border-color .2s,background .2s,box-shadow .2s;
+}
+.field input::placeholder{color:transparent}
+.field input:focus{border-color:var(--a);background:rgba(98,116,255,.08);box-shadow:0 0 0 3px rgba(98,116,255,.16)}
+.field label{
+  position:absolute;left:15px;top:15px;pointer-events:none;font-size:14px;color:var(--dim);
+  transition:top .18s cubic-bezier(.3,1.2,.5,1),font-size .18s,color .18s,letter-spacing .18s;
+}
+.field input:focus + label,
+.field input:not(:placeholder-shown) + label{
+  top:6px;font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--mut);
+}
+
+.go{
+  margin-top:8px; padding:13px 16px; font:inherit; font-size:14px; font-weight:650; color:#fff;
+  background:linear-gradient(115deg,var(--a),var(--b)); border:0; border-radius:12px; cursor:pointer;
+  box-shadow:0 12px 26px -10px rgba(98,116,255,.7);
+  transition:transform .16s,box-shadow .2s;
+}
+.go:hover{transform:translateY(-1px);box-shadow:0 16px 30px -10px rgba(98,116,255,.85)}
+.go:active{transform:translateY(1px)}
+.swap{display:none;margin:16px 0 0;text-align:center;font-size:12.5px;color:var(--dim)}
+.swap button{background:none;border:0;padding:0;font:inherit;font-weight:650;color:var(--a);cursor:pointer}
+
+.hint{margin:18px 0 0;text-align:center;font-size:11.5px;color:#4b5470;letter-spacing:.02em}
+
+@media (max-width:720px){
+  .auth{height:520px}
+  .pane,.band_page{grid-template-columns:1fr!important;grid-template-areas:"form"!important}
+  .side--panel{display:none}
+  .swap{display:block}
+}
+@media (prefers-reduced-motion:reduce){
+  .auth{transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+
+<div class="auth" id="auth" data-mode="in">
+
+  <!-- ---------- sign in ---------- -->
+  <div class="pane pane--in is-on" id="pane-in">
+    <div class="side--form">
+      <h2>Sign in</h2>
+      <p class="lede">Pick up where you left off.</p>
+      <div class="field"><input id="i-mail" type="email" placeholder=" "><label for="i-mail">Email</label></div>
+      <div class="field"><input id="i-pw" type="password" placeholder=" "><label for="i-pw">Password</label></div>
+      <button class="go" type="button">Sign in</button>
+      <p class="swap">No account? <button type="button" data-go="up">Create one</button></p>
+    </div>
+    <div class="side--panel">
+      <h3 class="welcome_title">Welcome <em>back.</em></h3>
+      <p>Your drafts, boards and history are exactly where you left them.</p>
+      <button class="ghost" type="button" data-go="up">Create account</button>
+    </div>
+  </div>
+
+  <!-- ---------- sign up (the mirror) ---------- -->
+  <div class="pane pane--up" id="pane-up">
+    <div class="side--form">
+      <h2>Create account</h2>
+      <p class="lede">Two minutes, then you are in.</p>
+      <div class="field"><input id="u-name" type="text" placeholder=" "><label for="u-name">Full name</label></div>
+      <div class="field"><input id="u-mail" type="email" placeholder=" "><label for="u-mail">Email</label></div>
+      <div class="field"><input id="u-pw" type="password" placeholder=" "><label for="u-pw">Password</label></div>
+      <button class="go" type="button">Create account</button>
+      <p class="swap">Already registered? <button type="button" data-go="in">Sign in</button></p>
+    </div>
+    <div class="side--panel">
+      <h3 class="welcome_title">Hello, <em>friend.</em></h3>
+      <p>Start a workspace, invite the others, and keep everything in one place.</p>
+      <button class="ghost" type="button" data-go="in">Sign in</button>
+    </div>
+  </div>
+
+  <!-- one blade, two lit seams -->
+  <div class="auth_band" id="band" aria-hidden="true">
+    <span class="band_edge band_edge--trail"></span>
+    <span class="band_edge band_edge--lead"></span>
+    <div class="band_inner">                <!-- its transform, backwards -->
+      <div class="band_page">               <!-- back in card co-ordinates -->
+        <div class="side--panel">
+          <h3 class="welcome_title" id="band-title">Welcome <em>back.</em></h3>
+          <p id="band-copy">Your drafts, boards and history are exactly where you left them.</p>
+          <button class="ghost" type="button" tabindex="-1">Create account</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="hint">One rectangle. One translateX. No fades.</p>
+
+<script>
+const $  = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+const later = (fn, ms) => setTimeout(fn, ms);
+
+const RAKE = 14;                       // degrees, magnitude of --rake
+const T = { sweep: 1100 };
+/* a symmetric easing puts progress 0.5 at time 0.5, and the blade's cover
+   window is the middle fifth of the travel -- so half way is always dark. */
+T.cover = T.sweep / 2;
+
+const auth  = $('#auth'), band = $('#band');
+const panes = { in: $('#pane-in'), up: $('#pane-up') };
+const COPY  = {
+  in: ['Welcome <em>back.</em>', 'Your drafts, boards and history are exactly where you left them.', 'Create account'],
+  up: ['Hello, <em>friend.</em>', 'Start a workspace, invite the others, and keep everything in one place.', 'Sign in']
+};
+
+let mode = 'in', busy = false;
+
+/* blade width solves  (B - w - bleed) / (w + B) = 1/5,
+   i.e. the blade fully covers the card for a fifth of its travel.
+   bleed = h * tan|rake| is what the skew costs at the corners.      */
+function geometry(){
+  const w = auth.clientWidth, h = auth.clientHeight;
+  const bleed = h * Math.tan(RAKE * Math.PI / 180);
+  const B = (6 * w + 5 * bleed) / 4;
+  auth.style.setProperty('--blade-w', B.toFixed(2) + 'px');
+  auth.style.setProperty('--card-w',  w + 'px');
+  auth.style.setProperty('--card-h',  h + 'px');
+  return { w, B };
+}
+
+function park(x){
+  auth.style.transition = 'none';
+  auth.style.setProperty('--sweep', x.toFixed(2) + 'px');
+  void auth.offsetWidth;
+  auth.style.transition = '--sweep ' + T.sweep + 'ms cubic-bezier(.76,0,.24,1)';
+}
+
+function go(next){
+  if (busy || next === mode) return;
+  busy = true;
+  const other = mode;
+  const { w, B } = geometry();
+
+  // to sign-up the blade runs right; coming back it runs left. same rake either
+  // way, because the destination is the mirror of where we started.
+  const rightward = next === 'up';
+  park(rightward ? -B : w);
+
+  auth.dataset.mode = next;                       // the blade now carries the incoming panel
+  $('#band-title').innerHTML = COPY[next][0];
+  $('#band-copy').textContent = COPY[next][1];
+  band.querySelector('.ghost').textContent = COPY[next][2];
+
+  requestAnimationFrame(() =>
+    auth.style.setProperty('--sweep', (rightward ? w : -B).toFixed(2) + 'px'));
+
+  later(() => {                                   // the two states trade places under the dark
+    panes[next].classList.add('is-on');
+    panes[other].classList.remove('is-on');
+    panes[other].inert = true;
+    panes[next].inert  = false;
+    mode = next;
+  }, T.cover);
+
+  later(() => { busy = false; }, T.sweep + 40);
+}
+
+$$('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
+addEventListener('resize', () => { const { B } = geometry(); if (!busy) park(-B); });
+
+panes.up.inert = true;
+park(-geometry().B);
+</script>
+</body>
+</html>

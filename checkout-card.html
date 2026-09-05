@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Interactive Payment Checkout</title>
+<style>
+:root{
+  --bg:#080c17; --card:#141b2b; --card2:#0e1422;
+  --line:rgba(255,255,255,.08);
+  --txt:#e9edf8; --mut:#8b95b3; --dim:#5a6482; --faint:#3c4562;
+  --a:#7cc4ff; --b:#a98bff;
+  --ok:#5fe0ac; --bad:#ff6b81;
+  /* the plastic, repainted per brand */
+  --p1:#3a4463; --p2:#222a41;
+}
+*{box-sizing:border-box}
+html{height:100%}
+body{
+  margin:0; min-height:100%; display:flex; align-items:center; justify-content:center; padding:30px 22px;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:var(--txt); background:var(--bg);
+}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(130px);pointer-events:none;z-index:0}
+body::before{width:560px;height:560px;background:rgba(124,196,255,.12);top:-210px;left:-170px}
+body::after{width:500px;height:500px;background:rgba(169,139,255,.12);bottom:-200px;right:-160px}
+
+.sheet{
+  position:relative; z-index:1; width:min(400px,100%);
+  background:linear-gradient(168deg,var(--card),var(--card2));
+  border:1px solid var(--line); border-radius:26px; padding:22px;
+  box-shadow:0 38px 84px -28px rgba(0,0,0,.86),0 0 0 1px rgba(255,255,255,.03) inset;
+}
+
+/* ---------- order ---------- */
+.order{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.order_img{width:42px;height:42px;border-radius:12px;flex:0 0 auto;
+  background:linear-gradient(140deg,#8a7bff,#4aa8ff);display:grid;place-items:center}
+.order_img svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.order_t{flex:1;min-width:0}
+.order_t b{display:block;font-size:13.5px;font-weight:600}
+.order_t span{font-size:11.5px;color:var(--faint)}
+.order_amt{font-size:17px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+
+/* ============ the card ============ */
+.cc_wrap{
+  perspective:1400px; margin-bottom:20px;
+  transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));
+  transition:transform .5s cubic-bezier(.2,.8,.3,1), scale .6s cubic-bezier(.3,1.2,.4,1);
+  transform-style:preserve-3d;
+}
+.cc{
+  position:relative; aspect-ratio:1.586; width:100%;
+  transform-style:preserve-3d;
+  transition:transform .72s cubic-bezier(.32,1.06,.38,1);
+}
+.cc.flip{transform:rotateY(180deg)}
+
+.cc_face{
+  position:absolute; inset:0; border-radius:18px; overflow:hidden;
+  backface-visibility:hidden; -webkit-backface-visibility:hidden;
+  background:linear-gradient(135deg,var(--p1),var(--p2));
+  box-shadow:0 22px 44px -18px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.1) inset;
+  transition:background .55s ease;
+}
+.cc_face::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(120% 90% at 8% 4%,rgba(255,255,255,.22),transparent 52%);
+}
+.cc_front{padding:18px 20px;display:flex;flex-direction:column;color:#fff}
+.cc_back{transform:rotateY(180deg);display:flex;flex-direction:column}
+
+.cc_top{display:flex;align-items:flex-start;justify-content:space-between}
+.cc_chip{
+  width:38px;height:29px;border-radius:7px;
+  background:linear-gradient(135deg,#f3d98b,#c9a441 45%,#f7e6a8);
+  box-shadow:0 1px 2px rgba(0,0,0,.4) inset;
+}
+.cc_chip::after{
+  content:"";display:block;height:100%;
+  background:
+    linear-gradient(90deg,transparent 32%,rgba(0,0,0,.28) 32%,rgba(0,0,0,.28) 34%,transparent 34%),
+    linear-gradient(180deg,transparent 44%,rgba(0,0,0,.28) 44%,rgba(0,0,0,.28) 47%,transparent 47%);
+}
+.cc_brand{height:26px;display:flex;align-items:center;justify-content:flex-end;min-width:56px}
+.cc_brand svg{height:100%;width:auto;transition:opacity .3s}
+.cc_brand.pop{animation:brandpop .45s cubic-bezier(.3,1.5,.4,1)}
+@keyframes brandpop{0%{transform:scale(.7);opacity:.2;filter:blur(3px)}100%{transform:none;opacity:1;filter:none}}
+
+.cc_num{
+  margin:auto 0 14px; font:700 clamp(17px,5.1vw,20px)/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.055em; display:flex; gap:.34em; text-shadow:0 2px 5px rgba(0,0,0,.45);
+}
+.cc_num i{display:inline-flex;font-style:normal}
+.cc_num i.sp{width:.42em}
+.cc_num b{display:inline-block;font-weight:700}
+.cc_num b.hit{animation:digit .34s cubic-bezier(.3,1.4,.4,1)}
+@keyframes digit{0%{transform:translateY(-.42em) scale(.72);opacity:0;filter:blur(2px)}100%{transform:none;opacity:1;filter:none}}
+
+.cc_row{display:flex;gap:16px;align-items:flex-end}
+.cc_row div{min-width:0}
+.cc_row span{display:block;font:600 7.5px/1.4 ui-monospace,Menlo,monospace;letter-spacing:.14em;
+  text-transform:uppercase;color:rgba(255,255,255,.6)}
+.cc_row b{display:block;font-size:12.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc_row .who{flex:1}
+
+.cc_stripe{height:19%;margin-top:11%;background:#0c0f18}
+.cc_sig{display:flex;align-items:center;gap:10px;margin:14px 18px 0}
+.cc_sig i{flex:1;height:27px;border-radius:4px;
+  background:repeating-linear-gradient(-45deg,#e8e6df 0 6px,#d8d5cb 6px 12px)}
+.cc_sig b{min-width:52px;height:27px;display:grid;place-items:center;border-radius:4px;background:#fff;
+  color:#1c2233;font:700 12px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em}
+.cc_fine{margin:auto 18px 14px;font-size:8px;line-height:1.5;color:rgba(255,255,255,.45)}
+
+/* ============ the form ============ */
+.form{transition:opacity .34s ease,transform .34s ease,visibility .34s}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field{margin-bottom:11px}
+.field__lab{display:block;font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px;letter-spacing:.02em}
+.inp{
+  width:100%;padding:11px 13px;font:inherit;font-size:14px;color:var(--txt);
+  background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:11px;outline:none;
+  transition:border-color .2s,background .2s,box-shadow .2s;
+}
+.inp::placeholder{color:#4e5875}
+.inp:focus{border-color:var(--a);background:rgba(124,196,255,.07);box-shadow:0 0 0 3px rgba(124,196,255,.13)}
+.field.bad .inp{border-color:var(--bad);box-shadow:0 0 0 3px rgba(255,107,129,.14)}
+.field.bad .field__lab{color:var(--bad)}
+.field.shake{animation:shake .38s cubic-bezier(.36,.07,.19,.97)}
+@keyframes shake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(3px)}
+  30%,50%,70%{transform:translateX(-6px)}40%,60%{transform:translateX(6px)}}
+.lab-row{display:flex;align-items:baseline;justify-content:space-between}
+.testcard{background:none;border:0;padding:0;font:inherit;font-size:10.5px;font-weight:600;
+  color:var(--a);cursor:pointer;text-decoration:underline;text-underline-offset:2px;margin-bottom:5px}
+.testcard:hover{color:#a9daff}
+
+/* say what is wrong, not just that something is */
+.msg{margin:0;font-size:11px;line-height:1.5;color:var(--bad);opacity:0;
+  display:grid;grid-template-rows:0fr;
+  transition:grid-template-rows .24s ease,opacity .2s ease,margin .24s ease}
+.msg>span{overflow:hidden}
+.field.bad .msg{grid-template-rows:1fr;opacity:1;margin-top:5px}
+
+.num-wrap{position:relative}
+.num-wrap .tick{position:absolute;right:11px;top:50%;margin-top:-8px;width:16px;height:16px;
+  fill:none;stroke:var(--ok);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;
+  stroke-dasharray:22;stroke-dashoffset:22;transition:stroke-dashoffset .35s ease}
+.num-wrap.valid .tick{stroke-dashoffset:0}
+.num-wrap.valid .inp{padding-right:34px}
+
+.pay{
+  position:relative;width:100%;margin-top:6px;padding:15px;overflow:hidden;
+  font:inherit;font-size:14px;font-weight:700;color:#07121d;
+  background:linear-gradient(115deg,var(--a),var(--b));
+  border:0;border-radius:14px;cursor:pointer;
+  box-shadow:0 14px 30px -10px rgba(124,196,255,.65);
+  transition:transform .14s,box-shadow .2s,filter .3s;
+}
+.pay:hover:not(:disabled){transform:translateY(-1px)}
+.pay:active:not(:disabled){transform:translateY(1px)}
+.pay:disabled{cursor:default}
+.pay_lbl{display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .22s}
+.pay_ring{position:absolute;inset:0;display:grid;place-items:center;opacity:0;transition:opacity .22s}
+.pay_ring svg{width:21px;height:21px;animation:spin .8s linear infinite}
+.pay_ring circle{fill:none;stroke:#07121d;stroke-width:2.6;stroke-linecap:round;
+  stroke-dasharray:34 24;opacity:.85}
+@keyframes spin{to{transform:rotate(360deg)}}
+[data-state="pay"] .pay_lbl{opacity:0}
+[data-state="pay"] .pay_ring{opacity:1}
+
+.safe{display:flex;align-items:center;justify-content:center;gap:6px;margin:13px 0 0;
+  font:600 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.safe svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2.2}
+
+/* ============ paid ============ */
+.done{
+  position:absolute;left:22px;right:22px;bottom:22px;text-align:center;
+  opacity:0;visibility:hidden;transform:translateY(14px) scale(.94);
+  transition:opacity .42s ease,transform .5s cubic-bezier(.3,1.25,.4,1),visibility .42s;
+}
+.done_ring{
+  width:62px;height:62px;margin:0 auto 12px;border-radius:50%;display:grid;place-items:center;
+  background:rgba(95,224,172,.12);box-shadow:0 0 0 1.5px rgba(95,224,172,.4), 0 0 30px rgba(95,224,172,.28);
+}
+.done_ring svg{width:28px;height:28px;fill:none;stroke:var(--ok);stroke-width:3;
+  stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:26;stroke-dashoffset:26}
+.done h2{margin:0 0 3px;font-size:20px;letter-spacing:-.02em}
+.done p{margin:0 0 16px;font-size:12.5px;color:var(--dim)}
+.done p b{color:var(--mut);font-weight:600}
+.again{width:100%;padding:13px;font:inherit;font-size:13px;font-weight:650;color:var(--txt);
+  background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:13px;cursor:pointer;
+  transition:background .2s}
+.again:hover{background:rgba(255,255,255,.11)}
+
+[data-state="done"] .form{opacity:0;visibility:hidden;transform:translateY(-8px)}
+[data-state="done"] .done{opacity:1;visibility:visible;transform:none}
+[data-state="done"] .done_ring svg{transition:stroke-dashoffset .5s ease .25s;stroke-dashoffset:0}
+[data-state="done"] .cc_wrap{scale:.9;margin-bottom:8px}
+[data-state="done"] .cc_face{box-shadow:0 22px 44px -18px rgba(0,0,0,.9),0 0 0 1.5px rgba(95,224,172,.5) inset,0 0 34px -6px rgba(95,224,172,.4)}
+[data-state="done"] .order{opacity:.42;transition:opacity .4s}
+</style>
+</head>
+<body>
+
+<section class="sheet" id="sheet" data-state="idle">
+
+  <div class="order">
+    <span class="order_img"><svg viewBox="0 0 24 24"><path d="M4 11a8 8 0 0 1 16 0"/><rect x="2" y="11" width="5" height="9" rx="2.2"/><rect x="17" y="11" width="5" height="9" rx="2.2"/></svg></span>
+    <span class="order_t"><b>Vela Wireless</b><span>Over-ear &middot; Graphite</span></span>
+    <span class="order_amt">$148.00</span>
+  </div>
+
+  <div class="cc_wrap" id="ccWrap">
+    <div class="cc" id="cc">
+      <div class="cc_face cc_front">
+        <div class="cc_top">
+          <span class="cc_chip"></span>
+          <span class="cc_brand" id="brand"></span>
+        </div>
+        <div class="cc_num" id="ccNum"></div>
+        <div class="cc_row">
+          <div class="who"><span>Card holder</span><b id="ccName">YOUR NAME</b></div>
+          <div><span>Expires</span><b id="ccExp">MM/YY</b></div>
+        </div>
+      </div>
+      <div class="cc_face cc_back">
+        <div class="cc_stripe"></div>
+        <div class="cc_sig"><i></i><b id="ccCvc">&bull;&bull;&bull;</b></div>
+        <p class="cc_fine">This card is issued pursuant to a licence. Use is subject to the cardholder agreement.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="form" id="form">
+    <div class="field" id="f-num">
+      <div class="lab-row">
+        <label class="field__lab" for="num">Card number</label>
+        <button class="testcard" id="testcard" type="button">use a test card</button>
+      </div>
+      <div class="num-wrap" id="numWrap">
+        <input class="inp" id="num" inputmode="numeric" autocomplete="cc-number" placeholder="4242 4242 4242 4242">
+        <svg class="tick" viewBox="0 0 24 24"><path d="m4 12.5 5 5L20 6.5"/></svg>
+      </div>
+      <p class="msg"><span></span></p>
+    </div>
+
+    <div class="field" id="f-name">
+      <label class="field__lab" for="name">Card holder</label>
+      <input class="inp" id="name" autocomplete="cc-name" placeholder="Alex Moreau">
+      <p class="msg"><span></span></p>
+    </div>
+
+    <div class="f2">
+      <div class="field" id="f-exp">
+        <label class="field__lab" for="exp">Expires</label>
+        <input class="inp" id="exp" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/YY" maxlength="5">
+        <p class="msg"><span></span></p>
+      </div>
+      <div class="field" id="f-cvc">
+        <label class="field__lab" for="cvc">CVC</label>
+        <input class="inp" id="cvc" inputmode="numeric" autocomplete="cc-csc" placeholder="123" maxlength="4">
+        <p class="msg"><span></span></p>
+      </div>
+    </div>
+
+    <button class="pay" id="pay" type="button">
+      <span class="pay_lbl">Pay $148.00</span>
+      <span class="pay_ring"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg></span>
+    </button>
+
+    <p class="safe"><svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Encrypted end to end</p>
+  </div>
+
+  <div class="done" id="done">
+    <div class="done_ring"><svg viewBox="0 0 24 24"><path d="m4 12.5 5 5L20 6.5"/></svg></div>
+    <h2>Paid $148.00</h2>
+    <p>Vela Wireless &middot; <b id="last4">card ending 4242</b></p>
+    <button class="again" id="again" type="button">Make another payment</button>
+  </div>
+</section>
+
+<script>
+const $ = s => document.querySelector(s);
+const sheet = $('#sheet'), cc = $('#cc'), ccWrap = $('#ccWrap'), brandEl = $('#brand'),
+      ccNum = $('#ccNum'), ccName = $('#ccName'), ccExp = $('#ccExp'), ccCvc = $('#ccCvc'),
+      num = $('#num'), name = $('#name'), exp = $('#exp'), cvc = $('#cvc'),
+      numWrap = $('#numWrap'), pay = $('#pay');
+
+/* ---------- brands ---------- */
+const LOGO = {
+  visa:'<svg viewBox="0 0 48 16"><text x="0" y="14" font-family="Helvetica,Arial" font-size="16" font-style="italic" font-weight="bold" fill="#fff" letter-spacing="1">VISA</text></svg>',
+  mc:'<svg viewBox="0 0 48 30"><circle cx="18" cy="15" r="14" fill="#eb001b"/><circle cx="32" cy="15" r="14" fill="#f79e1b" fill-opacity=".9"/></svg>',
+  amex:'<svg viewBox="0 0 52 16"><text x="0" y="13" font-family="Helvetica,Arial" font-size="12" font-weight="bold" fill="#fff" letter-spacing=".5">AMEX</text></svg>',
+  disc:'<svg viewBox="0 0 60 16"><text x="0" y="13" font-family="Helvetica,Arial" font-size="11" font-weight="bold" fill="#fff" letter-spacing=".3">DISCOVER</text></svg>',
+  generic:'<svg viewBox="0 0 40 26"><rect x="1" y="1" width="38" height="24" rx="4" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="2"/><path d="M1 9h38" stroke="rgba(255,255,255,.5)" stroke-width="2"/></svg>'
+};
+const PLASTIC = {
+  visa:['#2a3b8f','#14195c'], mc:['#3a3f4c','#1d2027'], amex:['#1a8fc9','#0c5c8a'],
+  disc:['#e8842f','#a8480f'], generic:['#3a4463','#222a41']
+};
+const RULE = { amex:{ len:15, groups:[4,6,5], cvc:4 }, other:{ len:16, groups:[4,4,4,4], cvc:3 } };
+
+function detect(d){
+  if (/^4/.test(d)) return 'visa';
+  if (/^(5[1-5]|2[2-7])/.test(d)) return 'mc';
+  if (/^3[47]/.test(d)) return 'amex';
+  if (/^(6011|65|64[4-9])/.test(d)) return 'disc';
+  return 'generic';
+}
+const ruleFor = b => b === 'amex' ? RULE.amex : RULE.other;
+
+function luhn(d){
+  let sum = 0, alt = false;
+  for (let i = d.length - 1; i >= 0; i--){
+    let n = +d[i];
+    if (alt){ n *= 2; if (n > 9) n -= 9; }
+    sum += n; alt = !alt;
+  }
+  return sum % 10 === 0;
+}
+
+let brand = '';
+function setBrand(b){
+  if (b === brand) return;
+  brand = b;
+  brandEl.innerHTML = LOGO[b];
+  brandEl.classList.remove('pop'); void brandEl.offsetWidth; brandEl.classList.add('pop');
+  const [p1, p2] = PLASTIC[b];
+  sheet.style.setProperty('--p1', p1);
+  sheet.style.setProperty('--p2', p2);
+  cvc.maxLength = ruleFor(b).cvc;
+}
+
+/* ---------- the number, digit by digit ---------- */
+let shown = '';
+function paintNum(digits, g){
+  let out = '', k = 0;
+  g.forEach((size, gi) => {
+    if (gi) out += '<i class="sp"></i>';
+    out += '<i>';
+    for (let n = 0; n < size; n++, k++){
+      const ch = digits[k] || '•';
+      const hit = digits[k] && digits[k] !== shown[k] ? ' class="hit"' : '';
+      out += '<b' + hit + '>' + ch + '</b>';
+    }
+    out += '</i>';
+  });
+  ccNum.innerHTML = out;
+  shown = digits;
+}
+
+function onNum(){
+  let d = num.value.replace(/\D/g, '');
+  const b = detect(d);
+  const r = ruleFor(b);
+  d = d.slice(0, r.len);
+  setBrand(b);
+
+  // reformat the input in the brand's own grouping
+  let out = '', k = 0;
+  for (const size of r.groups){
+    if (k >= d.length) break;
+    if (out) out += ' ';
+    out += d.slice(k, k + size);
+    k += size;
+  }
+  num.value = out;
+
+  paintNum(d, r.groups);
+  const good = d.length === r.len && luhn(d);
+  numWrap.classList.toggle('valid', good);
+  $('#f-num').classList.remove('bad');
+}
+
+num.addEventListener('input', onNum);
+name.addEventListener('input', () => {
+  name.value = name.value.replace(/[^a-zA-Z .'-]/g, '').slice(0, 26);
+  ccName.textContent = name.value.trim() || 'YOUR NAME';
+  $('#f-name').classList.remove('bad');
+});
+exp.addEventListener('input', () => {
+  let d = exp.value.replace(/\D/g, '').slice(0, 4);
+  if (d.length === 1 && +d > 1) d = '0' + d;
+  if (d.length >= 3) d = d.slice(0, 2) + '/' + d.slice(2);
+  exp.value = d;
+  ccExp.textContent = d || 'MM/YY';
+  $('#f-exp').classList.remove('bad');
+});
+cvc.addEventListener('input', () => {
+  cvc.value = cvc.value.replace(/\D/g, '').slice(0, ruleFor(brand).cvc);
+  ccCvc.textContent = cvc.value || '•'.repeat(ruleFor(brand).cvc);
+  $('#f-cvc').classList.remove('bad');
+});
+
+/* the card turns over to show you where the CVC lives */
+cvc.addEventListener('focus', () => cc.classList.add('flip'));
+cvc.addEventListener('blur',  () => cc.classList.remove('flip'));
+
+/* ---------- it tilts toward the pointer ---------- */
+addEventListener('pointermove', e => {
+  if (e.pointerType !== 'mouse' || sheet.dataset.state === 'done') return;
+  const r = ccWrap.getBoundingClientRect();
+  const nx = (e.clientX - r.left - r.width / 2) / r.width;
+  const ny = (e.clientY - r.top - r.height / 2) / r.height;
+  ccWrap.style.setProperty('--ry', (nx * 11).toFixed(2) + 'deg');
+  ccWrap.style.setProperty('--rx', (-ny * 8).toFixed(2) + 'deg');
+});
+
+/* ---------- validate & pay ---------- */
+function expOk(v){
+  const m = /^(\d{2})\/(\d{2})$/.exec(v);
+  if (!m) return false;
+  const mm = +m[1], yy = 2000 + +m[2];
+  if (mm < 1 || mm > 12) return false;
+  const now = new Date();
+  return yy > now.getFullYear() || (yy === now.getFullYear() && mm >= now.getMonth() + 1);
+}
+
+function flag(id, msg){
+  const el = $(id);
+  el.classList.add('bad');
+  el.querySelector('.msg span').textContent = msg;
+  el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
+  return el;
+}
+
+/* why each field is unhappy, in its own words */
+function faultNum(d, r){
+  if (!d)                return 'Enter the number on the front of your card';
+  if (d.length < r.len)  return 'Needs ' + r.len + ' digits — ' + d.length + ' so far';
+  if (!luhn(d))          return 'That number fails the card checksum. Try 4242 4242 4242 4242';
+  return '';
+}
+function faultExp(v){
+  const m = /^(\d{2})\/(\d{2})$/.exec(v);
+  if (!m)                          return 'Use MM/YY, e.g. 04/29';
+  const mm = +m[1], yy = 2000 + +m[2];
+  if (mm < 1 || mm > 12)           return 'Month must be 01–12';
+  const now = new Date();
+  if (yy < now.getFullYear() || (yy === now.getFullYear() && mm < now.getMonth() + 1))
+    return 'That card expired in ' + m[1] + '/' + m[2];
+  return '';
+}
+
+pay.addEventListener('click', async () => {
+  if (sheet.dataset.state !== 'idle') return;
+
+  const d = num.value.replace(/\D/g, '');
+  const r = ruleFor(brand);
+  const bad = [];
+  const eNum = faultNum(d, r);
+  const eExp = faultExp(exp.value);
+  if (eNum)                       bad.push(['#f-num',  eNum]);
+  if (!name.value.trim())         bad.push(['#f-name', 'Enter the name printed on the card']);
+  if (eExp)                       bad.push(['#f-exp',  eExp]);
+  if (cvc.value.length !== r.cvc) bad.push(['#f-cvc',  'CVC is ' + r.cvc + ' digits' +
+                                    (brand === 'amex' ? ' on Amex' : '')]);
+
+  if (bad.length){
+    bad.forEach(([id, msg]) => flag(id, msg));
+    $(bad[0][0] + ' .inp').focus();
+    return;
+  }
+
+  sheet.dataset.state = 'pay';
+  pay.disabled = true;
+  cc.classList.remove('flip');
+  await new Promise(r2 => setTimeout(r2, 1650));
+
+  $('#last4').textContent = 'card ending ' + d.slice(-4);
+  sheet.dataset.state = 'done';
+});
+
+$('#testcard').addEventListener('click', () => {
+  const yr = String((new Date().getFullYear() + 3) % 100).padStart(2, '0');
+  num.value = '4242424242424242'; onNum();
+  name.value = 'ALEX MOREAU';     name.dispatchEvent(new Event('input'));
+  exp.value  = '04' + yr;         exp.dispatchEvent(new Event('input'));
+  cvc.value  = '123';             cvc.dispatchEvent(new Event('input'));
+  ['#f-num','#f-name','#f-exp','#f-cvc'].forEach(i => $(i).classList.remove('bad'));
+});
+
+$('#again').addEventListener('click', () => {
+  [num, name, exp, cvc].forEach(i => i.value = '');
+  numWrap.classList.remove('valid');
+  ccName.textContent = 'YOUR NAME'; ccExp.textContent = 'MM/YY';
+  brand = ''; setBrand('generic');
+  ccCvc.textContent = '•••';
+  shown = '';
+  paintNum('', RULE.other.groups);
+  sheet.dataset.state = 'idle';
+  pay.disabled = false;
+  num.focus();
+});
+
+setBrand('generic');
+paintNum('', RULE.other.groups);
+</script>
+</body>
+</html>

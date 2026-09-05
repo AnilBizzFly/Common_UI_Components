@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Chat</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app">
+  <div class="hd">
+    <span class="dot"><svg viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><circle cx="12" cy="12" r="3.4"/></svg></span>
+    <b>Atlas Assistant</b>
+    <span class="live">online</span>
+  </div>
+
+  <div class="feed" id="feed" aria-live="polite"></div>
+
+  <div class="chips" id="chips">
+    <button class="chip" type="button">Summarise last week's deploys</button>
+    <button class="chip" type="button">Why is p95 latency up?</button>
+    <button class="chip" type="button">Draft the release notes</button>
+  </div>
+
+  <div class="bar">
+    <textarea id="ta" rows="1" placeholder="Ask anything…  (Enter to send, Shift+Enter for a new line)"></textarea>
+    <button class="send" id="send" type="button" aria-label="Send" disabled>
+      <svg viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></svg>
+    </button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
