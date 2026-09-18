@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Plume — folding subscribe</title>
+<style>
+/* a skin is TWO TONES AND A LIGHT. app.js shades every facet by its own
+   normal, so the fold's colours are its geometry */
+.plume--neon{
+  --field:      #12151c;
+  --accent:     #2bffc8;
+  --accent-off: #232c36;
+
+  /* paper on neon is 1.4:1, so the label goes to ink — the arming
+     does not brighten, it INVERTS */
+  --on-ink:     #04150f;
+  --paper-lit:  #2bffc8;
+  --paper-dark: #12937a;
+}
+.plume--ember{
+  --field:#17110f; --accent:#ff9a3c; --accent-off:#33261e;
+  --on-ink:#1a0d03; --paper-lit:#ff9a3c; --paper-dark:#94531a;
+}
+.plume--iris{
+  --field:#121020; --accent:#a78bfa; --accent-off:#272040;
+  --on-ink:#0d0720; --paper-lit:#c4b5fd; --paper-dark:#6d55b8;
+}
+
+*{box-sizing:border-box}
+html{height:100%}
+body{
+  margin:0;min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:42px;padding:40px 20px;overflow:hidden;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#e7ecf4;background:var(--field,#12151c);
+  transition:background .6s cubic-bezier(.22,1,.36,1);
+}
+body::before{content:"";position:fixed;inset:-25%;pointer-events:none;opacity:.5;
+  background:radial-gradient(38vmax 32vmax at 28% 18%,color-mix(in srgb,var(--accent) 22%,transparent),transparent 62%),
+             radial-gradient(34vmax 30vmax at 76% 80%,color-mix(in srgb,var(--accent) 14%,transparent),transparent 62%);
+  filter:blur(28px);animation:drift 26s ease-in-out infinite}
+@keyframes drift{0%,100%{transform:scale(1)}50%{transform:scale(1.14) translate(-2vmax,2vmax)}}
+
+.head{position:relative;z-index:3;text-align:center}
+.head p:first-child{margin:0 0 10px;font:600 10px/1 ui-monospace,Menlo,monospace;
+  letter-spacing:.3em;color:color-mix(in srgb,var(--accent) 55%,transparent)}
+.head h1{margin:0 0 8px;font-size:clamp(26px,6vw,38px);font-weight:600;letter-spacing:-.045em}
+.head p:last-child{margin:0;max-width:42ch;font-size:13.5px;line-height:1.7;
+  color:color-mix(in srgb,#e7ecf4 45%,transparent)}
+
+/* ============ the seat ============ */
+.plume{position:relative;z-index:2}
+.plume__seat{position:relative;display:block;width:208px;height:56px}
+
+.plume__btn{
+  position:absolute;inset:0;width:100%;height:100%;padding:0;cursor:pointer;
+  background:none;border:0;font:inherit;
+  -webkit-tap-highlight-color:transparent;
+}
+.plume__btn:focus-visible{outline:2px solid var(--accent);outline-offset:6px}
+
+.plume__face{
+  position:absolute;inset:0;border-radius:4px;
+  background:var(--accent-off);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 26%,transparent);
+  transition:background .34s cubic-bezier(.22,1,.36,1),box-shadow .34s;
+}
+.plume__btn:hover .plume__face{background:color-mix(in srgb,var(--accent) 14%,var(--accent-off))}
+/* the arming does not brighten, it INVERTS */
+[data-state="arm"] .plume__face,[data-state="fold"] .plume__face,[data-state="fly"] .plume__face{
+  background:var(--accent);
+  box-shadow:inset 0 0 0 1px var(--accent);
+}
+
+.plume__words{position:absolute;inset:0;display:grid;place-items:center}
+.plume__words span{
+  grid-area:1/1;font-size:15px;font-weight:700;letter-spacing:-.005em;
+  color:var(--accent);
+  transition:opacity .28s ease,color .34s ease,transform .38s cubic-bezier(.22,1,.36,1);
+}
+.plume__words span:nth-child(2){opacity:0;transform:translateY(8px)}
+[data-state="arm"] .plume__words span,
+[data-state="fold"] .plume__words span{color:var(--on-ink)}
+[data-state="fold"] .plume__words span:nth-child(1),
+[data-state="fly"] .plume__words span:nth-child(1){opacity:0;transform:translateY(-8px)}
+[data-state="fly"] .plume__face{background:var(--accent-off);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 26%,transparent)}
+[data-state="retry"] .plume__words span:nth-child(1){opacity:0;transform:translateY(-8px)}
+[data-state="retry"] .plume__words span:nth-child(2){opacity:1;transform:none;color:var(--accent)}
+[data-state="done"] .plume__words span:nth-child(1){opacity:0}
+
+/* the tick that stays behind once the paper has gone */
+.plume__ok{position:absolute;inset:0;display:grid;place-items:center;opacity:0;
+  transition:opacity .3s ease .1s;pointer-events:none}
+.plume__ok svg{width:22px;height:22px;fill:none;stroke:var(--accent);stroke-width:3;
+  stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:26;stroke-dashoffset:26}
+[data-state="done"] .plume__ok{opacity:1}
+[data-state="done"] .plume__ok svg{transition:stroke-dashoffset .45s ease .18s;stroke-dashoffset:0}
+
+/* 1x1 viewBox, overflow visible: one user unit is one pixel, so the points are
+   plain px from the seat */
+.plume__plane{
+  position:absolute;left:0;top:0;z-index:4;
+  width:1px;height:1px;overflow:visible;pointer-events:none;
+  transform:translate(var(--px,0px),var(--py,0px));
+  opacity:0;transition:opacity .18s ease;
+}
+[data-state="fold"] .plume__plane,[data-state="fly"] .plume__plane,
+[data-state="stall"] .plume__plane{opacity:1}
+.plume__facet{stroke:none}
+
+/* ---------- chrome ---------- */
+.skins{position:relative;z-index:3;display:flex;gap:6px}
+.skins button{padding:7px 14px;font:600 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;
+  color:color-mix(in srgb,#e7ecf4 45%,transparent);background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.1);border-radius:99px;cursor:pointer;transition:.25s}
+.skins button[aria-pressed="true"]{color:var(--on-ink);background:var(--accent);border-color:var(--accent)}
+
+.read{position:relative;z-index:3;display:flex;gap:22px;
+  font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.16em;text-transform:uppercase;
+  color:color-mix(in srgb,#e7ecf4 28%,transparent);font-variant-numeric:tabular-nums}
+.read b{color:var(--accent);font-weight:600}
+
+@media (prefers-reduced-motion:reduce){body::before{animation:none}}
+</style>
+</head>
+<body class="plume--neon">
+
+<div class="head">
+  <p>COMPONENT &middot; PLUME</p>
+  <h1>The face folds itself</h1>
+  <p>Four facets tile the button exactly at rest, so the paper and the face are the same surface.</p>
+</div>
+
+<div class="plume plume--neon" id="plume" data-state="idle">
+  <!-- four facets, two per half. at --k 0 their eight points sit ON the button's
+       rect and tile it: the paper IS the button's face -->
+  <span class="plume__seat" id="seat">
+    <button class="plume__btn" id="btn" type="button">
+      <span class="plume__face"></span>
+      <span class="plume__words">
+        <span>Subscribe</span>
+        <span>Try again</span>
+      </span>
+      <span class="plume__ok" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="m4 12.5 5 5L20 6.5"/></svg>
+      </span>
+    </button>
+
+    <svg class="plume__plane" id="plane" viewBox="0 0 1 1" aria-hidden="true">
+      <g id="fly">
+        <polygon class="plume__facet"/>
+        <polygon class="plume__facet"/>
+        <polygon class="plume__facet"/>
+        <polygon class="plume__facet"/>
+      </g>
+    </svg>
+  </span>
+</div>
+
+<div class="skins" role="group" aria-label="Skin">
+  <button type="button" data-skin="neon"  aria-pressed="true">NEON</button>
+  <button type="button" data-skin="ember" aria-pressed="false">EMBER</button>
+  <button type="button" data-skin="iris"  aria-pressed="false">IRIS</button>
+</div>
+
+<p class="read">
+  <span>state <b id="rState">idle</b></span>
+  <span>k <b id="rK">0.00</b></span>
+  <span>dihedral <b id="rD">180&deg;</b></span>
+</p>
+
+<script>
+const plume = document.getElementById('plume'), btn = document.getElementById('btn'),
+      plane = document.getElementById('plane'), fly = document.getElementById('fly'),
+      seat = document.getElementById('seat');
+const facets = [...fly.querySelectorAll('.plume__facet')];
+const rState = document.getElementById('rState'), rK = document.getElementById('rK'),
+      rD = document.getElementById('rD');
+
+const W = 208, H = 56;
+
+/* measured off the reference at 60fps: the tent is EXACTLY the inscribed
+   triangle, and the dihedral closes to 72° */
+const HALF = [
+  { r:[0,  .5], t:[0,    .5 ] },   // A — tail, and one end of the spine
+  { r:[1,  .5], t:[1,   -.5 ] },   // Q — sweeps to the nose
+  { r:[1, -.5], t:[ .242,-.5 ] },  // P
+  { r:[0, -.5], t:[ .048,-.44] },  // D
+];
+const DIH_END = 72 * Math.PI / 180;
+
+/* ---------- tiny vector kit ---------- */
+const v3   = (x,y,z) => ({x,y,z});
+const sub  = (a,b) => v3(a.x-b.x, a.y-b.y, a.z-b.z);
+const cross= (a,b) => v3(a.y*b.z-a.z*b.y, a.z*b.x-a.x*b.z, a.x*b.y-a.y*b.x);
+const dot  = (a,b) => a.x*b.x + a.y*b.y + a.z*b.z;
+const norm = a => { const l = Math.hypot(a.x,a.y,a.z) || 1; return v3(a.x/l, a.y/l, a.z/l); };
+const neg  = a => v3(-a.x, -a.y, -a.z);
+
+/* Rodrigues: turn a point about an arbitrary axis through an origin */
+function spin(p, o, u, ang){
+  const v = sub(p, o), c = Math.cos(ang), s = Math.sin(ang);
+  const t = cross(u, v), d = dot(u, v) * (1 - c);
+  return v3(o.x + v.x*c + t.x*s + u.x*d,
+            o.y + v.y*c + t.y*s + u.y*d,
+            o.z + v.z*c + t.z*s + u.z*d);
+}
+
+const LIGHT = norm(v3(-.42, -.5, .76));   // upper left, toward the viewer
+
+/* ---------- colour ---------- */
+const css = n => getComputedStyle(plume).getPropertyValue(n).trim();
+const hex = h => [1,3,5].map(i => parseInt(h.slice(i, i+2), 16));
+const mixc = (a,b,t) => `rgb(${a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(' ')})`;
+let DARK = hex('#12937a'), LIT = hex('#2bffc8');
+function readSkin(){ DARK = hex(css('--paper-dark')); LIT = hex(css('--paper-lit')); }
+
+/* ---------- the fold ---------- */
+function build(k){
+  /* --k walks the vertices, --dih closes the halves. ONE number for both makes
+     the tent grow while it narrows, so it ends up a spike */
+  const flat = HALF.map(({ r, t }) => v3(
+    (r[0]*(1-k) + t[0]*k) * W,
+    (r[1]*(1-k) + t[1]*k) * H,
+    0));
+
+  const A = flat[0], Q = flat[1];
+  const axis = norm(sub(Q, A));                       // the spine
+  const dih  = Math.PI * (1 - k) + DIH_END * k;       // 180° -> 72°
+  const phi  = (Math.PI - dih) / 2;                   // each half turns half of it
+
+  const tris = [];
+  for (const a of [ +phi, -phi ]){
+    const hf = flat.map(p => spin(p, A, axis, a));
+    tris.push([hf[0], hf[1], hf[2]]);                 // two facets per half
+    tris.push([hf[0], hf[2], hf[3]]);
+  }
+  return tris;
+}
+
+function paint(k){
+  const tris = build(k);
+
+  /* painter's order: the far facet is laid down first */
+  tris.sort((a,b) => ((a[0].z+a[1].z+a[2].z) - (b[0].z+b[1].z+b[2].z)));
+
+  tris.forEach((t, i) => {
+    /* paper has no back */
+    let n = norm(cross(sub(t[1], t[0]), sub(t[2], t[0])));
+    if (n.z < 0) n = neg(n);
+    const lum = Math.max(0, dot(n, LIGHT));
+
+    facets[i].setAttribute('points',
+      t.map(p => p.x.toFixed(2) + ',' + (p.y + H/2).toFixed(2)).join(' '));
+    facets[i].setAttribute('fill', mixc(DARK, LIT, Math.pow(lum, .75)));
+  });
+
+  rK.textContent = k.toFixed(2);
+  rD.textContent = Math.round(180 * (1 - k) + 72 * k) + '°';
+}
+
+/* ---------- the run ---------- */
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const easeIO = t => t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2;
+const easeIn = t => t*t*t;
+let busy = false;
+const FAIL_RATE = .3;
+
+function setState(s){ plume.dataset.state = s; rState.textContent = s; }
+
+function tween(ms, ease, step){
+  return new Promise(done => {
+    const t0 = performance.now();
+    (function f(now){
+      const t = Math.min(1, (now - t0) / ms);
+      step(ease(t), t);
+      t < 1 ? requestAnimationFrame(f) : done();
+    })(t0);
+  });
+}
+
+async function run(){
+  if (busy) return;
+  busy = true;
+  readSkin();
+
+  setState('arm');
+  paint(0);
+  await wait(260);
+
+  setState('fold');
+  await tween(760, easeIO, k => paint(k));
+
+  const ok = Math.random() > FAIL_RATE;
+  setState(ok ? 'fly' : 'stall');
+
+  if (ok){
+    /* it leaves, nose first, along the spine it just made */
+    await tween(900, easeIn, t => {
+      plane.style.setProperty('--px', (t * 520).toFixed(1) + 'px');
+      plane.style.setProperty('--py', (-t * 300 - 26 * Math.sin(t * Math.PI)).toFixed(1) + 'px');
+      fly.setAttribute('transform',
+        `rotate(${(-t * 26).toFixed(2)} ${W*.6} ${H/2}) scale(${(1 - t * .55).toFixed(3)})`);
+      plane.style.opacity = String(Math.max(0, 1 - Math.pow(t, 2.4)));
+    });
+    setState('done');
+    await wait(2200);
+  } else {
+    /* it stalls, tumbles, and comes home to unfold */
+    await tween(520, easeIO, t => {
+      plane.style.setProperty('--px', (t * 128).toFixed(1) + 'px');
+      plane.style.setProperty('--py', (-64 * Math.sin(t * Math.PI) + t * 22).toFixed(1) + 'px');
+      fly.setAttribute('transform',
+        `rotate(${(t * 128).toFixed(2)} ${W*.6} ${H/2}) scale(${(1 - t * .12).toFixed(3)})`);
+    });
+    await tween(420, easeIO, t => {
+      plane.style.setProperty('--px', (128 * (1 - t)).toFixed(1) + 'px');
+      plane.style.setProperty('--py', (22 * (1 - t)).toFixed(1) + 'px');
+      fly.setAttribute('transform',
+        `rotate(${(128 * (1 - t)).toFixed(2)} ${W*.6} ${H/2}) scale(${(.88 + t * .12).toFixed(3)})`);
+    });
+    setState('fold');
+    await tween(520, easeIO, k => paint(1 - k));      // unfold back onto the face
+    setState('retry');
+    await wait(2200);
+  }
+
+  /* reset */
+  plane.style.setProperty('--px', '0px');
+  plane.style.setProperty('--py', '0px');
+  plane.style.opacity = '';
+  fly.setAttribute('transform', '');
+  paint(0);
+  setState('idle');
+  busy = false;
+}
+
+btn.addEventListener('click', run);
+
+/* ---------- skins ---------- */
+document.querySelectorAll('[data-skin]').forEach(b => b.addEventListener('click', () => {
+  const s = b.dataset.skin;
+  plume.className = 'plume plume--' + s;
+  document.body.className = 'plume--' + s;
+  document.querySelectorAll('[data-skin]').forEach(x => x.setAttribute('aria-pressed', x === b));
+  readSkin(); paint(parseFloat(rK.textContent) || 0);
+}));
+
+readSkin();
+paint(0);
+</script>
+</body>
+</html>

@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Liquid Glass</title>
+<style>
+@property --mx{syntax:'<percentage>';inherits:true;initial-value:50%}
+@property --my{syntax:'<percentage>';inherits:true;initial-value:50%}
+@property --spin{syntax:'<angle>';inherits:false;initial-value:0deg}
+
+*{box-sizing:border-box}
+html{height:100%}
+body{
+  margin:0;min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:44px;padding:40px 20px;overflow:hidden;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#fff;background:#05060e;
+}
+
+/* ============ the world behind the glass ============ */
+/* glass with nothing behind it is just a grey box */
+.mesh{position:fixed;inset:-20%;z-index:0;filter:blur(70px) saturate(150%)}
+.mesh i{position:absolute;border-radius:50%;mix-blend-mode:screen;will-change:transform}
+.m1{width:44vmax;height:44vmax;background:#5b3bff;top:2%;left:4%;  animation:d1 19s ease-in-out infinite}
+.m2{width:38vmax;height:38vmax;background:#ff2d8f;top:38%;left:44%;animation:d2 23s ease-in-out infinite}
+.m3{width:34vmax;height:34vmax;background:#00d4ff;top:52%;left:8%; animation:d3 17s ease-in-out infinite}
+.m4{width:28vmax;height:28vmax;background:#ffb020;top:6%;left:56%; animation:d4 21s ease-in-out infinite}
+@keyframes d1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(16vmax,10vmax) scale(1.2)}}
+@keyframes d2{0%,100%{transform:translate(0,0) scale(1.1)}50%{transform:translate(-18vmax,-8vmax) scale(.85)}}
+@keyframes d3{0%,100%{transform:translate(0,0) scale(.9)}50%{transform:translate(14vmax,-12vmax) scale(1.25)}}
+@keyframes d4{0%,100%{transform:translate(0,0) scale(1.15)}50%{transform:translate(-12vmax,14vmax) scale(.9)}}
+.grain{position:fixed;inset:-50%;z-index:1;opacity:.15;pointer-events:none;
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+.head{position:relative;z-index:2;text-align:center;text-shadow:0 2px 30px rgba(0,0,0,.6)}
+.head p:first-child{margin:0 0 10px;font:600 10px/1 ui-monospace,Menlo,monospace;
+  letter-spacing:.3em;color:rgba(255,255,255,.5)}
+.head h1{margin:0 0 8px;font-size:clamp(28px,7vw,44px);font-weight:600;letter-spacing:-.045em}
+.head p:last-child{margin:0;font-size:14px;color:rgba(255,255,255,.6)}
+
+/* ============ the glass ============ */
+.stage{position:relative;z-index:2;display:flex;flex-wrap:wrap;gap:18px;justify-content:center;
+  perspective:1000px}
+
+.lg{
+  --r:999px;
+  position:relative;isolation:isolate;
+  padding:19px 40px;border:0;border-radius:var(--r);cursor:pointer;
+  font:inherit;font-size:16px;font-weight:600;letter-spacing:-.01em;color:#fff;
+  background:rgba(255,255,255,.09);
+  backdrop-filter:blur(18px) saturate(190%) brightness(1.14);
+  -webkit-backdrop-filter:blur(18px) saturate(190%) brightness(1.14);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,.5) inset,          /* lit top bevel */
+    0 -1px 0 0 rgba(255,255,255,.14) inset,        /* faint under-bevel */
+    0 10px 30px -8px rgba(0,0,0,.55),
+    0 30px 70px -20px rgba(0,0,0,.5);
+  transform-style:preserve-3d;
+  transition:
+    transform .55s cubic-bezier(.22,1.5,.4,1),
+    border-radius .55s cubic-bezier(.22,1.5,.4,1),
+    background .4s ease,
+    backdrop-filter .4s ease,
+    box-shadow .4s ease;
+  animation:bob 6s ease-in-out infinite;
+}
+@keyframes bob{0%,100%{translate:0 0}50%{translate:0 -5px}}
+
+/* the rim: a conic ring that keeps turning, so the edge always catches something */
+.lg::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;padding:1.4px;z-index:-1;
+  background:conic-gradient(from var(--spin),
+    rgba(255,255,255,.9), rgba(255,255,255,.1) 22%, rgba(255,255,255,.75) 42%,
+    rgba(255,255,255,.08) 62%, rgba(255,255,255,.95) 82%, rgba(255,255,255,.9));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  mask-composite:exclude;
+  animation:spin 7s linear infinite;
+}
+@keyframes spin{to{--spin:360deg}}
+
+/* the specular: a soft blob of light that rides the pointer across the pane */
+.lg::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(180px circle at var(--mx) var(--my),rgba(255,255,255,.55),transparent 55%);
+  opacity:0;mix-blend-mode:overlay;transition:opacity .35s ease;
+}
+.lg:hover::after{opacity:1}
+
+.lg:hover{
+  background:rgba(255,255,255,.15);
+  backdrop-filter:blur(24px) saturate(230%) brightness(1.22);
+  -webkit-backdrop-filter:blur(24px) saturate(230%) brightness(1.22);
+  box-shadow:0 1px 0 0 rgba(255,255,255,.7) inset,0 -1px 0 0 rgba(255,255,255,.2) inset,
+    0 14px 36px -8px rgba(0,0,0,.6),0 36px 80px -20px rgba(0,0,0,.55);
+}
+/* press: it gels — squashes, rounds harder, and the blur thickens */
+.lg:active{
+  transform:scale(.94) translateZ(0);
+  --r:26px;
+  backdrop-filter:blur(34px) saturate(260%) brightness(1.3);
+  -webkit-backdrop-filter:blur(34px) saturate(260%) brightness(1.3);
+}
+.lg:focus-visible{outline:2px solid rgba(255,255,255,.9);outline-offset:5px}
+
+.lg .txt{position:relative;display:flex;align-items:center;gap:10px}
+.lg svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.1;
+  stroke-linecap:round;stroke-linejoin:round}
+
+/* the light that runs the length of it on release */
+.sheen{position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none}
+.sheen i{position:absolute;top:-60%;bottom:-60%;width:34%;left:-40%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.75),transparent);
+  filter:blur(6px);opacity:0}
+.lg.flash .sheen i{animation:run .78s cubic-bezier(.3,.7,.3,1)}
+@keyframes run{0%{left:-40%;opacity:.9}100%{left:110%;opacity:0}}
+
+/* the droplet that pings off the rim when you let go */
+.ping{position:absolute;inset:0;border-radius:inherit;border:1.5px solid rgba(255,255,255,.9);
+  opacity:0;pointer-events:none}
+.lg.flash .ping{animation:ping .7s cubic-bezier(.2,.8,.3,1)}
+@keyframes ping{0%{opacity:.85;transform:scale(1)}100%{opacity:0;transform:scale(1.22)}}
+
+/* ---------- the quieter twin ---------- */
+.lg.ghost{background:rgba(255,255,255,.04);padding:19px 30px;font-weight:500;
+  color:rgba(255,255,255,.86);animation-delay:-3s}
+.lg.ghost:hover{background:rgba(255,255,255,.1)}
+
+.foot{position:relative;z-index:2;font:600 10px/1 ui-monospace,Menlo,monospace;
+  letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.32)}
+
+@media (prefers-reduced-motion:reduce){
+  .mesh i,.lg,.lg::before{animation:none}
+}
+</style>
+</head>
+<body>
+
+<div class="mesh" aria-hidden="true"><i class="m1"></i><i class="m2"></i><i class="m3"></i><i class="m4"></i></div>
+<div class="grain" aria-hidden="true"></div>
+
+<div class="head">
+  <p>01 &middot; LIQUID GLASS</p>
+  <h1>Press it and it gels</h1>
+  <p>Turning rim, pointer-tracked specular, and a blur that thickens under your thumb.</p>
+</div>
+
+<div class="stage" id="stage">
+  <button class="lg" id="a" type="button">
+    <span class="sheen"><i></i></span><span class="ping"></span>
+    <span class="txt">
+      <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      Continue
+    </span>
+  </button>
+
+  <button class="lg ghost" id="b" type="button">
+    <span class="sheen"><i></i></span><span class="ping"></span>
+    <span class="txt">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>
+      Learn more
+    </span>
+  </button>
+</div>
+
+<p class="foot">move across it &middot; then press</p>
+
+<script>
+const btns = [...document.querySelectorAll('.lg')];
+
+/* the specular is a real position, not a hover state */
+addEventListener('pointermove', e => {
+  if (e.pointerType !== 'mouse') return;
+  btns.forEach(b => {
+    const r = b.getBoundingClientRect();
+    b.style.setProperty('--mx', (((e.clientX - r.left) / r.width) * 100).toFixed(1) + '%');
+    b.style.setProperty('--my', (((e.clientY - r.top) / r.height) * 100).toFixed(1) + '%');
+  });
+});
+
+btns.forEach(b => b.addEventListener('click', () => {
+  b.classList.remove('flash');
+  void b.offsetWidth;
+  b.classList.add('flash');
+}));
+</script>
+</body>
+</html>

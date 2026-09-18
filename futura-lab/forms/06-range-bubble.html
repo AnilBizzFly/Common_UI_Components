@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Range + Bubble</title>
+<style>
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;min-height:100%;display:grid;place-items:center;padding:74px 20px 64px;
+  overflow-x:hidden;font:400 15px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#e9edff;background:#06070d;--c:#a06bff}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(105px);
+  pointer-events:none;z-index:0}
+body::before{width:54vmax;height:54vmax;left:-20vmax;top:-24vmax;
+  background:color-mix(in srgb,var(--c) 30%,transparent)}
+body::after{width:46vmax;height:46vmax;right:-18vmax;bottom:-22vmax;background:rgba(0,190,255,.16)}
+
+.bar{position:fixed;inset:0 0 auto 0;z-index:5;display:flex;align-items:center;
+  justify-content:space-between;gap:10px;padding:16px 18px;
+  font:600 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.2em;text-transform:uppercase}
+.bar a{color:rgba(233,237,255,.4);text-decoration:none;padding:8px 11px;border-radius:9px;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);transition:.22s}
+.bar a:hover{color:#fff;border-color:color-mix(in srgb,var(--c) 55%,transparent);
+  background:color-mix(in srgb,var(--c) 16%,transparent)}
+.bar .rt{display:flex;gap:8px}
+
+.stage{position:relative;z-index:1;width:min(460px,100%);text-align:center}
+.eyebrow{margin:0 0 10px;font:600 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.3em;
+  text-transform:uppercase;color:color-mix(in srgb,var(--c) 70%,#8890b8)}
+h1{margin:0 0 8px;font-size:clamp(26px,6vw,34px);font-weight:650;letter-spacing:-.04em}
+.desc{margin:0;font-size:13.5px;color:rgba(233,237,255,.48);line-height:1.6}
+
+.demo{margin:24px 0 0;padding:40px 22px;border-radius:26px;min-height:176px;position:relative;
+  display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:16px;
+  background:linear-gradient(165deg,rgba(255,255,255,.075),rgba(255,255,255,.018));
+  border:1px solid rgba(255,255,255,.09);
+  box-shadow:0 26px 60px -30px #000,0 1px 0 0 rgba(255,255,255,.12) inset;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.demo.block{display:block;text-align:left;padding:26px 22px}
+.demo.bare{background:none;border:0;box-shadow:none;backdrop-filter:none;padding:14px 0}
+
+.note{margin:14px 0 0;font:500 11px/1.7 ui-monospace,Menlo,monospace;letter-spacing:.05em;
+  color:rgba(233,237,255,.32)}
+.note b{color:color-mix(in srgb,var(--c) 75%,#fff);font-weight:600}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important}
+}
+
+.rng{position:relative;padding-top:38px}
+.rng input{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:99px;outline:none;
+  background:linear-gradient(90deg,var(--c),#31e0ff) no-repeat,rgba(255,255,255,.1);
+  background-size:var(--p,50%) 100%}
+.rng input::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;
+  background:#fff;cursor:grab;
+  box-shadow:0 0 0 5px color-mix(in srgb,var(--c) 24%,transparent),0 3px 12px #000;
+  transition:transform .2s}
+.rng input:active::-webkit-slider-thumb{transform:scale(1.18);cursor:grabbing}
+.rng input::-moz-range-thumb{width:22px;height:22px;border:0;border-radius:50%;background:#fff;cursor:grab}
+.bub{position:absolute;top:0;left:50%;transform:translateX(-50%);padding:6px 11px;border-radius:10px;
+  background:linear-gradient(130deg,var(--c),#31e0ff);color:#07080f;
+  font:700 13px/1 ui-monospace,monospace;white-space:nowrap;transition:left .06s linear}
+.bub::after{content:"";position:absolute;left:50%;bottom:-4px;width:9px;height:9px;margin-left:-4.5px;
+  background:#31e0ff;transform:rotate(45deg)}
+.legend{display:flex;justify-content:space-between;margin-top:14px;
+  font:600 10px/1 ui-monospace,monospace;letter-spacing:.14em;color:rgba(233,237,255,.32)}
+</style>
+</head>
+<body>
+<nav class="bar">
+  <a href="index.html">&larr; forms</a>
+  <span class="rt"><a href="05-search-highlight.html" title="previous">&larr;</a><a href="07-switches.html" title="next">&rarr;</a></span>
+</nav>
+
+<main class="stage">
+  <p class="eyebrow">Forms &middot; 06 / 15</p>
+  <h1>Range + Bubble</h1>
+  <p class="desc">The value rides above the thumb and the track fills behind it, nudged at the ends so it never overhangs.</p>
+  <div class="demo block">
+    <div class="rng"><span class="bub" id="bub">64</span>
+      <input id="range" type="range" min="0" max="100" value="64">
+    </div>
+    <div class="legend"><span>0</span><span>QUALITY</span><span>100</span></div>
+  </div>
+  <p class="note">Fill is a <b>background-size</b> animation, not a second element.</p>
+</main>
+<script>
+const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+const $=id=>document.getElementById(id);
+const range=$('range'), bub=$('bub');
+function paint(){
+  const p=(range.value-range.min)/(range.max-range.min)*100;
+  range.style.setProperty('--p',p+'%');
+  bub.style.left='calc('+p+'% + '+(11-p*0.22)+'px)';
+  bub.textContent=range.value;
+}
+range.addEventListener('input',paint); paint();
+</script>
+</body>
+</html>

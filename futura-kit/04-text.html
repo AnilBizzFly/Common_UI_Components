@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kinetic Type</title>
+<style>
+@property --sweep{syntax:'<percentage>';inherits:false;initial-value:0%}
+
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;padding:46px 20px 70px;overflow-x:hidden;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#e9edff;background:#06070d}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(110px);pointer-events:none;z-index:0}
+body::before{width:56vmax;height:56vmax;left:-20vmax;top:-26vmax;background:rgba(255,47,179,.2)}
+body::after{width:48vmax;height:48vmax;right:-18vmax;bottom:-24vmax;background:rgba(60,120,255,.22)}
+
+.wrap{position:relative;z-index:1;max-width:1120px;margin:0 auto}
+.head{margin-bottom:34px}
+.head p:first-child{margin:0 0 10px;font:600 10px/1 ui-monospace,Menlo,monospace;
+  letter-spacing:.38em;text-transform:uppercase;color:rgba(233,237,255,.38)}
+.head h1{margin:0 0 8px;font-size:clamp(30px,6vw,46px);font-weight:650;letter-spacing:-.05em;
+  background:linear-gradient(100deg,#fff,#ff9ee0 45%,#8ee7ff 75%,#fff);background-size:220% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 7s linear infinite}
+@keyframes shine{to{background-position:220% 0}}
+.head h1 + p{margin:0;color:rgba(233,237,255,.48);font-size:14.5px;max-width:62ch}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:13px}
+.cell{position:relative;min-height:172px;border-radius:22px;padding:38px 20px 16px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  background:linear-gradient(165deg,rgba(255,255,255,.07),rgba(255,255,255,.018));
+  border:1px solid rgba(255,255,255,.08);overflow:hidden;
+  box-shadow:0 20px 50px -28px #000,0 1px 0 0 rgba(255,255,255,.1) inset;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.cell .no{position:absolute;top:12px;left:14px;font:700 9px/1 ui-monospace,monospace;
+  letter-spacing:.16em;color:rgba(233,237,255,.2)}
+.replay{position:absolute;top:9px;right:10px;width:26px;height:26px;border:0;border-radius:50%;
+  background:rgba(255,255,255,.07);color:rgba(233,237,255,.5);cursor:pointer;font-size:12px;
+  display:grid;place-items:center;transition:.25s}
+.replay:hover{background:rgba(255,255,255,.16);color:#fff;transform:rotate(-180deg)}
+.cap{font:600 8.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.2em;text-transform:uppercase;
+  color:rgba(233,237,255,.3);text-align:center}
+.stage{display:grid;place-items:center;min-height:52px;width:100%;text-align:center}
+.wide{grid-column:span 2}
+@media(max-width:700px){.wide{grid-column:span 1}}
+
+/* 01 scramble ------------------------------------------------------ */
+.t-scr{font:700 21px/1 ui-monospace,Menlo,monospace;letter-spacing:.1em;color:#4dffcf;
+  text-shadow:0 0 18px rgba(77,255,207,.45)}
+
+/* 02 gradient shine ------------------------------------------------- */
+.t-shine{font-size:31px;font-weight:700;letter-spacing:-.04em;
+  background:linear-gradient(100deg,#42456a 0 38%,#fff 48%,#8ee7ff 55%,#42456a 65% 100%);
+  background-size:280% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:sweepbg 3.2s linear infinite}
+@keyframes sweepbg{to{background-position:-280% 0}}
+
+/* 03 letter stagger -------------------------------------------------- */
+.t-stag{font-size:30px;font-weight:700;letter-spacing:-.035em}
+.t-stag span{display:inline-block;opacity:0;transform:translateY(24px) rotate(9deg);
+  animation:up .62s cubic-bezier(.2,1.1,.3,1) forwards}
+@keyframes up{to{opacity:1;transform:none}}
+
+/* 04 typewriter ------------------------------------------------------ */
+.t-type{font:600 20px/1.3 ui-monospace,Menlo,monospace;color:#e9edff}
+.t-type b{color:#ff9ee0;font-weight:700}
+.cursor{display:inline-block;width:9px;height:19px;vertical-align:-3px;background:#ff9ee0;
+  margin-left:2px;animation:blink .8s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* 05 glitch ---------------------------------------------------------- */
+.t-glitch{position:relative;font:800 30px/1 ui-sans-serif,system-ui;letter-spacing:-.02em;color:#fff}
+.t-glitch::before,.t-glitch::after{content:attr(data-t);position:absolute;left:0;top:0;width:100%}
+.t-glitch::before{color:#ff2fb3;clip-path:inset(0 0 58% 0);animation:g1 2.4s steps(2,end) infinite}
+.t-glitch::after{color:#31e0ff;clip-path:inset(58% 0 0 0);animation:g2 2.4s steps(2,end) infinite}
+@keyframes g1{0%,88%,100%{transform:none}90%{transform:translate(-5px,-2px)}94%{transform:translate(4px,1px)}}
+@keyframes g2{0%,88%,100%{transform:none}92%{transform:translate(5px,2px)}96%{transform:translate(-4px,-1px)}}
+
+/* 06 wave ------------------------------------------------------------ */
+.t-wave{font-size:29px;font-weight:700;letter-spacing:-.02em}
+.t-wave span{display:inline-block;animation:wv 1.9s ease-in-out infinite;
+  background:linear-gradient(180deg,#fff,#8ee7ff);-webkit-background-clip:text;
+  background-clip:text;color:transparent}
+@keyframes wv{0%,100%{transform:translateY(0) scale(1)}35%{transform:translateY(-13px) scale(1.12)}}
+
+/* 07 blur in --------------------------------------------------------- */
+.t-blur{font-size:21px;font-weight:600;letter-spacing:-.02em;line-height:1.45}
+.t-blur span{display:inline-block;opacity:0;filter:blur(11px);transform:translateY(9px);
+  animation:bi .8s cubic-bezier(.2,1,.3,1) forwards}
+@keyframes bi{to{opacity:1;filter:blur(0);transform:none}}
+
+/* 08 word rotator ----------------------------------------------------- */
+.t-rot{font-size:25px;font-weight:650;letter-spacing:-.03em;display:flex;align-items:center;gap:9px}
+.slot{position:relative;height:32px;overflow:hidden;display:inline-block}
+.slot ul{list-style:none;margin:0;padding:0;transition:transform .62s cubic-bezier(.4,1.3,.3,1)}
+.slot li{height:32px;line-height:32px;white-space:nowrap;
+  background:linear-gradient(100deg,#ff9ee0,#8ee7ff);-webkit-background-clip:text;
+  background-clip:text;color:transparent;font-weight:750}
+
+/* 09 marquee ---------------------------------------------------------- */
+.t-marq{width:100%;overflow:hidden;-webkit-mask:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);
+  mask:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+.t-marq div{display:flex;gap:26px;width:max-content;animation:marq 14s linear infinite}
+.t-marq b{font:800 23px/1 ui-sans-serif,system-ui;letter-spacing:-.02em;white-space:nowrap;
+  color:transparent;-webkit-text-stroke:1.2px rgba(255,255,255,.45)}
+.t-marq b:nth-child(even){-webkit-text-stroke:0;color:#8ee7ff}
+@keyframes marq{to{transform:translateX(-50%)}}
+
+/* 10 odometer ---------------------------------------------------------- */
+.t-odo{display:flex;gap:2px;font:700 36px/1 ui-monospace,Menlo,monospace;letter-spacing:-.02em}
+.dig{position:relative;width:24px;height:44px;overflow:hidden;border-radius:7px;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
+.dig ul{list-style:none;margin:0;padding:0;transition:transform .8s cubic-bezier(.3,1.2,.3,1)}
+.dig li{height:44px;line-height:44px;text-align:center;
+  background:linear-gradient(180deg,#fff,#a8c0ff);-webkit-background-clip:text;
+  background-clip:text;color:transparent}
+.t-odo .sep{width:9px;text-align:center;color:rgba(233,237,255,.3);line-height:44px}
+
+/* 11 magnetic letters --------------------------------------------------- */
+.t-mag{font-size:31px;font-weight:750;letter-spacing:-.03em;cursor:default}
+.t-mag span{display:inline-block;transition:transform .4s cubic-bezier(.2,1.3,.3,1),color .4s}
+
+/* 12 outline fill -------------------------------------------------------- */
+.t-out{position:relative;font:800 32px/1 ui-sans-serif,system-ui;letter-spacing:-.03em;
+  color:transparent;-webkit-text-stroke:1.3px rgba(255,255,255,.5)}
+.t-out::after{content:attr(data-t);position:absolute;left:0;top:0;width:100%;
+  color:#ffd23d;-webkit-text-stroke:0;
+  clip-path:inset(0 calc(100% - var(--sweep)) 0 0);transition:--sweep .7s cubic-bezier(.4,1,.3,1)}
+.t-out:hover::after{--sweep:100%}
+
+/* 13 flip letters ---------------------------------------------------------- */
+.t-flip{font-size:29px;font-weight:750;letter-spacing:-.02em;perspective:600px}
+.t-flip span{display:inline-block;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.3,1.2,.3,1)}
+.t-flip:hover span{transform:rotateX(360deg)}
+
+/* 14 neon ------------------------------------------------------------------- */
+.t-neon{font:700 29px/1 ui-sans-serif,system-ui;letter-spacing:.04em;color:#fff;
+  text-shadow:0 0 6px #31e0ff,0 0 16px #31e0ff,0 0 38px #0088ff,0 0 76px #0055ff;
+  animation:flick 4.5s infinite}
+@keyframes flick{0%,17%,19%,21%,54%,56%,100%{opacity:1}18%,20%,55%{opacity:.35}}
+
+/* 15 spotlight text ---------------------------------------------------------- */
+.t-spot{font:800 30px/1 ui-sans-serif,system-ui;letter-spacing:-.03em;color:rgba(255,255,255,.14);
+  position:relative;cursor:crosshair}
+.t-spot::after{content:attr(data-t);position:absolute;left:0;top:0;width:100%;
+  background:radial-gradient(90px 60px at var(--x,50%) var(--y,50%),#ffd23d,#ff2fb3 55%,transparent 72%);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* 16 decrypt block ------------------------------------------------------------ */
+.t-dec{font:600 15px/1.65 ui-monospace,Menlo,monospace;color:rgba(233,237,255,.85);text-align:left;
+  max-width:280px}
+.t-dec i{font-style:normal;color:#4dffcf}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <p>futura kit · 04</p>
+    <h1>Kinetic type</h1>
+    <p>Sixteen text treatments. Hit ↻ on any cell to replay it — split-letter staggers, decoding scramble, odometer rolls, cursor-lit gradients.</p>
+  </div>
+
+  <div class="grid">
+
+    <div class="cell" data-fx="scr"><span class="no">01</span><button class="replay">↻</button>
+      <div class="stage"><span class="t-scr" data-word="DECRYPTED">DECRYPTED</span></div>
+      <span class="cap">scramble decode</span></div>
+
+    <div class="cell"><span class="no">02</span>
+      <div class="stage"><span class="t-shine">Specular Shine</span></div>
+      <span class="cap">gradient sweep</span></div>
+
+    <div class="cell" data-fx="stag"><span class="no">03</span><button class="replay">↻</button>
+      <div class="stage"><span class="t-stag" data-text="Stagger In"></span></div>
+      <span class="cap">letter stagger</span></div>
+
+    <div class="cell" data-fx="type"><span class="no">04</span><button class="replay">↻</button>
+      <div class="stage"><span class="t-type">We build <b id="typed"></b><span class="cursor"></span></span></div>
+      <span class="cap">typewriter loop</span></div>
+
+    <div class="cell"><span class="no">05</span>
+      <div class="stage"><span class="t-glitch" data-t="SIGNAL LOST">SIGNAL LOST</span></div>
+      <span class="cap">rgb glitch</span></div>
+
+    <div class="cell"><span class="no">06</span>
+      <div class="stage"><span class="t-wave" data-text="WAVEFORM"></span></div>
+      <span class="cap">per-letter wave</span></div>
+
+    <div class="cell" data-fx="blur"><span class="no">07</span><button class="replay">↻</button>
+      <div class="stage"><span class="t-blur" data-text="Focus arrives one word at a time"></span></div>
+      <span class="cap">blur-in words</span></div>
+
+    <div class="cell"><span class="no">08</span>
+      <div class="stage"><span class="t-rot">Design for
+        <span class="slot" id="slot"><ul><li>motion</li><li>clarity</li><li>speed</li><li>depth</li><li>motion</li></ul></span>
+      </span></div>
+      <span class="cap">word rotator</span></div>
+
+    <div class="cell wide"><span class="no">09</span>
+      <div class="t-marq"><div id="marq"></div></div>
+      <span class="cap">seamless marquee</span></div>
+
+    <div class="cell" data-fx="odo"><span class="no">10</span><button class="replay">↻</button>
+      <div class="stage"><div class="t-odo" id="odo"></div></div>
+      <span class="cap">odometer roll</span></div>
+
+    <div class="cell"><span class="no">11</span>
+      <div class="stage"><span class="t-mag" id="magT" data-text="MAGNETIC"></span></div>
+      <span class="cap">letters repel cursor</span></div>
+
+    <div class="cell"><span class="no">12</span>
+      <div class="stage"><span class="t-out" data-t="FILL ME">FILL ME</span></div>
+      <span class="cap">outline → fill</span></div>
+
+    <div class="cell"><span class="no">13</span>
+      <div class="stage"><span class="t-flip" data-text="ROTATE"></span></div>
+      <span class="cap">3d letter flip</span></div>
+
+    <div class="cell"><span class="no">14</span>
+      <div class="stage"><span class="t-neon">NIGHT SHIFT</span></div>
+      <span class="cap">neon flicker</span></div>
+
+    <div class="cell"><span class="no">15</span>
+      <div class="stage"><span class="t-spot" id="spotT" data-t="SPOTLIGHT">SPOTLIGHT</span></div>
+      <span class="cap">cursor-lit gradient</span></div>
+
+    <div class="cell" data-fx="dec"><span class="no">16</span><button class="replay">↻</button>
+      <div class="stage"><p class="t-dec" id="dec"></p></div>
+      <span class="cap">line decrypt</span></div>
+
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+/* split helper — one span per character, spaces preserved */
+function split(el,{delay=0,step=42,attr='animation-delay'}={}){
+  const text=el.dataset.text||el.textContent;
+  el.innerHTML='';
+  [...text].forEach((ch,i)=>{
+    const s=document.createElement('span');
+    s.textContent = ch===' ' ? ' ' : ch;
+    s.style.setProperty(attr,(delay+i*step)+'ms');
+    el.appendChild(s);
+  });
+}
+
+/* 01 scramble ------------------------------------------------------- */
+const CH='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#%$@*/<>';
+function scramble(el){
+  const word=el.dataset.word; let f=0;
+  clearInterval(el._id);
+  el._id=setInterval(()=>{
+    el.textContent=word.split('').map((c,i)=>
+      i<f/2.2 ? c : CH[Math.floor(Math.random()*CH.length)]).join('');
+    if(f++>word.length*2.4){ clearInterval(el._id); el.textContent=word; }
+  }, reduce?1:34);
+}
+const scrEl=document.querySelector('.t-scr');
+scrEl.addEventListener('pointerenter',()=>scramble(scrEl));
+scramble(scrEl);
+
+/* 03 stagger -------------------------------------------------------- */
+const stagEl=document.querySelector('.t-stag');
+function runStag(){ split(stagEl,{step:46}); }
+runStag();
+
+/* 04 typewriter ------------------------------------------------------ */
+const WORDS=['interfaces.','motion systems.','design tokens.','the future.'];
+const typed=$('typed');
+let wi=0, ci=0, del=false, tTimer=null;
+function type(){
+  const w=WORDS[wi];
+  typed.textContent = del ? w.slice(0,ci--) : w.slice(0,ci++);
+  let wait = del ? 42 : 78;
+  if(!del && ci>w.length){ del=true; wait=1300; }
+  if(del && ci<0){ del=false; ci=0; wi=(wi+1)%WORDS.length; wait=260; }
+  tTimer=setTimeout(type, reduce?600:wait);
+}
+type();
+
+/* 06 wave / 13 flip -------------------------------------------------- */
+const waveEl=document.querySelector('.t-wave');
+split(waveEl,{step:70});
+const flipEl=document.querySelector('.t-flip');
+split(flipEl,{step:55,attr:'transition-delay'});
+
+/* 07 blur-in, split by word ------------------------------------------ */
+const blurEl=document.querySelector('.t-blur');
+function runBlur(){
+  const words=(blurEl.dataset.text||'').split(' ');
+  blurEl.innerHTML='';
+  words.forEach((w,i)=>{
+    const s=document.createElement('span');
+    s.textContent=w; s.style.animationDelay=(i*110)+'ms';
+    blurEl.appendChild(s);
+    blurEl.appendChild(document.createTextNode(' '));
+  });
+}
+runBlur();
+
+/* 08 word rotator ----------------------------------------------------- */
+const slotUl=$('slot').querySelector('ul');
+let si=0;
+setInterval(()=>{
+  si++;
+  slotUl.style.transition='transform .62s cubic-bezier(.4,1.3,.3,1)';
+  slotUl.style.transform='translateY('+(-si*32)+'px)';
+  if(si===4){                       // last item duplicates the first — snap back invisibly
+    setTimeout(()=>{ slotUl.style.transition='none'; slotUl.style.transform='translateY(0)'; si=0; },640);
+  }
+}, reduce?4000:2000);
+
+/* 09 marquee — content duplicated so the loop is seamless -------------- */
+const ITEMS=['MOTION','TOKENS','GLASS','KINETIC','DEPTH','FUTURA'];
+$('marq').innerHTML=[...ITEMS,...ITEMS].map(t=>'<b>'+t+' ✦</b>').join('');
+
+/* 10 odometer ----------------------------------------------------------- */
+const odo=$('odo');
+function buildOdo(value){
+  const s=String(value).padStart(6,'0');
+  odo.innerHTML='';
+  [...s].forEach((d,i)=>{
+    if(i===3){ const sep=document.createElement('span'); sep.className='sep'; sep.textContent=','; odo.appendChild(sep); }
+    const box=document.createElement('div'); box.className='dig';
+    const ul=document.createElement('ul');
+    for(let n=0;n<=10;n++){ const li=document.createElement('li'); li.textContent=n%10; ul.appendChild(li); }
+    box.appendChild(ul); odo.appendChild(box);
+    requestAnimationFrame(()=>{
+      ul.style.transitionDelay=(i*70)+'ms';
+      ul.style.transform='translateY('+(-(+d)*44)+'px)';
+    });
+  });
+}
+function runOdo(){ buildOdo(Math.floor(120000+Math.random()*760000)); }
+runOdo();
+
+/* 11 magnetic letters ---------------------------------------------------- */
+const magT=$('magT');
+split(magT,{step:0});
+const mags=[...magT.children];
+magT.parentElement.addEventListener('pointermove',e=>{
+  if(reduce) return;
+  mags.forEach(s=>{
+    const b=s.getBoundingClientRect();
+    const dx=e.clientX-(b.left+b.width/2), dy=e.clientY-(b.top+b.height/2);
+    const d=Math.hypot(dx,dy);
+    if(d<90){
+      const f=(1-d/90)*26;
+      s.style.transform='translate('+(-dx/d*f)+'px,'+(-dy/d*f)+'px) scale('+(1+(1-d/90)*.35)+')';
+      s.style.color='#ff9ee0';
+    }else{ s.style.transform=''; s.style.color=''; }
+  });
+});
+magT.parentElement.addEventListener('pointerleave',()=>
+  mags.forEach(s=>{ s.style.transform=''; s.style.color=''; }));
+
+/* 15 spotlight text ------------------------------------------------------- */
+const spotT=$('spotT');
+spotT.addEventListener('pointermove',e=>{
+  const b=spotT.getBoundingClientRect();
+  spotT.style.setProperty('--x',((e.clientX-b.left)/b.width*100)+'%');
+  spotT.style.setProperty('--y',((e.clientY-b.top)/b.height*100)+'%');
+});
+
+/* 16 line decrypt --------------------------------------------------------- */
+const LINES=['> establishing uplink','> handshake ok','> streaming futura.kit','> ready'];
+const dec=$('dec');
+function runDec(){
+  dec.innerHTML=''; let li=0;
+  (function nextLine(){
+    if(li>=LINES.length) return;
+    const full=LINES[li], row=document.createElement('div');
+    dec.appendChild(row);
+    let i=0;
+    const id=setInterval(()=>{
+      row.innerHTML = full.slice(0,i) +
+        '<i>' + (i<full.length ? CH[Math.floor(Math.random()*CH.length)] : '') + '</i>';
+      if(i++>=full.length){ clearInterval(id); row.textContent=full; li++; setTimeout(nextLine,150); }
+    }, reduce?1:26);
+  })();
+}
+runDec();
+
+/* replay buttons ------------------------------------------------------------ */
+document.querySelectorAll('.replay').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const fx=btn.parentElement.dataset.fx;
+    if(fx==='scr')  scramble(scrEl);
+    if(fx==='stag') runStag();
+    if(fx==='blur') runBlur();
+    if(fx==='odo')  runOdo();
+    if(fx==='dec')  runDec();
+    if(fx==='type'){ clearTimeout(tTimer); ci=0; del=false; wi=(wi+1)%WORDS.length; type(); }
+  });
+});
+</script>
+</body>
+</html>

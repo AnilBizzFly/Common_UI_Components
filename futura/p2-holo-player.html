@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Holo Player</title>
+<style>
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;display:grid;place-items:center;padding:26px 16px;overflow:hidden;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#eaf2ff;background:#070910;--a:#00e5ff;--b:#ff2fb3;
+}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(95px);pointer-events:none}
+body::before{width:52vmax;height:52vmax;left:-18vmax;top:-16vmax;background:color-mix(in srgb,var(--a) 34%,transparent);transition:background .9s}
+body::after{width:46vmax;height:46vmax;right:-16vmax;bottom:-20vmax;background:color-mix(in srgb,var(--b) 30%,transparent);transition:background .9s}
+
+.player{
+  position:relative;width:min(372px,100%);border-radius:30px;padding:20px 20px 18px;
+  background:linear-gradient(165deg,rgba(255,255,255,.085),rgba(255,255,255,.018));
+  border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(24px) saturate(170%);
+  -webkit-backdrop-filter:blur(24px) saturate(170%);
+  box-shadow:0 36px 90px -34px #000,0 1px 0 0 rgba(255,255,255,.16) inset;
+}
+.top{display:flex;align-items:center;justify-content:space-between;
+  font:600 9px/1 ui-monospace,Menlo,monospace;letter-spacing:.3em;text-transform:uppercase;color:rgba(234,242,255,.42)}
+.live{display:flex;align-items:center;gap:6px;color:var(--a)}
+.live i{width:5px;height:5px;border-radius:50%;background:currentColor;box-shadow:0 0 9px 2px currentColor}
+[data-state="playing"] .live i{animation:blip 1s infinite}
+@keyframes blip{50%{opacity:.25}}
+
+/* ---------- the holographic disc ---------- */
+.stage{position:relative;height:250px;display:grid;place-items:center;margin:8px 0 2px}
+#viz{position:absolute;inset:0;width:100%;height:100%;cursor:pointer;touch-action:none}
+.disc{
+  position:relative;width:132px;height:132px;border-radius:50%;pointer-events:none;
+  background:conic-gradient(from 0deg,var(--a),var(--b),#7c4dff,var(--a));
+  box-shadow:0 0 44px -6px color-mix(in srgb,var(--a) 70%,transparent),
+             0 18px 50px -14px #000, 0 0 0 1px rgba(255,255,255,.18) inset;
+  animation:spin 9s linear infinite;animation-play-state:paused;
+  transition:transform .5s cubic-bezier(.2,1.3,.4,1),filter .5s;
+  filter:saturate(.55) brightness(.8);
+}
+[data-state="playing"] .disc{animation-play-state:running;filter:saturate(1.25) brightness(1.05)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.disc::before{content:"";position:absolute;inset:14px;border-radius:50%;
+  background:repeating-radial-gradient(circle at 50% 50%,rgba(0,0,0,.34) 0 2px,transparent 2px 5px)}
+.disc::after{content:"";position:absolute;inset:50% auto auto 50%;width:34px;height:34px;margin:-17px 0 0 -17px;
+  border-radius:50%;background:#0a0c16;box-shadow:0 0 0 1px rgba(255,255,255,.22) inset,0 0 20px rgba(0,0,0,.8)}
+
+/* ---------- meta ---------- */
+.meta{text-align:center;margin-top:2px}
+.meta h2{margin:0;font-size:19px;font-weight:650;letter-spacing:-.025em}
+.meta p{margin:3px 0 0;font-size:12px;color:rgba(234,242,255,.45);
+  font-family:ui-monospace,Menlo,monospace;letter-spacing:.08em}
+
+/* ---------- scrub bar ---------- */
+.scrub{margin:15px 0 4px;height:26px;display:flex;align-items:center;cursor:pointer;touch-action:none}
+.track{position:relative;flex:1;height:5px;border-radius:99px;background:rgba(255,255,255,.1);overflow:visible}
+.fill{position:absolute;inset:0 auto 0 0;width:0%;border-radius:99px;
+  background:linear-gradient(90deg,var(--a),var(--b));box-shadow:0 0 16px -2px var(--a)}
+.knob{position:absolute;top:50%;left:0%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;
+  background:#fff;box-shadow:0 0 0 4px color-mix(in srgb,var(--a) 28%,transparent),0 2px 8px #000;
+  transition:transform .18s}
+.scrub:hover .knob{transform:scale(1.25)}
+.times{display:flex;justify-content:space-between;font:500 10.5px/1 ui-monospace,Menlo,monospace;
+  color:rgba(234,242,255,.4)}
+
+/* ---------- transport ---------- */
+.ctrls{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:14px}
+.ctrls button{border:0;background:none;color:#cdd8ef;cursor:pointer;display:grid;place-items:center;
+  width:40px;height:40px;border-radius:50%;transition:transform .18s cubic-bezier(.2,1.5,.4,1),color .2s,background .2s}
+.ctrls button:hover{color:#fff;background:rgba(255,255,255,.07)}
+.ctrls button:active{transform:scale(.86)}
+.ctrls svg{width:19px;height:19px;fill:currentColor}
+.play{width:58px!important;height:58px!important;color:#06080f!important;
+  background:linear-gradient(140deg,var(--a),var(--b))!important;
+  box-shadow:0 12px 34px -10px var(--a),0 0 0 1px rgba(255,255,255,.28) inset}
+.play svg{width:22px;height:22px}
+.play .ic-pause{display:none}
+[data-state="playing"] .play .ic-play{display:none}
+[data-state="playing"] .play .ic-pause{display:block}
+
+/* ---------- volume ---------- */
+.vol{display:flex;align-items:center;gap:9px;margin-top:16px;color:rgba(234,242,255,.42)}
+.vol svg{width:15px;height:15px;fill:currentColor;flex:none}
+.vol input{-webkit-appearance:none;appearance:none;flex:1;height:4px;border-radius:99px;outline:none;
+  background:linear-gradient(90deg,var(--a),var(--b)) no-repeat,rgba(255,255,255,.1);
+  background-size:var(--v,70%) 100%}
+.vol input::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:#fff;
+  cursor:pointer;box-shadow:0 0 0 3px color-mix(in srgb,var(--a) 30%,transparent)}
+.vol input::-moz-range-thumb{width:12px;height:12px;border:0;border-radius:50%;background:#fff;cursor:pointer}
+
+.hint{margin:12px 0 0;text-align:center;font:500 10px/1.4 ui-monospace,Menlo,monospace;
+  color:rgba(234,242,255,.26);letter-spacing:.06em}
+
+@media (prefers-reduced-motion:reduce){
+  .disc{animation:none!important}
+  *,*::before,*::after{transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body data-state="idle">
+<div class="player">
+  <div class="top">
+    <span>holo · deck 01</span>
+    <span class="live"><i></i><span id="st">standby</span></span>
+  </div>
+
+  <div class="stage">
+    <canvas id="viz"></canvas>
+    <div class="disc"></div>
+  </div>
+
+  <div class="meta">
+    <h2 id="title">Neon Drift</h2>
+    <p id="artist">SYNTHESIZED LIVE · NO AUDIO FILES</p>
+  </div>
+
+  <div class="scrub" id="scrub">
+    <div class="track"><div class="fill" id="fill"></div><div class="knob" id="knob"></div></div>
+  </div>
+  <div class="times"><span id="cur">0:00</span><span id="dur">0:00</span></div>
+
+  <div class="ctrls">
+    <button id="prev" aria-label="previous"><svg viewBox="0 0 24 24"><path d="M6 5h2.5v14H6zM20 5v14L9.5 12z"/></svg></button>
+    <button class="play" id="play" aria-label="play">
+      <svg class="ic-play" viewBox="0 0 24 24"><path d="M8 5v14l12-7z"/></svg>
+      <svg class="ic-pause" viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>
+    </button>
+    <button id="next" aria-label="next"><svg viewBox="0 0 24 24"><path d="M18 5h-2.5v14H18zM4 5v14l10.5-7z"/></svg></button>
+  </div>
+
+  <div class="vol">
+    <svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4zm12.5 3a4.5 4.5 0 00-2.5-4v8a4.5 4.5 0 002.5-4z"/></svg>
+    <input id="vol" type="range" min="0" max="100" value="70">
+  </div>
+
+  <p class="hint">every note is generated with the Web Audio API · click the ring to seek</p>
+</div>
+
+<script>
+/* ==========================================================================
+   A player with no audio files. The three "tracks" are step sequences that a
+   small synth renders live, and the visualiser reads the real FFT of that
+   output — so the bars are the music, not a fake loop.
+   ========================================================================== */
+const body=document.body, reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+const $=id=>document.getElementById(id);
+
+/* ---------------------------- the tracks ---------------------------- */
+// note names -> midi; patterns are 16 steps per bar, 4 bars per loop
+const SCALE={C:0,'C#':1,D:2,'D#':3,E:4,F:5,'F#':6,G:7,'G#':8,A:9,'A#':10,B:11};
+const mtof=m=>440*Math.pow(2,(m-69)/12);
+const note=(n,o)=>SCALE[n]+12*(o+1);
+
+const TRACKS=[
+  { title:'Neon Drift', bpm:96, a:'#00e5ff', b:'#ff2fb3', wave:'sawtooth', cut:900, res:11,
+    bass:[36,0,0,36,0,43,0,0, 34,0,0,34,0,41,0,0],
+    lead:['A3','C4','E4','G4','A4','G4','E4','C4','A3','B3','D4','F4','A4','F4','D4','B3'],
+    kick:[1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0], hat:[0,0,1,0,0,0,1,0,0,0,1,0,0,1,1,0] },
+  { title:'Hyper Bloom', bpm:126, a:'#8bff5a', b:'#00b3ff', wave:'square', cut:1500, res:7,
+    bass:[40,0,40,0,47,0,0,45, 38,0,38,0,45,0,0,43],
+    lead:['E4','G4','B4','E5','D5','B4','G4','A4','C5','A4','F4','A4','B4','D5','B4','G4'],
+    kick:[1,0,0,1,0,0,1,0,1,0,0,1,0,0,1,0], hat:[1,1,0,1,1,0,1,1,1,1,0,1,1,0,1,1] },
+  { title:'Void Garden', bpm:74, a:'#b98bff', b:'#ff9e57', wave:'triangle', cut:640, res:5,
+    bass:[31,0,0,0,0,0,38,0, 33,0,0,0,0,0,40,0],
+    lead:['G3','D4','F4','A4','C5','A4','F4','D4','G3','C4','E4','G4','B4','G4','E4','C4'],
+    kick:[1,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0], hat:[0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0] }
+];
+const BARS=4, STEPS=16*BARS;
+
+let ac=null, master=null, analyser=null, noiseBuf=null, delay=null;
+let idx=0, step=0, nextTime=0, playing=false, timer=null, freq=null;
+
+function boot(){
+  if(ac) return;
+  ac=new (window.AudioContext||window.webkitAudioContext)();
+  master=ac.createGain(); master.gain.value=+$('vol').value/100*.7;
+  analyser=ac.createAnalyser(); analyser.fftSize=256; analyser.smoothingTimeConstant=.78;
+  freq=new Uint8Array(analyser.frequencyBinCount);
+
+  // a short feedback delay glues the arp together
+  delay=ac.createDelay(1); delay.delayTime.value=.26;
+  const fb=ac.createGain(); fb.gain.value=.3;
+  const wet=ac.createGain(); wet.gain.value=.34;
+  delay.connect(fb); fb.connect(delay); delay.connect(wet); wet.connect(master);
+
+  master.connect(analyser); analyser.connect(ac.destination);
+
+  // noise buffer for hats
+  noiseBuf=ac.createBuffer(1, ac.sampleRate*.4, ac.sampleRate);
+  const d=noiseBuf.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+}
+
+/* ------------------------------ voices ------------------------------ */
+function tone(t,f,dur,type,cut,res,gain,toDelay){
+  const o=ac.createOscillator(), g=ac.createGain(), lp=ac.createBiquadFilter();
+  o.type=type; o.frequency.setValueAtTime(f,t);
+  lp.type='lowpass'; lp.Q.value=res;
+  lp.frequency.setValueAtTime(cut*2.2,t);
+  lp.frequency.exponentialRampToValueAtTime(Math.max(120,cut*.5),t+dur);
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(gain,t+.012);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(lp); lp.connect(g); g.connect(master);
+  if(toDelay) g.connect(delay);
+  o.start(t); o.stop(t+dur+.05);
+}
+function kick(t){
+  const o=ac.createOscillator(), g=ac.createGain();
+  o.type='sine'; o.frequency.setValueAtTime(155,t);
+  o.frequency.exponentialRampToValueAtTime(44,t+.13);
+  g.gain.setValueAtTime(.9,t); g.gain.exponentialRampToValueAtTime(.0001,t+.3);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t+.34);
+}
+function hat(t){
+  const s=ac.createBufferSource(); s.buffer=noiseBuf;
+  const hp=ac.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=7200;
+  const g=ac.createGain(); g.gain.setValueAtTime(.16,t); g.gain.exponentialRampToValueAtTime(.0001,t+.05);
+  s.connect(hp); hp.connect(g); g.connect(master); s.start(t); s.stop(t+.08);
+}
+
+/* --------------------------- the scheduler --------------------------- */
+const stepDur=()=>60/TRACKS[idx].bpm/4;                 // 16ths
+const duration=()=>STEPS*stepDur();
+
+function schedule(){
+  const T=TRACKS[idx];
+  while(nextTime < ac.currentTime+.12){
+    const s=step%16, t=nextTime;
+    if(T.kick[s]) kick(t);
+    if(T.hat[s])  hat(t);
+    const b=T.bass[s];
+    if(b) tone(t, mtof(b), stepDur()*3.1, 'sawtooth', 420, 9, .34, false);
+    // lead plays every other 16th, transposed a little per bar so it evolves
+    if(s%2===0){
+      const bar=Math.floor(step/16), shift=[0,0,3,-2][bar];
+      const nm=T.lead[(s+bar*3)%16], m=note(nm.slice(0,-1), +nm.slice(-1)) + shift;
+      tone(t, mtof(m), stepDur()*1.9, T.wave, T.cut, T.res, .19, true);
+    }
+    nextTime += stepDur();
+    step=(step+1)%STEPS;
+  }
+}
+
+function play(){
+  boot(); if(ac.state==='suspended') ac.resume();
+  playing=true; body.dataset.state='playing'; $('st').textContent='playing';
+  nextTime=ac.currentTime+.06;
+  timer=setInterval(schedule,25);
+}
+function pause(){
+  playing=false; clearInterval(timer);
+  body.dataset.state='idle'; $('st').textContent='paused';
+}
+$('play').onclick=()=>playing?pause():play();
+
+function load(i,autoplay){
+  const was=playing; if(playing) pause();
+  idx=(i+TRACKS.length)%TRACKS.length; step=0;
+  const T=TRACKS[idx];
+  $('title').textContent=T.title;
+  body.style.setProperty('--a',T.a); body.style.setProperty('--b',T.b);
+  paint(0);
+  if(was||autoplay) play();
+}
+$('next').onclick=()=>load(idx+1);
+$('prev').onclick=()=>load(idx-1);
+
+/* ------------------------------ scrub ------------------------------ */
+const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+function paint(p){
+  $('fill').style.width=(p*100)+'%';
+  $('knob').style.left=(p*100)+'%';
+  $('cur').textContent=fmt(p*duration());
+  $('dur').textContent=fmt(duration());
+}
+const scrub=$('scrub');
+function seekAt(e){
+  const b=scrub.querySelector('.track').getBoundingClientRect();
+  const p=Math.min(1,Math.max(0,(e.clientX-b.left)/b.width));
+  step=Math.floor(p*STEPS)%STEPS;
+  if(playing) nextTime=ac.currentTime+.03;
+  paint(step/STEPS);
+}
+scrub.addEventListener('pointerdown',e=>{
+  scrub.setPointerCapture(e.pointerId); seekAt(e);
+  const move=ev=>seekAt(ev);
+  const up=()=>{ scrub.removeEventListener('pointermove',move); removeEventListener('pointerup',up); };
+  scrub.addEventListener('pointermove',move); addEventListener('pointerup',up);
+});
+
+$('vol').addEventListener('input',e=>{
+  const v=+e.target.value;
+  e.target.style.setProperty('--v',v+'%');
+  if(master) master.gain.setTargetAtTime(v/100*.7, ac.currentTime, .02);
+});
+$('vol').style.setProperty('--v','70%');
+
+/* --------------------------- visualiser --------------------------- */
+const cv=$('viz'), ctx=cv.getContext('2d'), DPR=Math.min(devicePixelRatio||1,2);
+let W=0,H=0;
+function fit(){ const b=cv.getBoundingClientRect(); W=b.width;H=b.height;
+  cv.width=W*DPR; cv.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); }
+addEventListener('resize',fit); fit();
+
+// clicking the ring area seeks proportionally around the circle
+cv.addEventListener('click',e=>{
+  const b=cv.getBoundingClientRect(), x=e.clientX-b.left-W/2, y=e.clientY-b.top-H/2;
+  if(Math.hypot(x,y) < 72) { playing?pause():play(); return; }      // centre = play/pause
+  let ang=Math.atan2(y,x)+Math.PI/2; if(ang<0) ang+=6.2832;
+  step=Math.floor(ang/6.2832*STEPS)%STEPS;
+  if(playing) nextTime=ac.currentTime+.03;
+  paint(step/STEPS);
+});
+
+let rot=0, smooth=new Float32Array(64);
+function draw(){
+  requestAnimationFrame(draw);
+  ctx.clearRect(0,0,W,H);
+  const cx=W/2, cy=H/2, R=76;
+  const T=TRACKS[idx];
+  if(analyser) analyser.getByteFrequencyData(freq);
+  rot += reduce?0:(playing?.0035:.0008);
+
+  const BARS_N=64;
+  for(let i=0;i<BARS_N;i++){
+    const raw = freq ? freq[Math.floor(i*1.35)+2]/255 : 0;
+    smooth[i] += (raw-smooth[i]) * (raw>smooth[i] ? .55 : .12);   // fast attack, slow release
+    const v=smooth[i];
+    const a=(i/BARS_N)*6.2832 + rot;
+    const len=6 + v*58;
+    const x1=cx+Math.cos(a)*R, y1=cy+Math.sin(a)*R;
+    const x2=cx+Math.cos(a)*(R+len), y2=cy+Math.sin(a)*(R+len);
+    const grd=ctx.createLinearGradient(x1,y1,x2,y2);
+    grd.addColorStop(0,T.a); grd.addColorStop(1,T.b);
+    ctx.strokeStyle=grd; ctx.globalAlpha=.25+v*.75;
+    ctx.lineWidth=3; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    // mirrored inner ghost
+    ctx.globalAlpha=(.06+v*.2);
+    ctx.beginPath(); ctx.moveTo(cx+Math.cos(a)*(R-4),cy+Math.sin(a)*(R-4));
+    ctx.lineTo(cx+Math.cos(a)*(R-4-len*.4),cy+Math.sin(a)*(R-4-len*.4)); ctx.stroke();
+  }
+  ctx.globalAlpha=1;
+
+  // progress arc around the whole thing
+  const p=step/STEPS;
+  ctx.strokeStyle='rgba(255,255,255,.08)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(cx,cy,R+64,0,6.2832); ctx.stroke();
+  ctx.strokeStyle=T.a; ctx.lineWidth=2.5; ctx.lineCap='round';
+  ctx.shadowBlur=14; ctx.shadowColor=T.a;
+  ctx.beginPath(); ctx.arc(cx,cy,R+64,-Math.PI/2,-Math.PI/2+p*6.2832); ctx.stroke();
+  ctx.shadowBlur=0;
+
+  if(playing) paint(p);
+}
+draw();
+
+load(0,false);
+</script>
+</body>
+</html>

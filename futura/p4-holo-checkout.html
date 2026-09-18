@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Holo Checkout</title>
+<style>
+@property --mx{syntax:'<percentage>';inherits:true;initial-value:50%}
+@property --my{syntax:'<percentage>';inherits:true;initial-value:50%}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;display:grid;place-items:center;padding:26px 16px;overflow:hidden;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#eef1ff;background:#06070e;--brand:#7c5cff;--mx:50%;--my:50%;
+}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(100px);pointer-events:none}
+body::before{width:52vmax;height:52vmax;left:-18vmax;top:-20vmax;
+  background:color-mix(in srgb,var(--brand) 32%,transparent);transition:background .8s}
+body::after{width:44vmax;height:44vmax;right:-16vmax;bottom:-20vmax;background:rgba(0,220,255,.2)}
+
+.wrap{position:relative;width:min(378px,100%);display:flex;flex-direction:column;gap:20px;
+  perspective:1100px}
+
+/* ============================ the card ============================ */
+.cardScene{height:206px;position:relative;transform-style:preserve-3d;
+  transition:transform .5s cubic-bezier(.2,.9,.3,1)}
+.card3d{position:absolute;inset:0;transform-style:preserve-3d;
+  transition:transform .75s cubic-bezier(.4,.9,.3,1)}
+[data-face="back"] .card3d{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;border-radius:22px;overflow:hidden;backface-visibility:hidden;
+  box-shadow:0 30px 70px -24px #000,0 0 0 1px rgba(255,255,255,.14) inset;
+  background:
+    radial-gradient(120% 90% at var(--mx) var(--my),rgba(255,255,255,.34),transparent 55%),
+    conic-gradient(from 210deg at 30% 20%,#1b1440,#3b1f6e,#0f2a56,#5d1d63,#1b1440);
+  background-blend-mode:screen,normal}
+.face.back{transform:rotateY(180deg)}
+/* holographic foil that tracks the pointer */
+.face::before{content:"";position:absolute;inset:-40%;pointer-events:none;mix-blend-mode:color-dodge;
+  opacity:.5;
+  background:conic-gradient(from 210deg at var(--mx) var(--my),
+    #ff008022,#00e5ff33,#7cff0022,#ff8a0033,#ff008022);
+  filter:blur(14px)}
+.face::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.22;
+  background:repeating-linear-gradient(115deg,transparent 0 7px,rgba(255,255,255,.5) 7px 8px)}
+
+.fc{position:absolute;inset:0;padding:20px;display:flex;flex-direction:column;justify-content:space-between;
+  z-index:2}
+.fc .r1{display:flex;justify-content:space-between;align-items:flex-start}
+.chip{width:42px;height:31px;border-radius:7px;
+  background:linear-gradient(135deg,#ffe9a8,#c9a227 45%,#fff5cf 60%,#b8901f);
+  box-shadow:0 1px 2px rgba(0,0,0,.5) inset;position:relative}
+.chip::before,.chip::after{content:"";position:absolute;left:5px;right:5px;height:1px;
+  background:rgba(0,0,0,.35)}
+.chip::before{top:11px}.chip::after{top:19px}
+.brandmark{font:700 15px/1 ui-sans-serif,system-ui;letter-spacing:-.02em;text-align:right;
+  text-shadow:0 2px 12px rgba(0,0,0,.6);transition:opacity .3s}
+.brandmark small{display:block;font:600 8px/1 ui-monospace,monospace;letter-spacing:.24em;
+  opacity:.55;margin-top:4px}
+
+.num{font:600 19px/1 ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.06em;
+  text-shadow:0 2px 14px rgba(0,0,0,.65);display:flex;gap:2px;flex-wrap:wrap}
+.num span{transition:color .3s,transform .35s cubic-bezier(.2,1.6,.4,1);display:inline-block}
+.num span.on{color:#fff}
+.num span.off{color:rgba(255,255,255,.32)}
+.num span.hit{animation:bump .35s cubic-bezier(.2,1.6,.4,1)}
+@keyframes bump{50%{transform:translateY(-5px) scale(1.18);color:#9dfcff}}
+
+.r3{display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
+.lab{font:600 7.5px/1 ui-monospace,monospace;letter-spacing:.22em;opacity:.5;margin-bottom:5px}
+.val{font:600 12.5px/1 ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}
+
+.stripe{position:absolute;left:0;right:0;top:26px;height:42px;background:#0a0a12;z-index:2}
+.cvcbox{position:absolute;right:20px;top:86px;z-index:2;display:flex;align-items:center;gap:10px}
+.cvcbox .strip{width:170px;height:32px;border-radius:4px;background:#e9e9f2;
+  display:flex;align-items:center;justify-content:flex-end;padding-right:10px;
+  font:600 13px/1 ui-monospace,monospace;color:#14141c;letter-spacing:.22em}
+.backnote{position:absolute;left:20px;right:20px;bottom:18px;z-index:2;
+  font:500 7.5px/1.5 ui-monospace,monospace;opacity:.4;letter-spacing:.06em}
+
+/* scanner beam on submit */
+.beam{position:absolute;left:0;right:0;height:60%;top:-70%;z-index:3;pointer-events:none;opacity:0;
+  background:linear-gradient(180deg,transparent,rgba(140,255,255,.35),transparent);
+  border-radius:22px}
+[data-state="verifying"] .beam{opacity:1;animation:scan 1.1s cubic-bezier(.5,0,.5,1) infinite}
+@keyframes scan{to{top:110%}}
+
+/* ============================ form ============================ */
+form{display:flex;flex-direction:column;gap:11px}
+.row{display:flex;gap:11px}
+.fld{position:relative;flex:1;min-width:0}
+.fld input{width:100%;padding:15px 14px 15px 14px;border-radius:15px;font:inherit;font-size:14.5px;
+  color:#fff;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.1);outline:none;
+  transition:border-color .25s,box-shadow .25s,background .25s;
+  font-family:ui-monospace,Menlo,monospace;letter-spacing:.04em}
+.fld input::placeholder{color:rgba(238,241,255,.3);letter-spacing:.02em}
+.fld input:focus{border-color:color-mix(in srgb,var(--brand) 60%,transparent);
+  background:rgba(255,255,255,.08);box-shadow:0 0 0 4px color-mix(in srgb,var(--brand) 15%,transparent)}
+.fld[data-bad] input{border-color:#ff5e79;box-shadow:0 0 0 4px rgba(255,94,121,.14);
+  animation:shake .34s}
+.fld[data-ok]::after{content:"";position:absolute;right:13px;top:50%;width:15px;height:8px;
+  margin-top:-6px;border-left:2px solid #4dffb0;border-bottom:2px solid #4dffb0;
+  transform:rotate(-45deg);animation:tick .3s cubic-bezier(.2,1.5,.4,1)}
+@keyframes tick{from{opacity:0;transform:rotate(-45deg) scale(.4)}}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.err{min-height:15px;font:500 11px/1.3 ui-sans-serif,system-ui;color:#ff8a9c;padding-left:3px;
+  opacity:0;transform:translateY(-3px);transition:.2s}
+.err[data-show]{opacity:1;transform:none}
+
+.pay{margin-top:4px;position:relative;overflow:hidden;width:100%;padding:17px;border:0;border-radius:17px;
+  cursor:pointer;font:650 15px/1 ui-sans-serif,system-ui;color:#08060f;
+  background:linear-gradient(130deg,var(--brand),#31e0ff);
+  box-shadow:0 16px 40px -14px var(--brand);
+  transition:transform .2s cubic-bezier(.2,1.5,.4,1),filter .3s,background .5s}
+.pay:hover{filter:brightness(1.07)}
+.pay:active{transform:scale(.975)}
+.pay:disabled{cursor:progress}
+.pay .txt{display:inline-block;transition:opacity .25s,transform .35s}
+[data-state="verifying"] .pay .txt{opacity:0;transform:translateY(-12px)}
+[data-state="done"] .pay{background:linear-gradient(130deg,#3dffa8,#25d9e6);box-shadow:0 16px 40px -14px #3dffa8}
+.spin{position:absolute;inset:0;display:grid;place-items:center;opacity:0;transition:opacity .25s}
+.spin i{width:19px;height:19px;border-radius:50%;border:2.4px solid rgba(8,6,15,.28);
+  border-top-color:#08060f;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(1turn)}}
+[data-state="verifying"] .spin{opacity:1}
+.okmark{position:absolute;inset:0;display:grid;place-items:center;opacity:0;transition:opacity .25s .1s;
+  font:650 15px/1 ui-sans-serif,system-ui;color:#08060f}
+[data-state="done"] .okmark{opacity:1}
+
+.total{display:flex;justify-content:space-between;align-items:baseline;
+  font:500 12px/1 ui-monospace,monospace;color:rgba(238,241,255,.45);letter-spacing:.1em}
+.total b{font-size:20px;color:#fff;letter-spacing:-.02em;font-family:ui-sans-serif,system-ui}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body data-state="idle" data-face="front">
+<div class="wrap" id="wrap">
+
+  <div class="cardScene" id="scene">
+    <div class="card3d">
+      <!-- FRONT -->
+      <div class="face">
+        <div class="beam"></div>
+        <div class="fc">
+          <div class="r1">
+            <div class="chip"></div>
+            <div class="brandmark" id="brand">HOLO<small>UNVERIFIED</small></div>
+          </div>
+          <div class="num" id="num"></div>
+          <div class="r3">
+            <div><div class="lab">CARD HOLDER</div><div class="val" id="vName">YOUR NAME</div></div>
+            <div><div class="lab">EXPIRES</div><div class="val" id="vExp">MM/YY</div></div>
+          </div>
+        </div>
+      </div>
+      <!-- BACK -->
+      <div class="face back">
+        <div class="stripe"></div>
+        <div class="cvcbox"><div class="lab" style="margin:0">CVC</div>
+          <div class="strip" id="vCvc">•••</div></div>
+        <div class="backnote">This prototype validates with the Luhn algorithm locally. Nothing leaves the page — no network, no storage.</div>
+      </div>
+    </div>
+  </div>
+
+  <form id="form" novalidate>
+    <div class="fld" id="fNum"><input id="iNum" inputmode="numeric" autocomplete="cc-number"
+      placeholder="4242 4242 4242 4242" maxlength="23"></div>
+    <div class="err" id="eNum"></div>
+
+    <div class="fld" id="fName"><input id="iName" autocomplete="cc-name" placeholder="NAME ON CARD"
+      style="text-transform:uppercase"></div>
+    <div class="err" id="eName"></div>
+
+    <div class="row">
+      <div class="fld" id="fExp"><input id="iExp" inputmode="numeric" autocomplete="cc-exp"
+        placeholder="MM / YY" maxlength="7"></div>
+      <div class="fld" id="fCvc" style="max-width:118px"><input id="iCvc" inputmode="numeric"
+        autocomplete="cc-csc" placeholder="CVC" maxlength="4"></div>
+    </div>
+    <div class="err" id="eRow"></div>
+
+    <div class="total"><span>TOTAL DUE</span><b>$248.00</b></div>
+
+    <button class="pay" id="pay" type="submit">
+      <span class="txt">Pay $248.00</span>
+      <span class="spin"><i></i></span>
+      <span class="okmark">✓ Authorised</span>
+    </button>
+  </form>
+</div>
+
+<script>
+/* =========================================================================
+   Real card logic: brand detection from IIN ranges, Luhn checksum, expiry
+   validated against today, CVC length per brand. Nothing is sent anywhere.
+   ========================================================================= */
+const $=id=>document.getElementById(id), body=document.body;
+const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+const BRANDS=[
+  {id:'VISA',       re:/^4/,                       len:[16,19], cvc:3, gaps:[4,8,12],     tint:'#3d6eff'},
+  {id:'MASTERCARD', re:/^(5[1-5]|2[2-7])/,         len:[16],    cvc:3, gaps:[4,8,12],     tint:'#ff5f3d'},
+  {id:'AMEX',       re:/^3[47]/,                   len:[15],    cvc:4, gaps:[4,10],       tint:'#00b3a4'},
+  {id:'DISCOVER',   re:/^(6011|65|64[4-9])/,       len:[16],    cvc:3, gaps:[4,8,12],     tint:'#ff9f2e'},
+  {id:'JCB',        re:/^35/,                      len:[16],    cvc:3, gaps:[4,8,12],     tint:'#d94bff'}
+];
+const digitsOf=s=>s.replace(/\D/g,'');
+function brandOf(d){ return BRANDS.find(b=>b.re.test(d)) || null; }
+function maxLen(b){ return b ? Math.max(...b.len) : 19; }
+
+function group(d,b){
+  const gaps=b?b.gaps:[4,8,12,16], out=[];
+  for(let i=0;i<d.length;i++){ if(gaps.includes(i)) out.push(' '); out.push(d[i]); }
+  return out.join('');
+}
+function luhn(d){
+  let sum=0, alt=false;
+  for(let i=d.length-1;i>=0;i--){
+    let n=+d[i];
+    if(alt){ n*=2; if(n>9) n-=9; }
+    sum+=n; alt=!alt;
+  }
+  return d.length>=12 && sum%10===0;
+}
+
+/* ------------------------- card face rendering ------------------------- */
+const numEl=$('num');
+let shown='';
+function paintNumber(d,b){
+  // show the network's short form, but grow if they are typing a 19-digit Visa
+  const total = b ? Math.max(b.len[0], d.length) : 16;
+  const gaps=b?b.gaps:[4,8,12,16];
+  let html='';
+  for(let i=0;i<total;i++){
+    if(gaps.includes(i)) html+='<span class="off">&nbsp;</span>';
+    const c=d[i];
+    const isNew = c && shown[i]!==c;
+    html+='<span class="'+(c?'on':'off')+(isNew?' hit':'')+'">'+(c||'•')+'</span>';
+  }
+  numEl.innerHTML=html; shown=d;
+}
+function setBrand(b){
+  $('brand').innerHTML = b ? b.id+'<small>VERIFIED CHANNEL</small>' : 'HOLO<small>UNVERIFIED</small>';
+  document.body.style.setProperty('--brand', b?b.tint:'#7c5cff');
+}
+
+/* ------------------------------ inputs ------------------------------ */
+const iNum=$('iNum'), iName=$('iName'), iExp=$('iExp'), iCvc=$('iCvc');
+let brand=null;
+
+iNum.addEventListener('input',()=>{
+  let d=digitsOf(iNum.value);
+  brand=brandOf(d);
+  d=d.slice(0,maxLen(brand));
+  iNum.value=group(d,brand);
+  iCvc.maxLength = brand?brand.cvc:4;
+  setBrand(brand);
+  paintNumber(d,brand);
+  clear($('fNum'),$('eNum'));
+  if(brand && d.length===maxLen(brand) && luhn(d)) { mark($('fNum'),'ok'); iName.focus(); }
+});
+iName.addEventListener('input',()=>{
+  $('vName').textContent = iName.value.trim().toUpperCase() || 'YOUR NAME';
+  clear($('fName'),$('eName'));
+});
+iExp.addEventListener('input',e=>{
+  let d=digitsOf(iExp.value).slice(0,4);
+  if(d.length>=1 && +d[0]>1) d='0'+d;                    // "9" → "09"
+  iExp.value = d.length>2 ? d.slice(0,2)+' / '+d.slice(2) : d;
+  $('vExp').textContent = d.length ? (d.slice(0,2)+(d.length>2?'/'+d.slice(2):'')) : 'MM/YY';
+  clear($('fExp'),$('eRow'));
+  if(d.length===4) iCvc.focus();
+});
+iCvc.addEventListener('input',()=>{
+  iCvc.value=digitsOf(iCvc.value).slice(0,brand?brand.cvc:4);
+  $('vCvc').textContent = iCvc.value || '•••';
+  clear($('fCvc'),$('eRow'));
+});
+// flipping the card is driven by focus, not a button
+iCvc.addEventListener('focus',()=>body.dataset.face='back');
+iCvc.addEventListener('blur', ()=>body.dataset.face='front');
+
+function mark(f,kind){ f.removeAttribute('data-bad'); f.removeAttribute('data-ok'); f.setAttribute('data-'+kind,''); }
+function clear(f,e){ f.removeAttribute('data-bad'); f.removeAttribute('data-ok');
+  if(e){ e.removeAttribute('data-show'); e.textContent=''; } }
+function fail(f,e,msg){ mark(f,'bad'); if(e){ e.textContent=msg; e.setAttribute('data-show',''); } return false; }
+
+function validate(){
+  let ok=true;
+  const d=digitsOf(iNum.value);
+  if(!d) ok=fail($('fNum'),$('eNum'),'Card number required.');
+  else if(!brand) ok=fail($('fNum'),$('eNum'),'We do not recognise that card network.');
+  else if(!brand.len.includes(d.length)) ok=fail($('fNum'),$('eNum'),brand.id+' numbers are '+brand.len.join(' or ')+' digits.');
+  else if(!luhn(d)) ok=fail($('fNum'),$('eNum'),'Checksum failed — that number cannot exist.');
+  else mark($('fNum'),'ok');
+
+  if(iName.value.trim().length<3) ok=fail($('fName'),$('eName'),'Name on card required.');
+  else mark($('fName'),'ok');
+
+  const ed=digitsOf(iExp.value);
+  if(ed.length!==4) ok=fail($('fExp'),$('eRow'),'Expiry must be MM / YY.');
+  else{
+    const mm=+ed.slice(0,2), yy=2000+ +ed.slice(2);
+    const now=new Date(), cy=now.getFullYear(), cm=now.getMonth()+1;
+    if(mm<1||mm>12) ok=fail($('fExp'),$('eRow'),'Month must be 01–12.');
+    else if(yy<cy || (yy===cy && mm<cm)) ok=fail($('fExp'),$('eRow'),'That card has expired.');
+    else mark($('fExp'),'ok');
+  }
+
+  const need=brand?brand.cvc:3;
+  if(digitsOf(iCvc.value).length!==need)
+    ok=fail($('fCvc'),$('eRow'), (brand?brand.id:'This card')+' needs a '+need+'-digit CVC.');
+  else mark($('fCvc'),'ok');
+
+  return ok;
+}
+
+$('form').addEventListener('submit',e=>{
+  e.preventDefault();
+  if(body.dataset.state!=='idle') return;
+  if(!validate()){
+    $('wrap').animate([{translate:'0'},{translate:'-8px'},{translate:'8px'},{translate:'0'}],
+      {duration:300,easing:'ease-in-out'});
+    return;
+  }
+  body.dataset.state='verifying'; $('pay').disabled=true;
+  setTimeout(()=>{
+    body.dataset.state='done';
+    $('scene').animate(
+      [{transform:'rotateX(0) scale(1)'},{transform:'rotateX(-9deg) scale(1.04)'},{transform:'none'}],
+      {duration:700,easing:'cubic-bezier(.2,1.3,.3,1)'});
+    // replayable, like everything else in the lab
+    setTimeout(()=>{ body.dataset.state='idle'; $('pay').disabled=false; },2600);
+  }, reduce?200:1900);
+});
+
+/* --------------------- pointer tilt + foil tracking --------------------- */
+const scene=$('scene');
+function tilt(e){
+  if(reduce) return;
+  const b=scene.getBoundingClientRect();
+  const px=(e.clientX-b.left)/b.width, py=(e.clientY-b.top)/b.height;
+  scene.style.transform='rotateY('+((px-.5)*16)+'deg) rotateX('+(-(py-.5)*13)+'deg)';
+  body.style.setProperty('--mx',(px*100)+'%');
+  body.style.setProperty('--my',(py*100)+'%');
+}
+scene.addEventListener('pointermove',tilt);
+scene.addEventListener('pointerleave',()=>{ scene.style.transform=''; });
+// gyroscope on phones, same idea
+addEventListener('deviceorientation',ev=>{
+  if(reduce||ev.gamma==null) return;
+  const px=Math.max(0,Math.min(1,(ev.gamma+30)/60)), py=Math.max(0,Math.min(1,(ev.beta-20)/60));
+  scene.style.transform='rotateY('+((px-.5)*16)+'deg) rotateX('+(-(py-.5)*13)+'deg)';
+  body.style.setProperty('--mx',(px*100)+'%'); body.style.setProperty('--my',(py*100)+'%');
+});
+
+paintNumber('',null);
+</script>
+</body>
+</html>

@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FeatureOS — the word is the dock</title>
+<style>
+:root{
+  /* Brand ramp — lifted from FeatureOS index.css @theme, unchanged */
+  --brand-50:#eef3fa; --brand-100:#dde8fa; --brand-200:#c2d6f2; --brand-300:#97b8e6;
+  --brand-400:#5c8ed1; --brand-500:#22539e; --brand-600:#1b4483; --brand-700:#17386c;
+  --brand-ondark:#6da8ee;
+  --violet:#7c5cff; --violet-soft:#a691ff; --cyan:#22c7e8;
+
+  --bone:#efefe9; --bone-raised:#f6f6f1;
+  --ink:#14161a; --ink-2:#4c545e; --ink-3:#666e78; --ink-4:#828b95;
+  --line:#e2e4e8;
+  --on-dark:#eef1f4; --on-dark-2:#a8b2bc; --on-dark-3:#8f98a2;
+  --ok:#1f9b6c; --warn:#d19318; --bad:#c94f38;
+
+  --r-card:16px; --r-pill:999px;
+  --ease-out:cubic-bezier(.16,1,.3,1);
+  --ease-spring:cubic-bezier(.34,1.56,.64,1);
+  --shadow-brand:0 8px 20px -8px rgb(34 83 158/.45);
+  --grad:linear-gradient(135deg,var(--brand-500) 0%,var(--violet) 55%,var(--cyan) 100%);
+}
+
+/* the two grounds FeatureOS actually ships: the bone landing page, and the dark sections */
+[data-ground="dark"]{
+  --ground:#0e1218; --ground-2:#141a22;
+  --text:var(--on-dark); --text-2:var(--on-dark-2); --text-3:var(--on-dark-3);
+  --rule:rgba(255,255,255,.16); --tip-bg:rgba(255,255,255,.09); --tip-line:rgba(255,255,255,.16);
+  --glow:.8; --seat:0;
+}
+[data-ground="bone"]{
+  --ground:var(--bone); --ground-2:var(--bone-raised);
+  --text:var(--ink); --text-2:var(--ink-2); --text-3:var(--ink-4);
+  --rule:var(--line); --tip-bg:#fff; --tip-line:var(--line);
+  --glow:.22; --seat:1;          /* light grounds seat with a shadow, not a glow */
+}
+
+*{box-sizing:border-box}
+html{height:100%}
+body{
+  margin:0;min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:30px 20px;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:var(--text);background:var(--ground);overflow-x:hidden;
+  transition:background .45s var(--ease-out),color .45s var(--ease-out);
+}
+
+/* ---------- chrome ---------- */
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:14px;
+  font-size:15px;font-weight:700;letter-spacing:-.02em}
+.brand i{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;
+  font-style:normal;font-size:15px;font-weight:800;color:#fff;
+  background:var(--grad);box-shadow:var(--shadow-brand)}
+
+.lede{margin:0 0 136px;max-width:36ch;text-align:center;font-size:14px;line-height:1.7;color:var(--text-3)}
+.lede b{color:var(--text-2);font-weight:600}
+
+.ground-pick{position:fixed;top:18px;right:18px;display:flex;gap:3px;padding:3px;z-index:5;
+  border:1px solid var(--rule);border-radius:var(--r-pill);background:var(--ground-2)}
+.ground-pick button{padding:6px 12px;font:600 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;
+  color:var(--text-3);background:none;border:0;border-radius:var(--r-pill);cursor:pointer;
+  transition:color .25s,background .25s}
+.ground-pick button[aria-pressed="true"]{color:#fff;background:var(--brand-500)}
+
+/* ============ the dock ============ */
+.dock{
+  position:relative;z-index:1;display:flex;align-items:flex-end;justify-content:center;
+  margin:0;padding:0 0 4px;list-style:none;touch-action:none;
+}
+.dock::after{
+  content:"";position:absolute;left:50%;bottom:0;width:116%;max-width:760px;height:1px;
+  transform:translateX(-50%);
+  background:linear-gradient(90deg,transparent,var(--rule) 20%,var(--rule) 80%,transparent);
+}
+
+.key{
+  --x:0px; --s:1; --z:0px; --r:0deg; --lit:0;
+  --h:70px;
+  position:relative;width:52px;height:var(--h);flex:0 0 auto;
+  /* one number per key drives the lift, the spread, the flip and the light */
+  transform:translate3d(var(--x),0,0);
+}
+.key_hit{position:absolute;inset:0;display:block;text-decoration:none;outline:none;perspective:820px}
+.key_hit:focus-visible{outline:2px solid var(--brand-400);outline-offset:4px;border-radius:18px}
+
+.key_glow{
+  position:absolute;left:50%;bottom:-10px;width:76px;height:76px;margin-left:-38px;
+  border-radius:50%;background:var(--brand);filter:blur(22px);
+  opacity:calc(var(--lit) * var(--glow));pointer-events:none;
+}
+
+/* the cap grows and turns - four numbers, and nothing else */
+.key_cap{
+  position:absolute;inset:0;
+  transform-style:preserve-3d;
+  /* it grows UP off the floor of the dock, the way a dock icon does */
+  transform-origin:50% 100%;
+  transform:translate3d(0,0,var(--z)) scale(var(--s)) rotateY(var(--r));
+}
+
+/* letter in front, channel behind */
+.key_face{
+  position:absolute;inset:4px;display:grid;place-items:center;border-radius:var(--r-card);
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+}
+.key_face--letter{
+  font:800 32px/1 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  letter-spacing:-.03em;color:var(--text);
+}
+.key_face--icon{
+  transform:rotateY(180deg);
+  background:var(--brand);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.34),
+    0 10px 26px -8px color-mix(in srgb,var(--brand) calc(var(--seat) * 55% + 45%),transparent);
+}
+.key_face--icon svg{width:24px;height:24px;fill:var(--on)}
+
+.key_tip{
+  position:absolute;left:50%;bottom:100%;
+  /* clear the grown cap: gap, travel, then the lift itself */
+  transform:translate(-50%,calc(-10px - var(--lit) * 8px - var(--h) * (var(--s) - 1)));
+  padding:5px 11px;border-radius:var(--r-pill);white-space:nowrap;pointer-events:none;
+  background:var(--tip-bg);border:1px solid var(--tip-line);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  font:600 10px/1.6 ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--text);
+  opacity:calc((var(--lit) - .55) * 2.6);
+}
+
+.hint{margin:56px 0 0;font:600 10px/1 ui-monospace,Menlo,monospace;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--text-3);opacity:.8}
+
+@media (max-width:720px){
+  .key{--h:56px;width:38px}
+  .key_face--letter{font-size:23px}
+  .key_face--icon svg{width:18px;height:18px}
+  .lede{margin-bottom:108px}
+}
+@media (prefers-reduced-motion:reduce){ .key,.key_cap{transition:none} }
+</style>
+</head>
+<body data-ground="dark">
+
+<div class="ground-pick" role="group" aria-label="Ground">
+  <button type="button" data-g="dark" aria-pressed="true">DARK</button>
+  <button type="button" data-g="bone" aria-pressed="false">BONE</button>
+</div>
+
+<p class="brand"><i>F</i> FeatureOS</p>
+<p class="lede">The word is the dock. <b>Sweep it</b> and FEATUREOS turns into your channels.</p>
+
+<ul class="dock" id="dock"></ul>
+
+<p class="hint">sweep &middot; or tab through</p>
+
+<script>
+const ICON = {
+  spark:'<path d="M12 2.5 14 9l6.5 2-6.5 2L12 19.5 10 13l-6.5-2L10 9Zm7 12 .9 2.6 2.6.9-2.6.9L19 21l-.9-2.6-2.6-.9 2.6-.9Z"/>',
+  book:'<path d="M4 3h10a3 3 0 0 1 3 3v15a2 2 0 0 0-2-2H4Zm16 0h-1a3 3 0 0 0-1 .2V19h2a1 1 0 0 1 1 1V4a1 1 0 0 0-1-1Z"/>',
+  tag:'<path d="M3 4h8.2a2 2 0 0 1 1.4.6l7.8 7.8a2 2 0 0 1 0 2.8l-6.2 6.2a2 2 0 0 1-2.8 0L3.6 13.6A2 2 0 0 1 3 12.2Zm4.5 3.5a1.8 1.8 0 1 0 0 3.6 1.8 1.8 0 0 0 0-3.6Z"/>',
+  x:'<path d="M17.5 3h3.2l-7 8 8.2 10h-6.4l-5-6.1L4.7 21H1.5l7.5-8.6L1.2 3h6.6l4.5 5.6ZM16.4 19.1h1.8L7.7 4.8H5.8Z"/>',
+  gh:'<path d="M12 .5a11.5 11.5 0 0 0-3.6 22.4c.6.1.8-.2.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.8 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.5-2.7 5.5-5.3 5.8.4.4.8 1.1.8 2.2v3.3c0 .4.2.7.8.6A11.5 11.5 0 0 0 12 .5Z"/>',
+  li:'<path d="M6.9 8.5H4V20h2.9V8.5ZM5.4 3.6a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4ZM20 13.6c0-3.2-1.7-4.6-4-4.6-1.8 0-2.6 1-3.1 1.7V8.5H10V20h2.9v-6.3c0-1.3.3-2.6 1.9-2.6s1.7 1.5 1.7 2.7V20H20v-6.4Z"/>',
+  mail:'<path d="M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm1.4 2L12 12.6 19.6 7Z"/>',
+  chat:'<path d="M12 3c5.5 0 10 3.4 10 7.6s-4.5 7.6-10 7.6a12 12 0 0 1-2.6-.3L4 21l1.3-3.7C3.2 15.9 2 13.4 2 10.6 2 6.4 6.5 3 12 3Z"/>',
+  cal:'<path d="M7 2v2h10V2h2v2h2a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h2V2Zm13 8H4v10h16Z"/>'
+};
+
+/* F E A T U R E O S — nine letters, nine places to land.
+   Two brand values per key: the ramp step that works on each ground. */
+const KEYS = [
+  { l:'F', name:'Product',   icon:'spark', href:'https://featureos.app',                 dark:'#6da8ee', light:'#22539e' },
+  { l:'E', name:'Docs',      icon:'book',  href:'https://featureos.app/docs',            dark:'#97b8e6', light:'#1b4483' },
+  { l:'A', name:'Changelog', icon:'tag',   href:'https://featureos.app/changelog',       dark:'#a691ff', light:'#7c5cff' },
+  { l:'T', name:'X',         icon:'x',     href:'https://x.com/featureos',               dark:'#e8eaed', light:'#1d1f23' },
+  { l:'U', name:'GitHub',    icon:'gh',    href:'https://github.com/featureos',          dark:'#c9d1d9', light:'#24292f' },
+  { l:'R', name:'LinkedIn',  icon:'li',    href:'https://linkedin.com/company/featureos', dark:'#4b9bea', light:'#0a66c2' },
+  { l:'E', name:'Email',     icon:'mail',  href:'mailto:hello@featureos.app',            dark:'#ff9270', light:'#c94f38' },
+  { l:'O', name:'Community', icon:'chat',  href:'https://featureos.app/community',       dark:'#22c7e8', light:'#0e8ba5' },
+  { l:'S', name:'Book a demo', icon:'cal', href:'https://cal.com/featureos',             dark:'#7ee0b8', light:'#1f9b6c' }
+];
+
+/* a light chip needs a dark glyph — decide it, don't guess it */
+const onColour = hex => {
+  const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.substr(i, 2), 16) / 255)
+    .map(c => c <= .03928 ? c / 12.92 : Math.pow((c + .055) / 1.055, 2.4));
+  return (.2126 * r + .7152 * g + .0722 * b) > .45 ? '#14161a' : '#ffffff';
+};
+
+const dock = document.getElementById('dock');
+dock.innerHTML = KEYS.map(k => `
+  <li class="key"
+      data-brand-dark="${k.dark}"  data-on-dark="${onColour(k.dark)}"
+      data-brand-bone="${k.light}" data-on-bone="${onColour(k.light)}">
+    <a class="key_hit" href="${k.href}" aria-label="${k.name}">
+      <span class="key_glow"></span>
+      <span class="key_cap">
+        <span class="key_face key_face--letter" aria-hidden="true">${k.l}</span>
+        <span class="key_face key_face--icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">${ICON[k.icon]}</svg>
+        </span>
+      </span>
+    </a>
+    <span class="key_tip" aria-hidden="true">${k.name}</span>
+  </li>`).join('');
+
+const keys = [...dock.querySelectorAll('.key')];
+
+function repaintBrands(){
+  const g = document.body.dataset.ground;
+  keys.forEach(k => {
+    k.style.setProperty('--brand', k.dataset['brand' + (g === 'dark' ? 'Dark' : 'Bone')]);
+    k.style.setProperty('--on',    k.dataset['on'    + (g === 'dark' ? 'Dark' : 'Bone')]);
+  });
+}
+
+/* ---- the four numbers, all of them functions of one ---- */
+const RANGE = 132;   // px of influence either side of the pointer
+const LIFT  = 1.05;  // extra scale at full strength
+const DEPTH = 78;    // px of z
+const GROW  = 32;    // px of extra width a key claims — this is the spread
+const FLIP  = 180;   // deg
+
+const smooth = t => t * t * (3 - 2 * t);
+const strength = dx => smooth(1 - Math.min(1, Math.abs(dx) / RANGE));
+
+let centres = [], target = keys.map(() => 0), now = keys.map(() => 0), px = null;
+
+function measure(){
+  /* read the RESTING centres: --x is live every frame, so zero it first or the
+     spread feeds back into its own input and the row creeps */
+  keys.forEach(k => k.style.setProperty('--x', '0px'));
+  void dock.offsetWidth;
+  centres = keys.map(k => { const r = k.getBoundingClientRect(); return r.left + r.width / 2; });
+}
+function aim(){
+  target = px === null ? keys.map(() => 0) : centres.map(c => strength(c - px));
+}
+
+function paint(){
+  for (let i = 0; i < keys.length; i++){
+    const d = target[i] - now[i];
+    now[i] = Math.abs(d) > 0.0005 ? now[i] + d * 0.22 : target[i];
+  }
+
+  /* the spread: walk outward from the strongest key, accumulating the width
+     each neighbour has claimed — that is what keeps the row from overlapping */
+  const grow = now.map(t => t * GROW);
+  const lead = now.indexOf(Math.max(...now));
+  const x = new Array(keys.length).fill(0);
+  let acc = grow[lead] / 2;
+  for (let i = lead + 1; i < keys.length; i++){ x[i] = acc + grow[i] / 2; acc += grow[i]; }
+  acc = grow[lead] / 2;
+  for (let i = lead - 1; i >= 0; i--){ x[i] = -(acc + grow[i] / 2); acc += grow[i]; }
+
+  keys.forEach((k, i) => {
+    const t = now[i];
+    k.style.setProperty('--x', x[i].toFixed(2) + 'px');
+    k.style.setProperty('--s', (1 + LIFT * t).toFixed(4));
+    k.style.setProperty('--z', (DEPTH * t).toFixed(2) + 'px');
+    k.style.setProperty('--r', (FLIP * t).toFixed(2) + 'deg');
+    k.style.setProperty('--lit', t.toFixed(4));
+  });
+
+  requestAnimationFrame(paint);
+}
+
+dock.addEventListener('pointermove', e => { px = e.clientX; aim(); });
+dock.addEventListener('pointerleave', () => { px = null; aim(); });
+dock.addEventListener('pointercancel', () => { px = null; aim(); });
+
+/* tab lands on a real link, so the sweep follows the focus too */
+keys.forEach((k, i) => {
+  const a = k.querySelector('.key_hit');
+  a.addEventListener('focus', () => { px = centres[i]; aim(); });
+  a.addEventListener('blur',  () => { px = null; aim(); });
+});
+
+document.querySelectorAll('[data-g]').forEach(b => b.addEventListener('click', () => {
+  document.body.dataset.ground = b.dataset.g;
+  document.querySelectorAll('[data-g]').forEach(x => x.setAttribute('aria-pressed', x === b));
+  repaintBrands();
+}));
+
+addEventListener('resize', () => { measure(); aim(); });
+repaintBrands(); measure(); aim(); paint();
+</script>
+</body>
+</html>

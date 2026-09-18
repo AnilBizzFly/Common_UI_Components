@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Futura — 5 prototypes</title>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;min-height:100vh;padding:48px 20px 70px;
+  font:400 15px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#e9edff;background:#06070d;overflow-x:hidden;
+}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(110px);pointer-events:none;z-index:0}
+body::before{width:56vmax;height:56vmax;left:-20vmax;top:-24vmax;background:rgba(96,60,255,.3)}
+body::after{width:48vmax;height:48vmax;right:-18vmax;bottom:-24vmax;background:rgba(0,214,190,.2)}
+
+.wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto}
+.head{text-align:center;margin-bottom:38px}
+.head p:first-child{margin:0 0 12px;font:600 10px/1 ui-monospace,Menlo,monospace;
+  letter-spacing:.38em;text-transform:uppercase;color:rgba(233,237,255,.4)}
+.head h1{margin:0 0 10px;font-size:clamp(32px,7vw,52px);font-weight:650;letter-spacing:-.05em;
+  background:linear-gradient(100deg,#fff,#8ee7ff 40%,#c08bff 70%,#fff);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  background-size:220% 100%;animation:shine 7s linear infinite}
+@keyframes shine{to{background-position:220% 0}}
+.head p:last-child{margin:0;color:rgba(233,237,255,.5);font-size:14.5px}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+
+.card{
+  position:relative;display:block;text-decoration:none;color:inherit;overflow:hidden;
+  border-radius:26px;padding:0 0 18px;
+  background:linear-gradient(165deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
+  border:1px solid rgba(255,255,255,.09);
+  box-shadow:0 26px 60px -30px #000,0 1px 0 0 rgba(255,255,255,.12) inset;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  transition:transform .4s cubic-bezier(.2,1,.3,1),border-color .35s,box-shadow .4s}
+.card:hover{transform:translateY(-6px);border-color:color-mix(in srgb,var(--c) 50%,transparent);
+  box-shadow:0 40px 80px -30px #000,0 0 0 1px color-mix(in srgb,var(--c) 40%,transparent) inset}
+
+.thumb{position:relative;height:172px;overflow:hidden;
+  background:radial-gradient(120% 100% at 50% 0%,color-mix(in srgb,var(--c) 26%,transparent),transparent 70%),
+             #0a0c16;
+  display:grid;place-items:center}
+.thumb::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(0,0,0,.18) 3px 4px);opacity:.5}
+
+/* --- mini art, one per prototype, all pure CSS --- */
+.orb{width:92px;height:92px;border-radius:50%;
+  background:radial-gradient(circle at 35% 32%,#fff,var(--c) 42%,transparent 70%);
+  box-shadow:0 0 44px -4px var(--c);animation:breathe 3.4s ease-in-out infinite}
+.orb::after{content:"";position:absolute;width:150px;height:150px;border-radius:50%;
+  border:1px solid color-mix(in srgb,var(--c) 45%,transparent);animation:spin 7s linear infinite;
+  transform:rotateX(72deg)}
+@keyframes breathe{50%{transform:scale(1.11)}}
+@keyframes spin{to{transform:rotateX(72deg) rotate(1turn)}}
+
+.bars{display:flex;align-items:flex-end;gap:5px;height:80px}
+.bars i{width:7px;border-radius:4px;background:linear-gradient(180deg,var(--c),transparent);
+  animation:eq 1.1s ease-in-out infinite}
+@keyframes eq{0%,100%{height:18%}50%{height:96%}}
+
+.pill{display:flex;gap:9px;padding:10px;border-radius:20px;background:rgba(255,255,255,.06)}
+.pill i{width:34px;height:34px;border-radius:13px;background:rgba(255,255,255,.1)}
+.pill i.on{background:var(--c);box-shadow:0 0 22px var(--c);animation:hop 2.6s ease-in-out infinite}
+@keyframes hop{0%,100%{transform:translateX(0)}25%{transform:translateX(43px) scaleX(1.5)}
+  50%{transform:translateX(86px)}75%{transform:translateX(43px) scaleX(1.5)}}
+
+.cc{width:150px;height:94px;border-radius:13px;position:relative;
+  background:conic-gradient(from 210deg at 30% 20%,#1b1440,#3b1f6e,#0f2a56,#5d1d63,#1b1440);
+  box-shadow:0 14px 34px -10px #000,0 0 0 1px rgba(255,255,255,.16) inset;
+  animation:sway 5s ease-in-out infinite}
+.cc::before{content:"";position:absolute;left:12px;top:34px;width:24px;height:17px;border-radius:4px;
+  background:linear-gradient(135deg,#ffe9a8,#c9a227)}
+.cc::after{content:"";position:absolute;inset:0;border-radius:13px;mix-blend-mode:color-dodge;
+  background:conic-gradient(from 0deg,#ff008033,#00e5ff44,#7cff0033,#ff8a0044,#ff008033);
+  animation:spin2 6s linear infinite}
+@keyframes spin2{to{filter:hue-rotate(360deg)}}
+@keyframes sway{50%{transform:rotateY(18deg) rotateX(-8deg)}}
+
+.bento{display:grid;grid-template-columns:repeat(3,30px);grid-auto-rows:30px;gap:6px}
+.bento i{border-radius:9px;background:rgba(255,255,255,.1);animation:lite 3s ease-in-out infinite}
+.bento i:nth-child(1){grid-column:span 2;background:color-mix(in srgb,var(--c) 55%,transparent);animation-delay:0s}
+.bento i:nth-child(4){grid-column:span 2;animation-delay:.6s}
+.bento i:nth-child(3){animation-delay:1.2s}
+.bento i:nth-child(5){background:color-mix(in srgb,var(--c) 40%,transparent);animation-delay:1.8s}
+@keyframes lite{50%{background:color-mix(in srgb,var(--c) 70%,transparent);transform:scale(1.06)}}
+
+.meta{padding:16px 18px 0}
+.meta h2{margin:0;font-size:18px;font-weight:650;letter-spacing:-.03em}
+.meta p{margin:5px 0 0;font-size:13px;color:rgba(233,237,255,.5);line-height:1.5}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:11px}
+.tags span{font:600 9px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;
+  padding:5px 8px;border-radius:7px;background:rgba(255,255,255,.055);
+  border:1px solid rgba(255,255,255,.08);color:rgba(233,237,255,.55)}
+.no{position:absolute;top:14px;left:16px;z-index:2;font:700 11px/1 ui-monospace,Menlo,monospace;
+  letter-spacing:.2em;color:var(--c);text-shadow:0 0 16px var(--c)}
+.go{position:absolute;top:12px;right:14px;z-index:2;width:30px;height:30px;border-radius:50%;
+  display:grid;place-items:center;background:rgba(255,255,255,.1);
+  transition:transform .3s cubic-bezier(.2,1.5,.4,1),background .3s}
+.card:hover .go{background:var(--c);transform:translate(2px,-2px)}
+.go svg{width:13px;height:13px;stroke:#fff;fill:none;stroke-width:2.4;stroke-linecap:round}
+.card:hover .go svg{stroke:#06070d}
+
+footer{margin-top:34px;text-align:center;font:500 11px/1.6 ui-monospace,Menlo,monospace;
+  color:rgba(233,237,255,.3);letter-spacing:.06em}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <p>ui lab · futura series</p>
+    <h1>Five working futures</h1>
+    <p>Single-file prototypes. No libraries, no build, no network. Everything you can click actually does something.</p>
+  </div>
+
+  <div class="grid">
+
+    <a class="card" href="p1-neural-console.html" style="--c:#a78bfa">
+      <div class="thumb"><span class="no">01</span><span class="go"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></svg></span>
+        <div class="orb"></div></div>
+      <div class="meta">
+        <h2>Neural Console</h2>
+        <p>An 800-particle sphere that reacts to what you type. Real commands: retint the UI, solve maths, push it into chaos.</p>
+        <div class="tags"><span>canvas 3d</span><span>command parser</span><span>typewriter</span></div>
+      </div>
+    </a>
+
+    <a class="card" href="p2-holo-player.html" style="--c:#00e5ff">
+      <div class="thumb"><span class="no">02</span><span class="go"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></svg></span>
+        <div class="bars"><i style="animation-delay:0s"></i><i style="animation-delay:.1s"></i><i style="animation-delay:.2s"></i><i style="animation-delay:.3s"></i><i style="animation-delay:.4s"></i><i style="animation-delay:.5s"></i><i style="animation-delay:.6s"></i><i style="animation-delay:.7s"></i></div></div>
+      <div class="meta">
+        <h2>Holo Player</h2>
+        <p>Three tracks with zero audio files — a Web Audio synth plays them live and the radial visualiser reads the real FFT.</p>
+        <div class="tags"><span>web audio</span><span>step sequencer</span><span>fft ring</span></div>
+      </div>
+    </a>
+
+    <a class="card" href="p3-liquid-dock.html" style="--c:#6ee7ff">
+      <div class="thumb"><span class="no">03</span><span class="go"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></svg></span>
+        <div class="pill"><i class="on"></i><i></i><i></i></div></div>
+      <div class="meta">
+        <h2>Liquid Dock</h2>
+        <p>A metaball indicator that stretches between tabs through an SVG goo filter. Five panels, each with a live interaction.</p>
+        <div class="tags"><span>svg goo</span><span>magnetic icons</span><span>router</span></div>
+      </div>
+    </a>
+
+    <a class="card" href="p4-holo-checkout.html" style="--c:#7c5cff">
+      <div class="thumb"><span class="no">04</span><span class="go"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></svg></span>
+        <div class="cc"></div></div>
+      <div class="meta">
+        <h2>Holo Checkout</h2>
+        <p>Holographic card that tilts to your pointer, detects the network from the IIN, and rejects numbers that fail Luhn.</p>
+        <div class="tags"><span>luhn check</span><span>3d flip</span><span>foil shader</span></div>
+      </div>
+    </a>
+
+    <a class="card" href="p5-bento-flux.html" style="--c:#00e0c6">
+      <div class="thumb"><span class="no">05</span><span class="go"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></svg></span>
+        <div class="bento"><i></i><i></i><i></i><i></i><i></i></div></div>
+      <div class="meta">
+        <h2>Bento Flux</h2>
+        <p>Streaming telemetry tiles you can drag to reorder and click to expand — a true FLIP transition, not a fade.</p>
+        <div class="tags"><span>flip</span><span>drag reorder</span><span>live charts</span></div>
+      </div>
+    </a>
+
+  </div>
+
+  <footer>open any file straight from disk · dark-native · prefers-reduced-motion respected</footer>
+</div>
+</body>
+</html>

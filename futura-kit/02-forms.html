@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Form Systems</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;padding:46px 20px 70px;overflow-x:hidden;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#e9edff;background:#06070d;--ac:#7c5cff}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(110px);pointer-events:none;z-index:0}
+body::before{width:56vmax;height:56vmax;left:-20vmax;top:-26vmax;background:rgba(124,92,255,.26)}
+body::after{width:48vmax;height:48vmax;right:-18vmax;bottom:-24vmax;background:rgba(0,180,255,.17)}
+
+.wrap{position:relative;z-index:1;max-width:1120px;margin:0 auto}
+.head{margin-bottom:34px}
+.head p:first-child{margin:0 0 10px;font:600 10px/1 ui-monospace,Menlo,monospace;
+  letter-spacing:.38em;text-transform:uppercase;color:rgba(233,237,255,.38)}
+.head h1{margin:0 0 8px;font-size:clamp(30px,6vw,46px);font-weight:650;letter-spacing:-.05em;
+  background:linear-gradient(100deg,#fff,#8ee7ff 45%,#c08bff 75%,#fff);background-size:220% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 7s linear infinite}
+@keyframes shine{to{background-position:220% 0}}
+.head h1 + p{margin:0;color:rgba(233,237,255,.48);font-size:14.5px;max-width:62ch}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:13px;align-items:start}
+.cell{position:relative;border-radius:22px;padding:34px 18px 16px;
+  background:linear-gradient(165deg,rgba(255,255,255,.07),rgba(255,255,255,.018));
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:0 20px 50px -28px #000,0 1px 0 0 rgba(255,255,255,.1) inset;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.cell .no{position:absolute;top:12px;left:14px;font:700 9px/1 ui-monospace,monospace;
+  letter-spacing:.16em;color:rgba(233,237,255,.2)}
+.cap{display:block;margin-top:14px;font:600 8.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.2em;
+  text-transform:uppercase;color:rgba(233,237,255,.3)}
+.wide{grid-column:span 2}
+@media(max-width:700px){.wide{grid-column:span 1}}
+
+/* ============ 01 floating label + beam ============ */
+.ff{position:relative}
+.ff input,.ff textarea{width:100%;padding:20px 14px 9px;border-radius:13px;font:inherit;font-size:14.5px;
+  color:#fff;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);outline:none;
+  transition:border-color .25s,background .25s}
+.ff label{position:absolute;left:14px;top:15px;font-size:14px;color:rgba(233,237,255,.4);
+  pointer-events:none;transform-origin:left top;
+  transition:transform .28s cubic-bezier(.3,1.2,.4,1),color .28s}
+.ff input:focus + label,.ff input:not(:placeholder-shown) + label,
+.ff textarea:focus + label,.ff textarea:not(:placeholder-shown) + label{
+  transform:translateY(-9px) scale(.74);color:var(--ac)}
+.ff .beam{position:absolute;left:12px;right:12px;bottom:0;height:2px;border-radius:2px;
+  background:linear-gradient(90deg,var(--ac),#31e0ff);transform:scaleX(0);transform-origin:center;
+  transition:transform .4s cubic-bezier(.3,1.1,.3,1)}
+.ff input:focus ~ .beam,.ff textarea:focus ~ .beam{transform:scaleX(1)}
+
+/* ============ 02 validated field ============ */
+.vf{position:relative}
+.vf input{width:100%;padding:15px 44px 15px 42px;border-radius:13px;font:inherit;font-size:14px;
+  color:#fff;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);outline:none;
+  transition:border-color .25s,box-shadow .25s}
+.vf input:focus{border-color:color-mix(in srgb,var(--ac) 60%,transparent);
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--ac) 14%,transparent)}
+.vf > svg{position:absolute;left:14px;top:50%;margin-top:-8px;width:16px;height:16px;
+  stroke:rgba(233,237,255,.35);fill:none;stroke-width:1.9}
+.vf .mark{position:absolute;right:14px;top:50%;margin-top:-9px;width:18px;height:18px;opacity:0;
+  transform:scale(.5);transition:.3s cubic-bezier(.2,1.6,.4,1)}
+.vf[data-v="ok"] .mark.ok,.vf[data-v="bad"] .mark.bad{opacity:1;transform:scale(1)}
+.vf[data-v="ok"] input{border-color:#4dffcf}
+.vf[data-v="bad"] input{border-color:#ff5e79}
+.mark svg{width:18px;height:18px;fill:none;stroke-width:2.6;stroke-linecap:round}
+.mark.ok svg{stroke:#4dffcf}.mark.bad svg{stroke:#ff5e79}
+.msg{min-height:16px;margin-top:7px;font:500 11px/1.3 ui-sans-serif,system-ui;color:#ff8a9c;
+  opacity:0;transition:opacity .2s}
+.msg[data-show]{opacity:1}
+
+/* ============ 03 password strength ============ */
+.pw{position:relative}
+.pw input{width:100%;padding:15px 46px 15px 14px;border-radius:13px;font:inherit;font-size:14px;
+  color:#fff;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);outline:none;
+  font-family:ui-monospace,Menlo,monospace;letter-spacing:.08em}
+.pw .eye{position:absolute;right:8px;top:50%;margin-top:-16px;width:32px;height:32px;border:0;
+  background:none;cursor:pointer;color:rgba(233,237,255,.45);display:grid;place-items:center;
+  border-radius:8px;transition:.2s}
+.pw .eye:hover{color:#fff;background:rgba(255,255,255,.08)}
+.pw .eye svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9}
+.bars{display:flex;gap:5px;margin-top:11px}
+.bars i{flex:1;height:4px;border-radius:99px;background:rgba(255,255,255,.1);transition:background .35s}
+.pwlab{margin-top:8px;font:600 10.5px/1 ui-monospace,monospace;letter-spacing:.14em;
+  text-transform:uppercase;color:rgba(233,237,255,.4);transition:color .3s}
+
+/* ============ 04 OTP ============ */
+.otp{display:flex;gap:8px;justify-content:space-between}
+.otp input{width:100%;aspect-ratio:1/1.15;min-width:0;text-align:center;border-radius:13px;
+  font:650 20px/1 ui-monospace,Menlo,monospace;color:#fff;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.1);outline:none;caret-color:var(--ac);
+  transition:border-color .2s,transform .25s cubic-bezier(.2,1.6,.4,1),box-shadow .2s}
+.otp input:focus{border-color:var(--ac);transform:translateY(-3px);
+  box-shadow:0 8px 20px -10px var(--ac)}
+.otp input:not(:placeholder-shown){border-color:#4dffcf88;background:rgba(77,255,207,.08)}
+[data-otp="bad"] .otp{animation:shake .35s}
+[data-otp="ok"] .otp input{border-color:#4dffcf;background:rgba(77,255,207,.14)}
+@keyframes shake{25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+
+/* ============ 05 search ============ */
+.sb{position:relative;display:flex;align-items:center;gap:9px;padding:13px 14px;border-radius:13px;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);transition:.25s}
+.sb:focus-within{border-color:var(--ac);box-shadow:0 0 0 4px color-mix(in srgb,var(--ac) 14%,transparent)}
+.sb svg{width:16px;height:16px;stroke:rgba(233,237,255,.4);fill:none;stroke-width:2;flex:none}
+.sb input{flex:1;min-width:0;border:0;background:none;outline:none;color:#fff;font:inherit;font-size:14px}
+.sb .clr{border:0;background:rgba(255,255,255,.1);color:#fff;width:20px;height:20px;border-radius:50%;
+  cursor:pointer;font-size:12px;line-height:1;opacity:0;pointer-events:none;transition:.2s}
+.sb[data-has] .clr{opacity:1;pointer-events:auto}
+.hits{margin-top:10px;display:flex;flex-direction:column;gap:6px;max-height:132px;overflow-y:auto}
+.hit{padding:9px 11px;border-radius:11px;background:rgba(255,255,255,.04);font-size:13px;
+  border:1px solid rgba(255,255,255,.06);animation:fade .3s both}
+.hit b{color:var(--ac);font-weight:700}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}}
+
+/* ============ 06 range ============ */
+.rng{position:relative;padding-top:30px}
+.rng input{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:99px;outline:none;
+  background:linear-gradient(90deg,var(--ac),#31e0ff) no-repeat,rgba(255,255,255,.1);
+  background-size:var(--p,50%) 100%}
+.rng input::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;
+  background:#fff;cursor:grab;box-shadow:0 0 0 4px color-mix(in srgb,var(--ac) 25%,transparent),0 3px 10px #000;
+  transition:transform .2s}
+.rng input:active::-webkit-slider-thumb{transform:scale(1.2);cursor:grabbing}
+.rng input::-moz-range-thumb{width:20px;height:20px;border:0;border-radius:50%;background:#fff;cursor:grab}
+.bub{position:absolute;top:0;left:var(--p,50%);transform:translateX(-50%);padding:5px 10px;border-radius:9px;
+  background:linear-gradient(130deg,var(--ac),#31e0ff);color:#07080f;
+  font:700 12px/1 ui-monospace,monospace;white-space:nowrap;
+  transition:left .06s linear,transform .25s}
+.bub::after{content:"";position:absolute;left:50%;bottom:-4px;width:8px;height:8px;margin-left:-4px;
+  background:#31e0ff;transform:rotate(45deg)}
+
+/* ============ 07 switches ============ */
+.sws{display:flex;flex-direction:column;gap:14px}
+.sw{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sw span{font-size:13.5px;color:rgba(233,237,255,.7)}
+.t1{position:relative;width:50px;height:28px;border:0;padding:0;cursor:pointer;border-radius:99px;
+  background:rgba(255,255,255,.12);transition:background .3s}
+.t1::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;
+  background:#fff;transition:transform .36s cubic-bezier(.3,1.5,.4,1),width .25s}
+.t1:active::after{width:28px}
+.t1[aria-pressed="true"]{background:linear-gradient(90deg,var(--ac),#31e0ff)}
+.t1[aria-pressed="true"]::after{transform:translateX(22px)}
+.t1:active[aria-pressed="true"]::after{transform:translateX(16px)}
+.t2{position:relative;width:50px;height:28px;border:1.5px solid rgba(255,255,255,.2);padding:0;
+  cursor:pointer;border-radius:8px;background:transparent;transition:.3s;overflow:hidden}
+.t2::after{content:"";position:absolute;top:3px;left:3px;width:19px;height:19px;border-radius:5px;
+  background:rgba(255,255,255,.5);transition:transform .34s cubic-bezier(.3,1.5,.4,1),background .3s}
+.t2[aria-pressed="true"]{border-color:#4dffcf;box-shadow:0 0 16px -4px #4dffcf inset}
+.t2[aria-pressed="true"]::after{transform:translateX(22px);background:#4dffcf}
+.t3{position:relative;width:50px;height:28px;border:0;padding:0;cursor:pointer;border-radius:99px;
+  background:#20122a;transition:background .4s}
+.t3::before{content:"";position:absolute;inset:0;border-radius:99px;
+  background:radial-gradient(circle at 76% 50%,#ff2fb3,transparent 60%);opacity:0;transition:opacity .4s}
+.t3::after{content:"";position:absolute;top:4px;left:4px;width:20px;height:20px;border-radius:50%;
+  background:#6a5b7a;box-shadow:0 0 0 0 #ff2fb3;
+  transition:transform .4s cubic-bezier(.3,1.5,.4,1),background .4s,box-shadow .4s}
+.t3[aria-pressed="true"]::before{opacity:1}
+.t3[aria-pressed="true"]::after{transform:translateX(22px);background:#fff;box-shadow:0 0 18px 2px #ff2fb3}
+
+/* ============ 08 check / radio ============ */
+.opts{display:flex;flex-direction:column;gap:10px}
+.cb{display:flex;align-items:center;gap:11px;cursor:pointer;font-size:13.5px;color:rgba(233,237,255,.75)}
+.cb input{position:absolute;opacity:0;pointer-events:none}
+.cb .box{width:22px;height:22px;border-radius:7px;border:1.6px solid rgba(255,255,255,.22);
+  display:grid;place-items:center;transition:.28s cubic-bezier(.3,1.4,.4,1);flex:none}
+.cb .box svg{width:13px;height:13px;fill:none;stroke:#07080f;stroke-width:3.2;stroke-linecap:round;
+  stroke-linejoin:round;stroke-dasharray:20;stroke-dashoffset:20;transition:stroke-dashoffset .3s}
+.cb input:checked + .box{background:linear-gradient(130deg,var(--ac),#31e0ff);border-color:transparent;
+  transform:scale(1.06)}
+.cb input:checked + .box svg{stroke-dashoffset:0}
+.radios{display:flex;gap:7px;flex-wrap:wrap}
+.rp{position:relative;cursor:pointer}
+.rp input{position:absolute;opacity:0}
+.rp span{display:block;padding:9px 14px;border-radius:99px;font:600 12.5px/1 ui-sans-serif,system-ui;
+  color:rgba(233,237,255,.55);background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.1);transition:.25s}
+.rp input:checked + span{color:#07080f;background:linear-gradient(130deg,#fff,#c9d4ff);
+  border-color:transparent;box-shadow:0 6px 18px -8px #fff}
+
+/* ============ 09 combobox ============ */
+.cbx{position:relative}
+.cbx .list{position:absolute;left:0;right:0;top:calc(100% + 7px);z-index:9;padding:6px;border-radius:14px;
+  background:#101324;border:1px solid rgba(255,255,255,.12);box-shadow:0 26px 50px -20px #000;
+  max-height:172px;overflow-y:auto;opacity:0;visibility:hidden;transform:translateY(-8px) scale(.98);
+  transform-origin:top;transition:.25s cubic-bezier(.3,1.1,.3,1)}
+.cbx[data-open] .list{opacity:1;visibility:visible;transform:none}
+.cbx .list button{display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;
+  color:#dfe5ff;font:inherit;font-size:13.5px;text-align:left;padding:9px 10px;border-radius:10px;
+  cursor:pointer;transition:background .15s}
+.cbx .list button:hover,.cbx .list button[data-hi]{background:color-mix(in srgb,var(--ac) 28%,transparent)}
+.cbx .list i{width:7px;height:7px;border-radius:50%;flex:none}
+
+/* ============ 10 tag input ============ */
+.tags{display:flex;flex-wrap:wrap;gap:6px;padding:9px;border-radius:13px;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);cursor:text;transition:.25s}
+.tags:focus-within{border-color:var(--ac);box-shadow:0 0 0 4px color-mix(in srgb,var(--ac) 13%,transparent)}
+.tag{display:flex;align-items:center;gap:6px;padding:6px 8px 6px 11px;border-radius:9px;
+  font:600 12px/1 ui-sans-serif,system-ui;color:#07080f;
+  background:linear-gradient(130deg,#fff,#c3cfff);animation:pop .3s cubic-bezier(.2,1.5,.4,1)}
+.tag button{border:0;background:rgba(0,0,0,.18);color:#07080f;width:15px;height:15px;border-radius:50%;
+  cursor:pointer;font-size:10px;line-height:1;display:grid;place-items:center}
+@keyframes pop{from{opacity:0;transform:scale(.7)}}
+.tags input{flex:1;min-width:80px;border:0;background:none;outline:none;color:#fff;font:inherit;
+  font-size:13.5px;padding:6px 4px}
+
+/* ============ 11 dropzone ============ */
+.dz{position:relative;border-radius:16px;padding:26px 16px;text-align:center;cursor:pointer;
+  border:1.6px dashed rgba(255,255,255,.18);background:rgba(255,255,255,.03);transition:.3s}
+.dz[data-over]{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 12%,transparent);
+  transform:scale(1.015)}
+.dz svg{width:30px;height:30px;stroke:var(--ac);fill:none;stroke-width:1.7;stroke-linecap:round;
+  stroke-linejoin:round;transition:transform .35s cubic-bezier(.2,1.5,.4,1)}
+.dz[data-over] svg{transform:translateY(-5px) scale(1.12)}
+.dz p{margin:9px 0 0;font-size:13px;color:rgba(233,237,255,.55)}
+.dz p b{color:#fff;font-weight:600}
+.files{margin-top:10px;display:flex;flex-direction:column;gap:7px}
+.file{padding:9px 11px;border-radius:11px;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.07);font-size:12.5px;animation:fade .3s both;position:relative;
+  overflow:hidden}
+.file .pr{position:absolute;left:0;bottom:0;height:2px;background:linear-gradient(90deg,var(--ac),#4dffcf);
+  width:0%;transition:width .2s linear}
+.file small{float:right;color:rgba(233,237,255,.4);font-family:ui-monospace,monospace;font-size:10.5px}
+
+/* ============ 12 textarea ============ */
+.ta textarea{resize:none;min-height:74px;overflow:hidden;line-height:1.5}
+.count{margin-top:7px;text-align:right;font:600 10.5px/1 ui-monospace,monospace;
+  color:rgba(233,237,255,.35);transition:color .3s}
+.count[data-warn]{color:#ff8a9c}
+
+/* ============ 13 stepper ============ */
+.stp{display:flex;align-items:center;gap:0;width:fit-content;border-radius:13px;overflow:hidden;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}
+.stp button{width:44px;height:46px;border:0;background:none;color:#fff;font-size:19px;cursor:pointer;
+  transition:background .2s}
+.stp button:hover{background:rgba(255,255,255,.1)}
+.stp b{min-width:56px;text-align:center;font:650 17px/1 ui-monospace,monospace;
+  font-variant-numeric:tabular-nums;display:inline-block}
+.stp b.bump{animation:bump .3s cubic-bezier(.2,1.6,.4,1)}
+@keyframes bump{50%{transform:translateY(-5px) scale(1.14);color:var(--ac)}}
+
+/* ============ 14 rating ============ */
+.stars{display:flex;gap:5px}
+.stars button{border:0;background:none;padding:2px;cursor:pointer;line-height:0}
+.stars svg{width:27px;height:27px;fill:none;stroke:rgba(255,255,255,.28);stroke-width:1.6;
+  transition:.25s cubic-bezier(.2,1.6,.4,1)}
+.stars button[data-on] svg{fill:#ffd23d;stroke:#ffd23d;transform:scale(1.14) rotate(-6deg);
+  filter:drop-shadow(0 0 9px #ffd23d88)}
+.rateLab{margin-top:9px;font:600 11px/1 ui-monospace,monospace;letter-spacing:.14em;
+  text-transform:uppercase;color:rgba(233,237,255,.45)}
+
+/* ============ 15 multi step ============ */
+.steps{display:flex;align-items:center;gap:0;margin-bottom:18px}
+.steps .s{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
+  font:700 11px/1 ui-monospace,monospace;color:rgba(233,237,255,.4);
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);transition:.4s}
+.steps .s[data-on]{background:linear-gradient(130deg,var(--ac),#31e0ff);color:#07080f;
+  border-color:transparent;box-shadow:0 0 18px -5px var(--ac)}
+.steps .l{flex:1;height:2px;background:rgba(255,255,255,.1);position:relative;overflow:hidden}
+.steps .l::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,var(--ac),#31e0ff);
+  transform:scaleX(0);transform-origin:left;transition:transform .5s cubic-bezier(.3,1,.3,1)}
+.steps .l[data-on]::after{transform:scaleX(1)}
+.pane{display:none;flex-direction:column;gap:11px;animation:fade .4s both}
+.pane[data-on]{display:flex}
+.nav{display:flex;gap:9px;margin-top:14px}
+.nav button{flex:1;padding:13px;border:0;border-radius:13px;cursor:pointer;
+  font:650 13.5px/1 ui-sans-serif,system-ui;transition:transform .18s cubic-bezier(.2,1.5,.4,1),filter .2s}
+.nav button:active{transform:scale(.97)}
+.nav .back{background:rgba(255,255,255,.08);color:#dfe5ff;border:1px solid rgba(255,255,255,.12)}
+.nav .next{background:linear-gradient(130deg,var(--ac),#31e0ff);color:#07080f;
+  box-shadow:0 12px 30px -14px var(--ac)}
+.done{text-align:center;padding:14px 0}
+.done svg{width:52px;height:52px;fill:none;stroke:#4dffcf;stroke-width:2.4;stroke-linecap:round;
+  stroke-linejoin:round;stroke-dasharray:60;stroke-dashoffset:60;animation:draw .55s .1s forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.done p{margin:10px 0 0;font-size:14px;color:rgba(233,237,255,.6)}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <p>futura kit · 02</p>
+    <h1>Form systems</h1>
+    <p>Fifteen input patterns with the logic wired in — validation, strength scoring, paste-aware OTP, keyboard combobox, upload progress, a gated multi-step flow.</p>
+  </div>
+
+  <div class="grid">
+
+    <div class="cell"><span class="no">01</span>
+      <div class="ff"><input id="f1" placeholder=" "><label for="f1">Full name</label><span class="beam"></span></div>
+      <span class="cap">floating label · beam focus</span></div>
+
+    <div class="cell"><span class="no">02</span>
+      <div class="vf" id="vf">
+        <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 7l9 6 9-6"/></svg>
+        <input id="email" placeholder="you@studio.com" autocomplete="off">
+        <span class="mark ok"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span>
+        <span class="mark bad"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></span>
+      </div>
+      <div class="msg" id="emailMsg"></div>
+      <span class="cap">live validation</span></div>
+
+    <div class="cell"><span class="no">03</span>
+      <div class="pw">
+        <input id="pass" type="password" placeholder="Password">
+        <button class="eye" id="eye" aria-label="show password">
+          <svg viewBox="0 0 24 24"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+      <div class="bars"><i></i><i></i><i></i><i></i></div>
+      <div class="pwlab" id="pwLab">enter a password</div>
+      <span class="cap">strength meter</span></div>
+
+    <div class="cell" id="otpCell"><span class="no">04</span>
+      <div class="otp" id="otp">
+        <input maxlength="1" inputmode="numeric" placeholder=" ">
+        <input maxlength="1" inputmode="numeric" placeholder=" ">
+        <input maxlength="1" inputmode="numeric" placeholder=" ">
+        <input maxlength="1" inputmode="numeric" placeholder=" ">
+        <input maxlength="1" inputmode="numeric" placeholder=" ">
+        <input maxlength="1" inputmode="numeric" placeholder=" ">
+      </div>
+      <div class="msg" id="otpMsg" style="color:rgba(233,237,255,.45);opacity:1">code is 428910 · paste works</div>
+      <span class="cap">otp · autotab + paste</span></div>
+
+    <div class="cell"><span class="no">05</span>
+      <div class="sb" id="sb">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="sq" placeholder="Search components…" autocomplete="off">
+        <button class="clr" id="clr" aria-label="clear">×</button>
+      </div>
+      <div class="hits" id="hits"></div>
+      <span class="cap">search · highlight matches</span></div>
+
+    <div class="cell"><span class="no">06</span>
+      <div class="rng"><span class="bub" id="bub">64</span><input id="range" type="range" min="0" max="100" value="64"></div>
+      <span class="cap">range · tracking bubble</span></div>
+
+    <div class="cell"><span class="no">07</span>
+      <div class="sws">
+        <div class="sw"><span>Pill switch</span><button class="t1" aria-pressed="true"></button></div>
+        <div class="sw"><span>Square switch</span><button class="t2" aria-pressed="false"></button></div>
+        <div class="sw"><span>Neon switch</span><button class="t3" aria-pressed="true"></button></div>
+      </div>
+      <span class="cap">three switch styles</span></div>
+
+    <div class="cell"><span class="no">08</span>
+      <div class="opts">
+        <label class="cb"><input type="checkbox" checked><span class="box"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span>Ship with source maps</label>
+        <label class="cb"><input type="checkbox"><span class="box"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span>Minify output</label>
+        <div class="radios">
+          <label class="rp"><input type="radio" name="pl" checked><span>Web</span></label>
+          <label class="rp"><input type="radio" name="pl"><span>iOS</span></label>
+          <label class="rp"><input type="radio" name="pl"><span>Android</span></label>
+        </div>
+      </div>
+      <span class="cap">check · radio pills</span></div>
+
+    <div class="cell"><span class="no">09</span>
+      <div class="cbx" id="cbx">
+        <div class="sb">
+          <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+          <input id="cbxIn" placeholder="Pick a framework…" autocomplete="off">
+        </div>
+        <div class="list" id="cbxList"></div>
+      </div>
+      <span class="cap">combobox · ↑ ↓ ⏎</span></div>
+
+    <div class="cell"><span class="no">10</span>
+      <div class="tags" id="tagBox"><input id="tagIn" placeholder="Add a tag + Enter"></div>
+      <span class="cap">tag input · ⌫ removes</span></div>
+
+    <div class="cell"><span class="no">11</span>
+      <div class="dz" id="dz">
+        <svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>
+        <p><b>Drop files</b> or click to browse</p>
+        <input type="file" id="fileIn" multiple hidden>
+      </div>
+      <div class="files" id="fileList"></div>
+      <span class="cap">dropzone · upload progress</span></div>
+
+    <div class="cell"><span class="no">12</span>
+      <div class="ff ta"><textarea id="ta" placeholder=" " maxlength="180"></textarea>
+        <label for="ta">Release notes</label><span class="beam"></span></div>
+      <div class="count" id="count">0 / 180</div>
+      <span class="cap">auto-grow · counter</span></div>
+
+    <div class="cell"><span class="no">13</span>
+      <div class="stp"><button id="minus">−</button><b id="qty">1</b><button id="plus">+</button></div>
+      <span class="cap">stepper</span></div>
+
+    <div class="cell"><span class="no">14</span>
+      <div class="stars" id="stars"></div>
+      <div class="rateLab" id="rateLab">not rated</div>
+      <span class="cap">rating</span></div>
+
+    <div class="cell wide"><span class="no">15</span>
+      <div class="steps" id="steps">
+        <span class="s" data-on>1</span><span class="l"></span>
+        <span class="s">2</span><span class="l"></span>
+        <span class="s">3</span>
+      </div>
+
+      <div class="pane" data-on data-pane="0">
+        <div class="ff"><input id="w1" placeholder=" "><label for="w1">Workspace name</label><span class="beam"></span></div>
+        <div class="msg" id="wm0"></div>
+      </div>
+      <div class="pane" data-pane="1">
+        <div class="radios" id="plan">
+          <label class="rp"><input type="radio" name="plan" checked><span>Starter</span></label>
+          <label class="rp"><input type="radio" name="plan"><span>Studio</span></label>
+          <label class="rp"><input type="radio" name="plan"><span>Enterprise</span></label>
+        </div>
+        <label class="cb" style="margin-top:8px"><input type="checkbox" id="terms"><span class="box"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span>I accept the terms</label>
+        <div class="msg" id="wm1"></div>
+      </div>
+      <div class="pane" data-pane="2">
+        <div class="done"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M7 12.5l3.5 3.5L17 9"/></svg>
+          <p id="doneTxt">Workspace created.</p></div>
+      </div>
+
+      <div class="nav" id="nav">
+        <button class="back" id="back" style="display:none">Back</button>
+        <button class="next" id="next">Continue</button>
+      </div>
+      <span class="cap">multi-step · gated by validation</span></div>
+
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+/* 02 — email validation as you type */
+const email=$('email'), vf=$('vf'), emailMsg=$('emailMsg');
+email.addEventListener('input',()=>{
+  const v=email.value.trim();
+  if(!v){ vf.removeAttribute('data-v'); emailMsg.removeAttribute('data-show'); return; }
+  const ok=/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(v);
+  vf.dataset.v = ok?'ok':'bad';
+  emailMsg.textContent = ok?'':'That is not a complete address yet.';
+  emailMsg.toggleAttribute('data-show',!ok);
+});
+
+/* 03 — strength scoring: length + variety, not a fake bar */
+const pass=$('pass'), bars=document.querySelectorAll('.bars i'), pwLab=$('pwLab');
+const TONE=['#ff5e79','#ff9a4d','#ffd23d','#4dffcf'];
+const WORD=['too short','weak','decent','strong'];
+pass.addEventListener('input',()=>{
+  const v=pass.value;
+  let s=0;
+  if(v.length>=8) s++;
+  if(/[a-z]/.test(v)&&/[A-Z]/.test(v)) s++;
+  if(/\d/.test(v)) s++;
+  if(/[^A-Za-z0-9]/.test(v)&&v.length>=10) s++;
+  if(!v.length) s=-1;
+  bars.forEach((b,i)=>b.style.background = i<=s-1 ? TONE[s-1] : 'rgba(255,255,255,.1)');
+  pwLab.textContent = s<0 ? 'enter a password' : WORD[Math.max(0,s-1)];
+  pwLab.style.color = s<=0 ? 'rgba(233,237,255,.4)' : TONE[s-1];
+});
+$('eye').addEventListener('click',()=>{
+  pass.type = pass.type==='password' ? 'text' : 'password';
+  pass.focus();
+});
+
+/* 04 — OTP: autotab, backspace, paste a whole code */
+const otpCell=$('otpCell'), otps=[...$('otp').querySelectorAll('input')], otpMsg=$('otpMsg');
+otps.forEach((el,i)=>{
+  el.addEventListener('input',()=>{
+    el.value=el.value.replace(/\D/g,'').slice(0,1);
+    if(el.value && i<otps.length-1) otps[i+1].focus();
+    check();
+  });
+  el.addEventListener('keydown',e=>{
+    if(e.key==='Backspace' && !el.value && i>0){ otps[i-1].focus(); otps[i-1].value=''; check(); }
+    if(e.key==='ArrowLeft' && i>0) otps[i-1].focus();
+    if(e.key==='ArrowRight' && i<otps.length-1) otps[i+1].focus();
+  });
+  el.addEventListener('paste',e=>{
+    e.preventDefault();
+    const d=(e.clipboardData.getData('text')||'').replace(/\D/g,'').split('');
+    otps.forEach((x,n)=>x.value=d[n]||'');
+    otps[Math.min(d.length,5)].focus(); check();
+  });
+});
+function check(){
+  const code=otps.map(x=>x.value).join('');
+  otpCell.removeAttribute('data-otp');
+  if(code.length<6){ otpMsg.textContent='code is 428910 · paste works';
+    otpMsg.style.color='rgba(233,237,255,.45)'; return; }
+  if(code==='428910'){ otpCell.dataset.otp='ok'; otpMsg.textContent='Verified ✓'; otpMsg.style.color='#4dffcf'; }
+  else{ otpCell.dataset.otp='bad'; otpMsg.textContent='Wrong code — try 428910'; otpMsg.style.color='#ff8a9c';
+    setTimeout(()=>{ otps.forEach(x=>x.value=''); otps[0].focus(); otpCell.removeAttribute('data-otp'); },700); }
+}
+
+/* 05 — search with match highlighting */
+const DATA=['Magnetic button','Gooey toggle','Liquid fill','Border beam','Glass card','Spotlight card',
+  'Text scramble','Odometer counter','Marquee strip','Logo draw','Brand palette','OTP field',
+  'Dropzone','Combobox','Stepper','Rating stars'];
+const sq=$('sq'), hits=$('hits'), sb=$('sb');
+function search(){
+  const q=sq.value.trim().toLowerCase();
+  sb.toggleAttribute('data-has',!!q);
+  const list=(q?DATA.filter(d=>d.toLowerCase().includes(q)):DATA).slice(0,6);
+  hits.innerHTML = list.length ? list.map((d,i)=>{
+    const s=d.toLowerCase().indexOf(q);
+    const html = q&&s>=0 ? d.slice(0,s)+'<b>'+d.slice(s,s+q.length)+'</b>'+d.slice(s+q.length) : d;
+    return '<div class="hit" style="animation-delay:'+(i*35)+'ms">'+html+'</div>';
+  }).join('') : '<div class="hit">No match</div>';
+}
+sq.addEventListener('input',search);
+$('clr').addEventListener('click',()=>{ sq.value=''; sq.focus(); search(); });
+search();
+
+/* 06 — range bubble */
+const range=$('range'), bub=$('bub');
+function rng(){
+  const p=(range.value-range.min)/(range.max-range.min)*100;
+  range.style.setProperty('--p',p+'%');
+  // keep the bubble inside the track at the extremes
+  bub.style.left='calc('+p+'% + '+(8-p*0.16)+'px)';
+  bub.textContent=range.value;
+}
+range.addEventListener('input',rng); rng();
+
+/* 07 — switches */
+document.querySelectorAll('.t1,.t2,.t3').forEach(b=>b.addEventListener('click',()=>
+  b.setAttribute('aria-pressed', b.getAttribute('aria-pressed')==='true'?'false':'true')));
+
+/* 09 — combobox with keyboard nav */
+const FW=[['React','#61dafb'],['Svelte','#ff3e00'],['Vue','#42b883'],['Solid','#4f88c6'],
+          ['Qwik','#ac7ef4'],['Astro','#ff5d01'],['Lit','#325cff']];
+const cbx=$('cbx'), cbxIn=$('cbxIn'), cbxList=$('cbxList');
+let hi=0;
+function drawList(){
+  const q=cbxIn.value.trim().toLowerCase();
+  const items=FW.filter(f=>f[0].toLowerCase().includes(q));
+  hi=Math.min(hi,Math.max(0,items.length-1));
+  cbxList.innerHTML=items.map((f,i)=>
+    '<button data-v="'+f[0]+'"'+(i===hi?' data-hi':'')+'><i style="background:'+f[1]+'"></i>'+f[0]+'</button>')
+    .join('') || '<button disabled style="opacity:.4">No framework</button>';
+  [...cbxList.querySelectorAll('button[data-v]')].forEach(b=>
+    b.addEventListener('click',()=>{ cbxIn.value=b.dataset.v; cbx.removeAttribute('data-open'); }));
+}
+cbxIn.addEventListener('focus',()=>{ cbx.setAttribute('data-open',''); drawList(); });
+cbxIn.addEventListener('input',()=>{ hi=0; drawList(); });
+cbxIn.addEventListener('blur',()=>setTimeout(()=>cbx.removeAttribute('data-open'),140));
+cbxIn.addEventListener('keydown',e=>{
+  const n=cbxList.querySelectorAll('button[data-v]').length;
+  if(e.key==='ArrowDown'){ e.preventDefault(); hi=(hi+1)%n; drawList(); }
+  if(e.key==='ArrowUp'){ e.preventDefault(); hi=(hi-1+n)%n; drawList(); }
+  if(e.key==='Enter'){ const b=cbxList.querySelector('button[data-hi]');
+    if(b){ cbxIn.value=b.dataset.v; cbx.removeAttribute('data-open'); cbxIn.blur(); } }
+  if(e.key==='Escape') cbx.removeAttribute('data-open');
+});
+
+/* 10 — tag input */
+const tagBox=$('tagBox'), tagIn=$('tagIn');
+let tags=['motion','glass'];
+function drawTags(){
+  [...tagBox.querySelectorAll('.tag')].forEach(t=>t.remove());
+  tags.forEach((t,i)=>{
+    const el=document.createElement('span'); el.className='tag';
+    el.innerHTML=t+'<button aria-label="remove">×</button>';
+    el.querySelector('button').addEventListener('click',()=>{ tags.splice(i,1); drawTags(); });
+    tagBox.insertBefore(el,tagIn);
+  });
+}
+tagIn.addEventListener('keydown',e=>{
+  if(e.key==='Enter' || e.key===','){
+    e.preventDefault();
+    const v=tagIn.value.trim().replace(/,/g,'');
+    if(v && !tags.includes(v)){ tags.push(v); drawTags(); }
+    tagIn.value='';
+  }
+  if(e.key==='Backspace' && !tagIn.value && tags.length){ tags.pop(); drawTags(); }
+});
+tagBox.addEventListener('click',()=>tagIn.focus());
+drawTags();
+
+/* 11 — dropzone with a simulated upload per file */
+const dz=$('dz'), fileIn=$('fileIn'), fileList=$('fileList');
+['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{
+  e.preventDefault(); dz.setAttribute('data-over',''); }));
+['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{
+  e.preventDefault(); dz.removeAttribute('data-over'); }));
+dz.addEventListener('drop',e=>add([...e.dataTransfer.files]));
+dz.addEventListener('click',()=>fileIn.click());
+fileIn.addEventListener('change',()=>add([...fileIn.files]));
+function add(files){
+  files.slice(0,4).forEach(f=>{
+    const el=document.createElement('div'); el.className='file';
+    el.innerHTML=f.name.slice(0,24)+'<small>'+(f.size/1024).toFixed(0)+' KB</small><span class="pr"></span>';
+    fileList.appendChild(el);
+    const pr=el.querySelector('.pr'); let p=0;
+    const id=setInterval(()=>{ p=Math.min(100,p+6+Math.random()*12); pr.style.width=p+'%';
+      if(p>=100){ clearInterval(id); pr.style.background='#4dffcf'; } }, reduce?20:80);
+  });
+}
+
+/* 12 — auto-grow + counter */
+const ta=$('ta'), count=$('count');
+ta.addEventListener('input',()=>{
+  ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px';
+  count.textContent=ta.value.length+' / 180';
+  count.toggleAttribute('data-warn', ta.value.length>160);
+});
+
+/* 13 — stepper */
+let qty=1;
+const qtyEl=$('qty');
+function setQty(v){
+  qty=Math.max(1,Math.min(99,v)); qtyEl.textContent=qty;
+  qtyEl.classList.remove('bump'); void qtyEl.offsetWidth; qtyEl.classList.add('bump');
+}
+$('plus').addEventListener('click',()=>setQty(qty+1));
+$('minus').addEventListener('click',()=>setQty(qty-1));
+
+/* 14 — rating */
+const starsEl=$('stars'), rateLab=$('rateLab');
+const RATE=['awful','poor','fine','good','superb'];
+let rated=0;
+for(let i=1;i<=5;i++){
+  const b=document.createElement('button');
+  b.innerHTML='<svg viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.7l5.9-.8z" stroke-linejoin="round"/></svg>';
+  b.addEventListener('pointerenter',()=>paintStars(i));
+  b.addEventListener('click',()=>{ rated=i; paintStars(i);
+    rateLab.textContent=RATE[i-1]+' · '+i+'/5'; });
+  starsEl.appendChild(b);
+}
+starsEl.addEventListener('pointerleave',()=>paintStars(rated));
+function paintStars(n){
+  [...starsEl.children].forEach((b,i)=>b.toggleAttribute('data-on', i<n));
+  if(!rated && !n) rateLab.textContent='not rated';
+}
+
+/* 15 — multi-step, each step actually gates the next */
+let stepI=0;
+const panes=[...document.querySelectorAll('.pane')];
+const dots=[...$('steps').querySelectorAll('.s')], lines=[...$('steps').querySelectorAll('.l')];
+function paintSteps(){
+  dots.forEach((d,i)=>d.toggleAttribute('data-on', i<=stepI));
+  lines.forEach((l,i)=>l.toggleAttribute('data-on', i<stepI));
+  panes.forEach((p,i)=>p.toggleAttribute('data-on', i===stepI));
+  $('back').style.display = stepI>0 && stepI<2 ? '' : 'none';
+  $('next').textContent = stepI===0 ? 'Continue' : stepI===1 ? 'Create workspace' : 'Start over';
+}
+$('next').addEventListener('click',()=>{
+  if(stepI===0){
+    const v=$('w1').value.trim();
+    if(v.length<3){ $('wm0').textContent='Give it at least 3 characters.';
+      $('wm0').setAttribute('data-show',''); return; }
+    $('wm0').removeAttribute('data-show'); stepI=1;
+  }else if(stepI===1){
+    if(!$('terms').checked){ $('wm1').textContent='You have to accept the terms.';
+      $('wm1').setAttribute('data-show',''); return; }
+    $('wm1').removeAttribute('data-show');
+    const plan=[...document.querySelectorAll('#plan .rp')].find(r=>r.querySelector('input').checked);
+    $('doneTxt').textContent='“'+$('w1').value.trim()+'” created on the '+
+      plan.textContent.trim()+' plan.';
+    stepI=2;
+  }else{
+    stepI=0; $('w1').value=''; $('terms').checked=false;
+  }
+  paintSteps();
+});
+$('back').addEventListener('click',()=>{ stepI=Math.max(0,stepI-1); paintSteps(); });
+paintSteps();
+</script>
+</body>
+</html>

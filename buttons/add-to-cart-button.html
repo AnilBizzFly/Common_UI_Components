@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Add to cart</title>
+<style>
+:root{--bg:#080c17;--card:#141b2b;--line:rgba(255,255,255,.08);
+--txt:#e9edf8;--mut:#8b95b3;--dim:#5a6482;--faint:#3c4562;
+--a:#7cc4ff;--b:#a98bff;--ok:#5fe0ac;--ease:cubic-bezier(.25,1,.5,1)}
+*{box-sizing:border-box}html{height:100%}
+body{margin:0;min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+gap:26px;padding:30px 20px;font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+color:var(--txt);background:var(--bg)}
+body::before{content:"";position:fixed;width:60vmax;height:60vmax;border-radius:50%;filter:blur(150px);
+background:rgba(124,196,255,.12);top:-26vmax;left:50%;margin-left:-30vmax;pointer-events:none}
+
+.head{text-align:center;z-index:1}
+.head p:first-child{margin:0 0 7px;font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.22em;color:var(--faint)}
+.head h1{margin:0 0 5px;font-size:21px;letter-spacing:-.03em}
+.head p:last-child{margin:0;font-size:13px;color:var(--dim)}
+
+/* ---------- the product row ---------- */
+.item{position:relative;z-index:1;display:flex;align-items:center;gap:14px;width:min(360px,100%);
+padding:14px;border-radius:20px;background:linear-gradient(168deg,var(--card),#0e1422);
+border:1px solid var(--line);box-shadow:0 30px 66px -28px rgba(0,0,0,.86)}
+.thumb{width:56px;height:56px;flex:0 0 auto;border-radius:14px;
+background:linear-gradient(140deg,#8a7bff,#4aa8ff);display:grid;place-items:center;
+box-shadow:0 10px 22px -10px rgba(122,140,255,.8)}
+.thumb svg{width:26px;height:26px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.meta{flex:1;min-width:0}
+.meta b{display:block;font-size:14px;font-weight:600}
+.meta span{font-size:12px;color:var(--faint)}
+.price{font-size:15px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+
+/* ---------- the cart in the bar ---------- */
+.bar{position:relative;z-index:1;display:flex;align-items:center;gap:12px;width:min(360px,100%)}
+.cart{position:relative;width:52px;height:52px;flex:0 0 auto;display:grid;place-items:center;
+border-radius:16px;background:rgba(255,255,255,.05);border:1px solid var(--line);
+transform-origin:50% 15%}
+.cart svg{width:23px;height:23px;fill:none;stroke:var(--mut);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.cart.hit{animation:swing .62s cubic-bezier(.36,.07,.19,.97)}
+@keyframes swing{15%{transform:rotate(-11deg)}35%{transform:rotate(8deg)}
+55%{transform:rotate(-5deg)}75%{transform:rotate(3deg)}100%{transform:rotate(0)}}
+.badge{position:absolute;top:-6px;right:-6px;min-width:21px;height:21px;padding:0 6px;
+display:grid;place-items:center;border-radius:99px;background:linear-gradient(115deg,var(--a),var(--b));
+color:#07121d;font:800 11px/1 ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;
+transform:scale(0);transition:transform .3s cubic-bezier(.34,1.6,.5,1)}
+.badge.on{transform:scale(1)}
+.badge.pop{animation:pop .34s cubic-bezier(.34,1.6,.5,1)}
+@keyframes pop{50%{transform:scale(1.32)}}
+
+/* ---------- the button ---------- */
+.add{flex:1;position:relative;height:52px;overflow:hidden;
+font:inherit;font-size:14.5px;font-weight:700;color:#07121d;
+background:linear-gradient(115deg,var(--a),var(--b));border:0;border-radius:16px;cursor:pointer;
+box-shadow:0 14px 30px -12px rgba(124,196,255,.7);
+transition:transform .15s,box-shadow .25s,background .4s var(--ease)}
+.add:hover:not(:disabled){transform:translateY(-2px)}
+.add:active:not(:disabled){transform:translateY(1px)}
+.add:disabled{cursor:default}
+.add span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:8px;
+transition:opacity .22s,transform .32s var(--ease)}
+.add svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.add .go{opacity:1}
+.add .yes{opacity:0;transform:translateY(110%)}
+.add.done{background:linear-gradient(115deg,var(--ok),#4bc7ff)}
+.add.done .go{opacity:0;transform:translateY(-110%)}
+.add.done .yes{opacity:1;transform:none}
+
+/* ---------- the flyer ---------- */
+/* a clone of the thumb, walked along a real quadratic to the cart */
+.flyer{position:fixed;z-index:20;border-radius:14px;pointer-events:none;
+background:linear-gradient(140deg,#8a7bff,#4aa8ff);box-shadow:0 12px 26px -10px rgba(122,140,255,.9)}
+
+.readout{font:600 10.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.13em;
+text-transform:uppercase;color:var(--faint);z-index:1}
+.readout b{color:var(--a)}
+@media (prefers-reduced-motion:reduce){.add,.badge{transition-duration:.01ms}}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <p>BUTTON 01</p><h1>Add to cart</h1>
+  <p>The thumbnail is what travels &mdash; on a real arc, not a straight line.</p>
+</div>
+
+<div class="item">
+  <span class="thumb" id="thumb">
+    <svg viewBox="0 0 24 24"><path d="M4 11a8 8 0 0 1 16 0v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M9 19v2M15 19v2"/></svg>
+  </span>
+  <span class="meta"><b>Vela Wireless</b><span>Over-ear &middot; Graphite</span></span>
+  <span class="price">$148</span>
+</div>
+
+<div class="bar">
+  <button class="add" id="add" type="button">
+    <span class="go"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add to cart</span>
+    <span class="yes"><svg viewBox="0 0 24 24"><path d="m4 12.5 5 5L20 6.5"/></svg>Added</span>
+  </button>
+  <span class="cart" id="cart">
+    <svg viewBox="0 0 24 24"><path d="M3 4h2.2l2.4 11.2a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.5L21 8H6"/><circle cx="10" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg>
+    <span class="badge" id="badge">0</span>
+  </span>
+</div>
+
+<p class="readout" id="readout">cart <b>empty</b></p>
+
+<script>
+const add = document.getElementById('add'), cart = document.getElementById('cart'),
+      thumb = document.getElementById('thumb'), badge = document.getElementById('badge'),
+      readout = document.getElementById('readout');
+let count = 0, busy = false;
+
+/* one quadratic bezier from the thumbnail to the cart, sampled by hand.
+   the control point sits ABOVE both, so the parcel lobs instead of sliding. */
+function fly(){
+  const a = thumb.getBoundingClientRect(), b = cart.getBoundingClientRect();
+  const x0 = a.left, y0 = a.top;
+  const x1 = b.left + b.width / 2 - 13, y1 = b.top + b.height / 2 - 13;
+  const cx = (x0 + x1) / 2, cy = Math.min(y0, y1) - 120;
+
+  const el = document.createElement('span');
+  el.className = 'flyer';
+  el.style.cssText = `left:${x0}px;top:${y0}px;width:${a.width}px;height:${a.height}px`;
+  document.body.appendChild(el);
+
+  const T = 620, t0 = performance.now();
+  return new Promise(done => {
+    (function step(now){
+      const t = Math.min(1, (now - t0) / T);
+      const e = t * t * (3 - 2 * t);
+      const k = 1 - e;
+      const x = k * k * x0 + 2 * k * e * cx + e * e * x1;
+      const y = k * k * y0 + 2 * k * e * cy + e * e * y1;
+      const s = 1 - .52 * e;
+      el.style.transform = `translate(${(x - x0).toFixed(1)}px,${(y - y0).toFixed(1)}px) scale(${s}) rotate(${(e * 200).toFixed(1)}deg)`;
+      el.style.opacity = t > .82 ? String((1 - t) / .18) : '1';
+      if (t < 1) requestAnimationFrame(step);
+      else { el.remove(); done(); }
+    })(t0);
+  });
+}
+
+add.addEventListener('click', async () => {
+  if (busy) return;
+  busy = true; add.disabled = true;
+
+  await fly();
+
+  count++;
+  badge.textContent = count;
+  badge.classList.add('on');
+  badge.classList.remove('pop'); void badge.offsetWidth; badge.classList.add('pop');
+  cart.classList.remove('hit'); void cart.offsetWidth; cart.classList.add('hit');
+  readout.innerHTML = 'cart <b>' + count + ' item' + (count > 1 ? 's' : '') + '</b>';
+
+  add.classList.add('done');
+  setTimeout(() => { add.classList.remove('done'); add.disabled = false; busy = false; }, 1500);
+});
+</script>
+</body>
+</html>

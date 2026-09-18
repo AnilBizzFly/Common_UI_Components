@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tactile Key</title>
+<style>
+:root{
+  --cap:#f3f1ec; --cap-2:#dedad2; --skirt:#b9b4aa; --skirt-2:#8f8a80;
+  --deck:#1a1a1f; --deck-2:#0e0e12;
+  --ink:#20201f; --accent:#ff5a36;
+  --travel:9px;                 /* how far the cap actually goes down */
+}
+*{box-sizing:border-box}
+html{height:100%}
+body{
+  margin:0;min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:46px;padding:40px 20px;overflow:hidden;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#f0eee9;background:radial-gradient(90vmax 70vmax at 50% -10%,#2b2b33,#0b0b0f 62%);
+}
+body::after{content:"";position:fixed;inset:-50%;pointer-events:none;opacity:.2;
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+.head{position:relative;z-index:2;text-align:center}
+.head p:first-child{margin:0 0 10px;font:600 10px/1 ui-monospace,Menlo,monospace;
+  letter-spacing:.3em;color:rgba(255,255,255,.35)}
+.head h1{margin:0 0 8px;font-size:clamp(28px,7vw,44px);font-weight:600;letter-spacing:-.045em}
+.head p:last-child{margin:0;font-size:14px;color:rgba(255,255,255,.45)}
+
+/* ============ the deck the key is mounted in ============ */
+.deck{position:relative;z-index:2;display:flex;gap:20px;align-items:flex-end;
+  padding:26px 28px 30px;border-radius:24px;
+  background:linear-gradient(180deg,var(--deck),var(--deck-2));
+  box-shadow:0 1px 0 rgba(255,255,255,.07) inset, 0 40px 90px -30px rgba(0,0,0,.95),
+             0 0 0 1px rgba(255,255,255,.04)}
+
+/* the well the cap sinks into */
+.slot{position:relative;border-radius:14px;
+  background:linear-gradient(180deg,#0a0a0e,#141419);
+  box-shadow:0 2px 5px rgba(0,0,0,.9) inset, 0 -1px 0 rgba(255,255,255,.05) inset;
+  padding-bottom:var(--travel)}
+
+/* ---------- the cap ---------- */
+.key{
+  position:relative;display:block;border:0;cursor:pointer;
+  min-width:132px;padding:20px 26px 18px;border-radius:12px;
+  font:inherit;font-size:15px;font-weight:750;letter-spacing:.02em;color:var(--ink);
+  background:linear-gradient(180deg,var(--cap) 0%,var(--cap) 52%,var(--cap-2) 100%);
+  /* the skirt is a stack of 1px shadows — a real extruded side, not a fake border */
+  box-shadow:
+    0 1px 0 var(--skirt), 0 2px 0 var(--skirt), 0 3px 0 var(--skirt),
+    0 4px 0 var(--skirt-2), 0 5px 0 var(--skirt-2), 0 6px 0 var(--skirt-2),
+    0 7px 0 var(--skirt-2), 0 8px 0 var(--skirt-2), 0 9px 0 var(--skirt-2),
+    0 1px 0 rgba(255,255,255,.9) inset,
+    0 14px 22px -6px rgba(0,0,0,.75);
+  translate:0 0;
+  transition:translate .1s cubic-bezier(.3,.9,.4,1), box-shadow .1s cubic-bezier(.3,.9,.4,1),
+             background .2s;
+}
+.key:focus-visible{outline:2px solid var(--accent);outline-offset:6px}
+
+/* pressed: the cap drops the full travel and the skirt collapses with it */
+.key.down{
+  translate:0 var(--travel);
+  background:linear-gradient(180deg,var(--cap-2) 0%,var(--cap) 60%);
+  box-shadow:
+    0 1px 0 var(--skirt-2),
+    0 1px 0 rgba(255,255,255,.7) inset,
+    0 3px 6px -2px rgba(0,0,0,.7);
+}
+
+/* the light that runs across the top face when it bottoms out */
+.key .gloss{position:absolute;inset:2px 2px auto;height:44%;border-radius:10px 10px 40% 40%;
+  background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,255,255,0));
+  pointer-events:none;opacity:.85;transition:opacity .12s}
+.key.down .gloss{opacity:.4}
+
+.key .cap-label{position:relative;display:flex;align-items:center;justify-content:center;gap:9px}
+.key svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2.4;
+  stroke-linecap:round;stroke-linejoin:round}
+.key .hint{position:absolute;left:0;right:0;top:calc(100% + 3px);text-align:center;
+  font:700 8.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.16em;color:rgba(32,32,31,.4)}
+
+/* the shockwave that leaves the key on bottom-out */
+.thud{position:absolute;inset:0;border-radius:12px;pointer-events:none;
+  box-shadow:0 0 0 0 rgba(255,90,54,.6);opacity:0}
+.key.hit .thud{animation:thud .55s cubic-bezier(.2,.8,.3,1)}
+@keyframes thud{
+  0%{opacity:1;box-shadow:0 0 0 0 rgba(255,90,54,.55)}
+  100%{opacity:0;box-shadow:0 0 0 26px rgba(255,90,54,0)}
+}
+
+/* the accent key */
+.key.hot{background:linear-gradient(180deg,#ff7a58,#ff5a36 60%,#e8431f);color:#2a0a02;
+  box-shadow:
+    0 1px 0 #c8391a,0 2px 0 #c8391a,0 3px 0 #c8391a,
+    0 4px 0 #a52c13,0 5px 0 #a52c13,0 6px 0 #a52c13,
+    0 7px 0 #a52c13,0 8px 0 #a52c13,0 9px 0 #a52c13,
+    0 1px 0 rgba(255,255,255,.6) inset,0 14px 26px -6px rgba(255,90,54,.55)}
+.key.hot.down{background:linear-gradient(180deg,#e8431f,#ff5a36 60%);
+  box-shadow:0 1px 0 #a52c13,0 1px 0 rgba(255,255,255,.5) inset,0 3px 8px -2px rgba(0,0,0,.7)}
+.key.hot .hint{color:rgba(42,10,2,.45)}
+
+.count{position:relative;z-index:2;font:600 10px/1 ui-monospace,Menlo,monospace;
+  letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.32);font-variant-numeric:tabular-nums}
+.count b{color:var(--accent)}
+
+@media (prefers-reduced-motion:reduce){.key{transition-duration:.01ms}.thud{display:none}}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <p>05 &middot; TACTILE</p>
+  <h1>It bottoms out</h1>
+  <p>The side of the cap is nine stacked shadows, so it really collapses on the way down.</p>
+</div>
+
+<div class="deck">
+  <span class="slot">
+    <button class="key" data-bind="Enter" type="button">
+      <span class="gloss"></span><span class="thud"></span>
+      <span class="cap-label">
+        <svg viewBox="0 0 24 24"><path d="M20 5v7a4 4 0 0 1-4 4H5"/><path d="m9 12-4 4 4 4"/></svg>
+        Confirm
+      </span>
+      <span class="hint">ENTER</span>
+    </button>
+  </span>
+
+  <span class="slot">
+    <button class="key hot" data-bind=" " type="button">
+      <span class="gloss"></span><span class="thud"></span>
+      <span class="cap-label">
+        <svg viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6Z"/></svg>
+        Launch
+      </span>
+      <span class="hint">SPACE</span>
+    </button>
+  </span>
+</div>
+
+<p class="count" id="count">presses <b>0</b></p>
+
+<script>
+const keys = [...document.querySelectorAll('.key')];
+const count = document.getElementById('count');
+let n = 0;
+
+function down(k){
+  if (k.classList.contains('down')) return;
+  k.classList.add('down');
+}
+function up(k, real){
+  if (!k.classList.contains('down')) return;
+  k.classList.remove('down');
+  if (!real) return;
+  k.classList.remove('hit'); void k.offsetWidth; k.classList.add('hit');
+  n++; count.innerHTML = 'presses <b>' + n + '</b>';
+}
+
+keys.forEach(k => {
+  k.addEventListener('pointerdown', e => { k.setPointerCapture(e.pointerId); down(k); });
+  k.addEventListener('pointerup',   () => up(k, true));
+  k.addEventListener('pointerleave',() => up(k, false));
+  k.addEventListener('pointercancel',() => up(k, false));
+  /* a key that looks like a key should answer the key it is labelled with */
+  k.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) { e.preventDefault(); down(k); } });
+  k.addEventListener('keyup',   e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); up(k, true); } });
+});
+
+addEventListener('keydown', e => {
+  if (e.repeat || document.activeElement.classList?.contains('key')) return;
+  const k = keys.find(x => x.dataset.bind === e.key);
+  if (k){ e.preventDefault(); down(k); }
+});
+addEventListener('keyup', e => {
+  if (document.activeElement.classList?.contains('key')) return;
+  const k = keys.find(x => x.dataset.bind === e.key);
+  if (k){ e.preventDefault(); up(k, true); }
+});
+</script>
+</body>
+</html>

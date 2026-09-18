@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Neural Console</title>
+<style>
+@property --hue{syntax:'<number>';inherits:true;initial-value:265}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;display:grid;place-items:center;padding:28px 18px;overflow:hidden;
+  font:400 15px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#e8ecff;background:#07080f;--hue:265;
+}
+/* two blurred glows, house style */
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(90px);pointer-events:none;z-index:0}
+body::before{width:56vmax;height:56vmax;left:-16vmax;top:-20vmax;
+  background:hsl(var(--hue) 90% 55%/.28);transition:background .8s}
+body::after{width:48vmax;height:48vmax;right:-18vmax;bottom:-22vmax;
+  background:hsl(calc(var(--hue) + 120) 95% 55%/.22);transition:background .8s}
+
+.wrap{position:relative;z-index:1;width:min(380px,100%);display:flex;flex-direction:column;gap:14px}
+
+.badge{display:flex;align-items:center;gap:8px;align-self:center;
+  font:600 9px/1 ui-monospace,Menlo,monospace;letter-spacing:.32em;text-transform:uppercase;
+  color:hsl(var(--hue) 80% 80%/.75)}
+.badge b{width:5px;height:5px;border-radius:50%;background:currentColor;
+  box-shadow:0 0 10px 2px currentColor;animation:blip 2.4s infinite}
+@keyframes blip{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* ---------- the card ---------- */
+.card{
+  position:relative;border-radius:28px;padding:22px 20px 18px;
+  background:linear-gradient(170deg,rgba(255,255,255,.075),rgba(255,255,255,.02));
+  border:1px solid rgba(255,255,255,.1);
+  box-shadow:0 30px 80px -30px #000,0 1px 0 0 rgba(255,255,255,.14) inset;
+  backdrop-filter:blur(22px) saturate(160%);-webkit-backdrop-filter:blur(22px) saturate(160%);
+  overflow:hidden;
+}
+/* scanline sweep that only runs while thinking */
+.card::after{content:"";position:absolute;left:0;right:0;height:120px;top:-120px;pointer-events:none;
+  background:linear-gradient(180deg,transparent,hsl(var(--hue) 100% 70%/.13),transparent)}
+[data-state="thinking"] .card::after{animation:sweep 1.5s linear infinite}
+@keyframes sweep{to{top:100%}}
+
+canvas{display:block;width:100%;height:230px;border-radius:20px;cursor:crosshair;touch-action:none}
+
+/* ---------- transcript ---------- */
+.log{height:104px;overflow-y:auto;margin:12px 0 0;padding-right:6px;
+  display:flex;flex-direction:column;gap:8px;scrollbar-width:thin;
+  scrollbar-color:hsl(var(--hue) 60% 60%/.4) transparent}
+.log::-webkit-scrollbar{width:4px}
+.log::-webkit-scrollbar-thumb{background:hsl(var(--hue) 60% 60%/.4);border-radius:4px}
+.msg{font-size:12.5px;line-height:1.5;max-width:92%;padding:8px 11px;border-radius:13px;
+  animation:pop .4s cubic-bezier(.2,1.3,.4,1) both;white-space:pre-wrap;word-break:break-word}
+.msg.me{align-self:flex-end;background:hsl(var(--hue) 85% 62%/.22);
+  border:1px solid hsl(var(--hue) 85% 70%/.35);border-bottom-right-radius:4px}
+.msg.ai{align-self:flex-start;background:rgba(255,255,255,.055);
+  border:1px solid rgba(255,255,255,.08);border-bottom-left-radius:4px;color:#cdd5f5}
+.msg.ai b{color:hsl(var(--hue) 90% 76%);font-weight:600}
+@keyframes pop{from{opacity:0;transform:translateY(8px) scale(.96)}}
+.caret{display:inline-block;width:6px;height:13px;vertical-align:-2px;margin-left:1px;
+  background:hsl(var(--hue) 90% 72%);animation:cb .7s steps(1) infinite}
+@keyframes cb{50%{opacity:0}}
+
+/* ---------- input ---------- */
+.bar{display:flex;gap:8px;align-items:center;margin-top:12px;padding:5px 5px 5px 15px;
+  border-radius:999px;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.1);transition:border-color .25s,box-shadow .25s}
+.bar:focus-within{border-color:hsl(var(--hue) 90% 70%/.55);
+  box-shadow:0 0 0 4px hsl(var(--hue) 90% 60%/.14)}
+.bar input{flex:1;min-width:0;border:0;background:none;outline:none;color:#fff;font:inherit;font-size:13.5px}
+.bar input::placeholder{color:rgba(232,236,255,.34)}
+.go{width:34px;height:34px;flex:none;border:0;border-radius:50%;cursor:pointer;display:grid;place-items:center;
+  color:#0a0a14;background:linear-gradient(140deg,hsl(var(--hue) 95% 78%),hsl(calc(var(--hue) + 60) 95% 66%));
+  box-shadow:0 6px 18px -6px hsl(var(--hue) 95% 60%/.9);
+  transition:transform .2s cubic-bezier(.2,1.4,.4,1),filter .2s}
+.go:hover{transform:scale(1.08)}
+.go:active{transform:scale(.9)}
+.go svg{width:15px;height:15px}
+[data-state="thinking"] .go{filter:grayscale(.7);pointer-events:none}
+
+.hints{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.hints button{border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.035);color:#aab3d8;
+  font:500 10.5px/1 ui-monospace,Menlo,monospace;padding:6px 9px;border-radius:8px;cursor:pointer;
+  transition:.2s}
+.hints button:hover{color:#fff;border-color:hsl(var(--hue) 90% 70%/.5);background:hsl(var(--hue) 90% 60%/.14)}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body data-state="idle">
+<div class="wrap">
+  <div class="badge"><b></b><span id="stateLabel">neural link · idle</span></div>
+
+  <div class="card">
+    <canvas id="orb"></canvas>
+    <div class="log" id="log"></div>
+    <form class="bar" id="form">
+      <input id="q" autocomplete="off" placeholder="talk to the orb…">
+      <button class="go" type="submit" aria-label="send">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+             stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg>
+      </button>
+    </form>
+    <div class="hints">
+      <button data-cmd="/help">/help</button>
+      <button data-cmd="/hue 190">/hue 190</button>
+      <button data-cmd="/chaos">/chaos</button>
+      <button data-cmd="/calm">/calm</button>
+      <button data-cmd="12 * 34 + 7">12 * 34 + 7</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   ONE state word on <body data-state>, like the rest of the lab:
+   idle | listening | thinking | speaking
+   ============================================================ */
+const body=document.body, logEl=document.getElementById('log'),
+      form=document.getElementById('form'), q=document.getElementById('q'),
+      label=document.getElementById('stateLabel');
+const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+function setState(s){ body.dataset.state=s; label.textContent='neural link · '+s; }
+
+/* ---------------- particle orb (canvas 2D, fibonacci sphere) ------------- */
+const cv=document.getElementById('orb'), ctx=cv.getContext('2d');
+let W=0,H=0; const DPR=Math.min(devicePixelRatio||1,2);
+const N=780, pts=[];
+for(let i=0;i<N;i++){                       // evenly spread points on a sphere
+  const y=1-(i/(N-1))*2, r=Math.sqrt(1-y*y), th=i*2.399963229728653;
+  pts.push({x:Math.cos(th)*r, y, z:Math.sin(th)*r, seed:Math.random()*6.283});
+}
+function fit(){
+  const b=cv.getBoundingClientRect();
+  W=b.width; H=b.height; cv.width=W*DPR; cv.height=H*DPR;
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+addEventListener('resize',fit);
+
+let energy=.18, target=.18, chaos=1, spin=0, hue=265;
+const mouse={x:0,y:0,on:0};
+cv.addEventListener('pointermove',e=>{
+  const b=cv.getBoundingClientRect();
+  mouse.x=(e.clientX-b.left)/b.width*2-1;
+  mouse.y=(e.clientY-b.top)/b.height*2-1; mouse.on=1;
+});
+cv.addEventListener('pointerleave',()=>mouse.on=0);
+cv.addEventListener('pointerdown',()=>{ target=1.15; setTimeout(()=>target=stateEnergy(),420); });
+
+function stateEnergy(){
+  return {idle:.18, listening:.42, thinking:.85, speaking:.55}[body.dataset.state] ?? .18;
+}
+
+let t=0;
+function frame(){
+  requestAnimationFrame(frame);
+  if(!W) fit();
+  t += reduce ? 0 : .016;
+  energy += (target-energy)*.07;
+  spin   += .0026 + energy*.012;
+
+  ctx.clearRect(0,0,W,H);
+  const cx=W/2, cy=H/2, R=Math.min(W,H)*.34;
+  const tiltX = mouse.on ? mouse.y*.5 : Math.sin(t*.35)*.18;
+  const sy=Math.sin(tiltX), cc=Math.cos(tiltX);
+
+  // glow core
+  const g=ctx.createRadialGradient(cx,cy,0,cx,cy,R*2.1);
+  g.addColorStop(0,'hsla('+hue+',95%,70%,'+(.20+energy*.30)+')');
+  g.addColorStop(.45,'hsla('+(hue+55)+',95%,58%,'+(.09+energy*.12)+')');
+  g.addColorStop(1,'transparent');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+
+  for(let i=0;i<N;i++){
+    const p=pts[i];
+    const s=Math.sin(spin), c=Math.cos(spin);
+    const x=p.x*c - p.z*s, z=p.x*s + p.z*c, y=p.y;   // spin around Y
+    const y2=y*cc - z*sy,  z2=y*sy + z*cc;           // tilt around X
+    // breathing displacement — this is what "energy" actually looks like
+    const n=Math.sin(p.seed + t*1.9 + y2*3.1)*Math.cos(p.seed*1.7 + t*1.3 + x*2.4);
+    const rad=R*(1 + n*.30*energy*chaos + energy*.14);
+
+    const per=1/(2.6-z2);                            // cheap perspective
+    const px=cx + x*rad*per*1.35, py=cy + y2*rad*per*1.35;
+    const depth=(z2+1)/2;                            // 0 back → 1 front
+    const sz=(.55+depth*1.9)*(1+energy*.5);
+
+    ctx.globalAlpha=.10+depth*.85;
+    ctx.fillStyle='hsl('+(hue + depth*70 + n*18)+',95%,'+(48+depth*32)+'%)';
+    ctx.beginPath(); ctx.arc(px,py,sz,0,6.2832); ctx.fill();
+  }
+  ctx.globalAlpha=1;
+
+  // orbiting ring — speeds up with energy
+  ctx.save(); ctx.translate(cx,cy); ctx.scale(1,Math.max(.12,Math.abs(sy)*.9+.14));
+  ctx.rotate(spin*.6);
+  ctx.strokeStyle='hsla('+(hue+40)+',100%,75%,'+(.10+energy*.35)+')'; ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.arc(0,0,R*1.55,0,6.2832); ctx.stroke();
+  ctx.restore();
+}
+requestAnimationFrame(frame);
+
+/* ---------------- conversation ---------------- */
+function bubble(text,who){
+  const d=document.createElement('div'); d.className='msg '+who;
+  d.innerHTML=text; logEl.appendChild(d); logEl.scrollTop=logEl.scrollHeight; return d;
+}
+function say(text){                          // types the reply out, char by char
+  setState('speaking'); target=stateEnergy();
+  const d=bubble('','ai'), car=document.createElement('span'); car.className='caret';
+  d.appendChild(car);
+  let i=0;
+  (function tick(){
+    if(i<text.length){
+      car.insertAdjacentText('beforebegin', text[i++]);
+      logEl.scrollTop=logEl.scrollHeight;
+      setTimeout(tick, reduce?0:(12+Math.random()*26));
+    }else{ car.remove(); setState('idle'); target=stateEnergy(); }
+  })();
+}
+
+const CANNED=[
+  'Signal received. Lattice stable at {n}% coherence.',
+  'Parsed. I folded that into {n} vector shards and kept the brightest.',
+  'Noted — rerouting {n} synapses. Ask for /help any time.',
+  'Interesting. Confidence {n}%. Want me to go /chaos on it?'
+];
+
+function respond(raw){
+  const s=raw.trim(); if(!s) return;
+  bubble(s.replace(/[<>]/g,''),'me');
+  setState('thinking'); target=stateEnergy();
+
+  setTimeout(()=>{
+    const cmd=s.toLowerCase();
+    if(cmd==='/help')
+      return say('Commands I actually run:\n/hue 0-360 — retint everything\n/chaos — wilder orb\n/calm — settle it down\n/clear — wipe transcript\nOr type maths like 8*(3+2) and I solve it. Drag on the orb too.');
+    if(cmd.indexOf('/hue')===0){
+      const v=parseFloat(cmd.split(/\s+/)[1]);
+      if(isNaN(v)) return say('Give me a number: /hue 200');
+      hue=((v%360)+360)%360; body.style.setProperty('--hue',hue);
+      return say('Palette shifted to hue <b>'+Math.round(hue)+'</b>.');
+    }
+    if(cmd==='/chaos'){ chaos=2.4; return say('Containment off. The lattice is <b>unstable</b> — I like it.'); }
+    if(cmd==='/calm'){  chaos=.55; return say('Breathing down. <b>Laminar</b> flow restored.'); }
+    if(cmd==='/clear'){ logEl.innerHTML=''; setState('idle'); target=stateEnergy(); return; }
+
+    // real arithmetic, safely: digits and operators only, nothing else gets through
+    if(/^[-+*/(). 0-9%^]+$/.test(s) && /\d/.test(s)){
+      try{
+        const out=Function('"use strict";return ('+s.replace(/\^/g,'**')+')')();
+        if(typeof out==='number' && isFinite(out))
+          return say('<b>'+(+out.toFixed(6))+'</b> — solved in one pass.');
+      }catch(e){}
+      return say('That expression collapsed on me. Try again?');
+    }
+    const n=60+Math.floor(Math.random()*40);
+    say(CANNED[Math.floor(Math.random()*CANNED.length)].replace('{n}',n));
+  }, reduce?60:620+Math.random()*500);
+}
+
+form.addEventListener('submit',e=>{ e.preventDefault(); respond(q.value); q.value=''; });
+q.addEventListener('focus',()=>{ if(body.dataset.state==='idle'){ setState('listening'); target=stateEnergy(); } });
+q.addEventListener('blur', ()=>{ if(body.dataset.state==='listening'){ setState('idle'); target=stateEnergy(); } });
+q.addEventListener('input',()=>{ if(body.dataset.state==='listening') target=.42+Math.min(.35,q.value.length*.012); });
+document.querySelectorAll('.hints button').forEach(b=>
+  b.addEventListener('click',()=>{ q.value=b.dataset.cmd; form.requestSubmit(); }));
+
+fit();
+setTimeout(()=>say('Neural link online. I am listening — try <b>/help</b>.'), 500);
+</script>
+</body>
+</html>

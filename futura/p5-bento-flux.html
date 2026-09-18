@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bento Flux</title>
+<style>
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  margin:0;min-height:100vh;display:grid;place-items:center;padding:28px 16px;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#e9edff;background:#06070d;overflow-x:hidden;
+}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(105px);pointer-events:none;z-index:0}
+body::before{width:52vmax;height:52vmax;left:-18vmax;top:-22vmax;background:rgba(88,60,255,.28)}
+body::after{width:46vmax;height:46vmax;right:-18vmax;bottom:-22vmax;background:rgba(0,214,190,.2)}
+
+.shell{position:relative;z-index:1;width:min(380px,100%)}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+header h1{margin:0;font-size:21px;font-weight:650;letter-spacing:-.035em}
+header p{margin:2px 0 0;font:600 9px/1 ui-monospace,Menlo,monospace;letter-spacing:.26em;
+  text-transform:uppercase;color:rgba(233,237,255,.36)}
+.pill{display:flex;align-items:center;gap:6px;padding:7px 11px;border-radius:99px;
+  background:rgba(0,255,190,.1);border:1px solid rgba(0,255,190,.25);
+  font:600 9.5px/1 ui-monospace,monospace;letter-spacing:.14em;color:#4dffcf}
+.pill i{width:5px;height:5px;border-radius:50%;background:currentColor;
+  box-shadow:0 0 9px 2px currentColor;animation:blip 1.6s infinite}
+@keyframes blip{50%{opacity:.25}}
+
+/* ------------------------------ the grid ------------------------------ */
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:11px;perspective:900px}
+.tile{
+  position:relative;grid-column:span var(--col,1);min-height:var(--h,124px);
+  border-radius:22px;padding:15px;cursor:pointer;overflow:hidden;isolation:isolate;
+  background:linear-gradient(165deg,rgba(255,255,255,.085),rgba(255,255,255,.022));
+  border:1px solid rgba(255,255,255,.09);
+  box-shadow:0 18px 44px -22px #000,0 1px 0 0 rgba(255,255,255,.12) inset;
+  backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);
+  transform-style:preserve-3d;touch-action:none;
+  transition:box-shadow .3s,border-color .3s,opacity .25s;
+  will-change:transform;
+}
+/* pointer spotlight — a soft light that follows the cursor across each tile */
+.tile::before{content:"";position:absolute;inset:0;z-index:-1;opacity:0;transition:opacity .35s;
+  background:radial-gradient(180px 140px at var(--px,50%) var(--py,50%),
+    color-mix(in srgb,var(--c) 34%,transparent),transparent 70%)}
+.tile:hover::before{opacity:1}
+.tile:hover{border-color:color-mix(in srgb,var(--c) 45%,transparent);
+  box-shadow:0 26px 60px -24px #000,0 0 0 1px color-mix(in srgb,var(--c) 35%,transparent) inset}
+.tile.drag{opacity:.35}
+.tile.ghost{position:fixed;z-index:60;pointer-events:none;opacity:1;cursor:grabbing;
+  box-shadow:0 40px 80px -20px #000;transform:scale(1.05) rotate(2deg)}
+
+.k{display:flex;align-items:center;gap:7px;font:600 9px/1 ui-monospace,Menlo,monospace;
+  letter-spacing:.2em;text-transform:uppercase;color:rgba(233,237,255,.42)}
+.k b{width:6px;height:6px;border-radius:2px;background:var(--c);box-shadow:0 0 10px var(--c)}
+.v{margin:9px 0 0;font-size:27px;font-weight:650;letter-spacing:-.045em;line-height:1;
+  font-variant-numeric:tabular-nums}
+.v em{font-size:12px;font-style:normal;font-weight:550;color:rgba(233,237,255,.4);margin-left:3px}
+.delta{margin-top:5px;font:600 10.5px/1 ui-monospace,monospace;letter-spacing:.04em}
+.up{color:#4dffcf}.down{color:#ff6e8a}
+canvas{display:block;width:100%}
+.tile .cv{position:absolute;left:0;right:0;bottom:0;height:52%}
+
+/* equaliser tile */
+.eq{display:flex;align-items:flex-end;gap:4px;height:46px;margin-top:12px}
+.eq i{flex:1;border-radius:3px;background:linear-gradient(180deg,var(--c),transparent);
+  height:20%;transition:height .12s linear}
+
+/* gauge tile */
+.gauge{position:relative;display:grid;place-items:center;margin-top:6px}
+.gauge canvas{width:96px;height:96px}
+.gauge span{position:absolute;font-size:19px;font-weight:650;letter-spacing:-.03em}
+
+.hint{margin:14px 2px 0;font:500 10px/1.5 ui-monospace,Menlo,monospace;
+  color:rgba(233,237,255,.28);letter-spacing:.05em;text-align:center}
+
+/* ------------------------------ detail view ------------------------------ */
+.scrim{position:fixed;inset:0;z-index:50;background:rgba(3,4,10,.72);backdrop-filter:blur(7px);
+  opacity:0;visibility:hidden;transition:opacity .4s,visibility .4s}
+.scrim[data-on]{opacity:1;visibility:visible}
+.detail{
+  position:fixed;z-index:55;border-radius:22px;overflow:hidden;padding:20px;
+  background:linear-gradient(165deg,#161a2e,#0c0e1a);
+  border:1px solid rgba(255,255,255,.12);box-shadow:0 50px 110px -30px #000;
+  visibility:hidden;
+  transition:top .52s cubic-bezier(.3,.9,.25,1),left .52s cubic-bezier(.3,.9,.25,1),
+             width .52s cubic-bezier(.3,.9,.25,1),height .52s cubic-bezier(.3,.9,.25,1),
+             border-radius .52s,visibility .52s}
+.detail[data-on]{visibility:visible}
+.detail .inner{opacity:0;transform:translateY(12px);transition:opacity .3s .22s,transform .4s .22s}
+.detail[data-open] .inner{opacity:1;transform:none}
+.detail h3{margin:12px 0 2px;font-size:25px;font-weight:650;letter-spacing:-.04em}
+.detail .big{font-size:42px;font-weight:650;letter-spacing:-.05em;margin:10px 0 2px;
+  font-variant-numeric:tabular-nums}
+.detail p{margin:6px 0 0;font-size:13px;color:rgba(233,237,255,.5);line-height:1.6}
+.detail .bigcv{width:100%;height:120px;margin-top:14px}
+.detail .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
+.detail .stats div{padding:10px;border-radius:13px;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.07)}
+.detail .stats b{display:block;font-size:15px;font-weight:650;letter-spacing:-.02em}
+.detail .stats span{font:600 8px/1 ui-monospace,monospace;letter-spacing:.14em;
+  text-transform:uppercase;color:rgba(233,237,255,.38)}
+.x{position:absolute;top:14px;right:14px;width:32px;height:32px;border:0;border-radius:50%;
+  background:rgba(255,255,255,.08);color:#fff;cursor:pointer;font-size:17px;line-height:1;
+  transition:transform .2s cubic-bezier(.2,1.5,.4,1),background .2s}
+.x:hover{background:rgba(255,255,255,.16);transform:rotate(90deg)}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <div><h1>Bento Flux</h1><p>reactor telemetry</p></div>
+    <div class="pill"><i></i>LIVE</div>
+  </header>
+
+  <div class="grid" id="grid">
+    <div class="tile" style="--c:#7c5cff;--col:2;--h:150px" data-id="flow"
+         data-title="Plasma Flow" data-unit="MW" data-desc="Core throughput sampled every 60ms. The line below is generated in real time — no recorded data, no libraries.">
+      <div class="k"><b></b>plasma flow</div>
+      <div class="v" data-v>0<em>MW</em></div>
+      <div class="delta up" data-d>+0.0%</div>
+      <canvas class="cv" data-chart="line"></canvas>
+    </div>
+
+    <div class="tile" style="--c:#00e0c6" data-id="core"
+         data-title="Core Stability" data-unit="%" data-desc="Containment field integrity. The gauge eases toward each new reading instead of snapping to it.">
+      <div class="k"><b></b>stability</div>
+      <div class="gauge"><canvas data-chart="gauge"></canvas><span data-v>0%</span></div>
+    </div>
+
+    <div class="tile" style="--c:#ff5fa8" data-id="freq"
+         data-title="Harmonics" data-unit="Hz" data-desc="Spectral bands across the resonance chamber, redrawn 60 times a second.">
+      <div class="k"><b></b>harmonics</div>
+      <div class="v" data-v>0<em>Hz</em></div>
+      <div class="eq" data-chart="eq"></div>
+    </div>
+
+    <div class="tile" style="--c:#ffb648" data-id="drift"
+         data-title="Thermal Drift" data-unit="°K" data-desc="Deviation from the target isotherm. Green means the loop is self-correcting.">
+      <div class="k"><b></b>thermal</div>
+      <div class="v" data-v>0<em>°K</em></div>
+      <div class="delta down" data-d>-0.0%</div>
+      <canvas class="cv" data-chart="line"></canvas>
+    </div>
+
+    <div class="tile" style="--c:#5cc8ff" data-id="crew"
+         data-title="Crew Load" data-unit="" data-desc="Active personnel keyed into the reactor deck right now.">
+      <div class="k"><b></b>crew load</div>
+      <div class="v" data-v>0<em>/48</em></div>
+      <div class="delta up" data-d>stable</div>
+    </div>
+  </div>
+
+  <p class="hint">click a tile to expand · drag one to reorder · move the pointer for parallax</p>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="detail" id="detail">
+  <button class="x" id="close" aria-label="close">×</button>
+  <div class="inner">
+    <div class="k" id="dk"><b></b><span></span></div>
+    <h3 id="dTitle"></h3>
+    <div class="big" id="dBig"></div>
+    <p id="dDesc"></p>
+    <canvas class="bigcv" id="dCv"></canvas>
+    <div class="stats">
+      <div><b id="s1">—</b><span>peak</span></div>
+      <div><b id="s2">—</b><span>mean</span></div>
+      <div><b id="s3">—</b><span>floor</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ==========================================================================
+   Three things make this work: a per-tile pointer spotlight + tilt, a real
+   FLIP expand (measure, reposition, let CSS interpolate), and pointer-based
+   drag reorder that re-animates every tile from its old box to its new one.
+   ========================================================================== */
+const grid=document.getElementById('grid'), tiles=[...grid.children];
+const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+const DPR=Math.min(devicePixelRatio||1,2);
+
+/* ------------------------- live data series ------------------------- */
+const SERIES={};
+tiles.forEach(t=>SERIES[t.dataset.id]={ data:Array.from({length:60},()=>Math.random()*.4+.3), v:0 });
+const SEED={flow:[820,1240,'MW'], core:[88,99.6,'%'], freq:[240,560,'Hz'], drift:[2,9,'°K'], crew:[31,46,'']};
+
+function stepData(){
+  tiles.forEach(t=>{
+    const s=SERIES[t.dataset.id], [lo,hi]=SEED[t.dataset.id];
+    const last=s.data[s.data.length-1];
+    let n=last + (Math.random()-.5)*.16 + (.55-last)*.05;      // drift + pull to centre
+    n=Math.max(.05,Math.min(.97,n));
+    s.data.push(n); s.data.shift();
+    s.v=lo+(hi-lo)*n;
+  });
+}
+setInterval(stepData, reduce?2000:220);
+
+/* ------------------------------ renderers ------------------------------ */
+function fitCanvas(c,h){
+  const w=c.clientWidth||100; const hh=h||c.clientHeight||50;
+  if(c.width!==Math.round(w*DPR)||c.height!==Math.round(hh*DPR)){
+    c.width=w*DPR; c.height=hh*DPR;
+  }
+  const x=c.getContext('2d'); x.setTransform(DPR,0,0,DPR,0,0);
+  return [x,w,hh];
+}
+function drawLine(c,data,color,fill){
+  const [x,w,h]=fitCanvas(c); x.clearRect(0,0,w,h);
+  const pad=4, n=data.length;
+  const px=i=>i/(n-1)*w, py=v=>h-pad-v*(h-pad*2);
+  x.beginPath();
+  data.forEach((v,i)=>{                                  // smooth with midpoints
+    if(!i){ x.moveTo(px(0),py(v)); return; }
+    const mx=(px(i-1)+px(i))/2;
+    x.quadraticCurveTo(px(i-1),py(data[i-1]),mx,(py(data[i-1])+py(v))/2);
+  });
+  x.lineTo(px(n-1),py(data[n-1]));
+  if(fill){
+    x.save(); x.lineTo(w,h); x.lineTo(0,h); x.closePath();
+    const g=x.createLinearGradient(0,0,0,h);
+    g.addColorStop(0,color+'55'); g.addColorStop(1,color+'00');
+    x.fillStyle=g; x.fill(); x.restore();
+  }
+  x.strokeStyle=color; x.lineWidth=1.8; x.lineJoin='round'; x.shadowBlur=10; x.shadowColor=color;
+  x.stroke(); x.shadowBlur=0;
+  // leading dot
+  x.fillStyle='#fff'; x.beginPath(); x.arc(px(n-1),py(data[n-1]),2.4,0,6.2832); x.fill();
+}
+function drawGauge(c,v,color){
+  const [x,w,h]=fitCanvas(c,96); x.clearRect(0,0,w,h);
+  const cx=w/2, cy=h/2, r=Math.min(w,h)/2-8, A=-2.4, B=2.4;
+  x.lineCap='round'; x.lineWidth=8;
+  x.strokeStyle='rgba(255,255,255,.08)';
+  x.beginPath(); x.arc(cx,cy,r,A,B); x.stroke();
+  const g=x.createLinearGradient(0,0,w,h);
+  g.addColorStop(0,color); g.addColorStop(1,'#ffffff');
+  x.strokeStyle=g; x.shadowBlur=14; x.shadowColor=color;
+  x.beginPath(); x.arc(cx,cy,r,A,A+(B-A)*v); x.stroke(); x.shadowBlur=0;
+}
+
+const eqHost=grid.querySelector('[data-chart="eq"]');
+for(let i=0;i<14;i++) eqHost.appendChild(document.createElement('i'));
+
+let gaugeShown=0;
+function render(){
+  requestAnimationFrame(render);
+  tiles.forEach(t=>{
+    const s=SERIES[t.dataset.id], id=t.dataset.id, c=getComputedStyle(t).getPropertyValue('--c').trim();
+    const vEl=t.querySelector('[data-v]'), dEl=t.querySelector('[data-d]');
+    const unit=t.dataset.unit;
+    if(id==='core'){
+      gaugeShown += (s.data[s.data.length-1]-gaugeShown)*.06;
+      drawGauge(t.querySelector('canvas'), gaugeShown, c);
+      vEl.textContent=(88+gaugeShown*11.6).toFixed(1)+'%';
+    }else if(id==='freq'){
+      const bars=eqHost.children;
+      for(let i=0;i<bars.length;i++){
+        const v=s.data[s.data.length-1-i*2] ?? .3;
+        bars[i].style.height=(12+v*84)+'%';
+      }
+      vEl.innerHTML=Math.round(s.v)+'<em>'+unit+'</em>';
+    }else{
+      const cv=t.querySelector('canvas');
+      if(cv) drawLine(cv, s.data, c, true);
+      const num = id==='crew' ? Math.round(s.v) : s.v.toFixed(id==='drift'?1:0);
+      vEl.innerHTML=num+(unit?'<em>'+unit+'</em>':'<em>/48</em>');
+      if(dEl && id!=='crew'){
+        const d=(s.data[59]-s.data[52])*100;
+        dEl.textContent=(d>=0?'+':'')+d.toFixed(1)+'%';
+        dEl.className='delta '+(d>=0?'up':'down');
+      }
+    }
+  });
+  if(open) drawLine(document.getElementById('dCv'), SERIES[open].data,
+    getComputedStyle(tiles.find(t=>t.dataset.id===open)).getPropertyValue('--c').trim(), true);
+}
+render();
+
+/* --------------------- spotlight + magnetic tilt --------------------- */
+tiles.forEach(t=>{
+  t.addEventListener('pointermove',e=>{
+    const b=t.getBoundingClientRect();
+    const px=(e.clientX-b.left)/b.width, py=(e.clientY-b.top)/b.height;
+    t.style.setProperty('--px',(px*100)+'%');
+    t.style.setProperty('--py',(py*100)+'%');
+    if(!reduce && !dragging)
+      t.style.transform='rotateY('+((px-.5)*9)+'deg) rotateX('+(-(py-.5)*9)+'deg) translateZ(6px)';
+  });
+  t.addEventListener('pointerleave',()=>{ if(!dragging) t.style.transform=''; });
+});
+
+/* ------------------------------ FLIP expand ------------------------------ */
+const detail=document.getElementById('detail'), scrim=document.getElementById('scrim');
+let open=null, fromRect=null;
+
+function expand(t){
+  if(open||dragging) return;
+  open=t.dataset.id; fromRect=t.getBoundingClientRect();
+  const c=getComputedStyle(t).getPropertyValue('--c').trim();
+  const s=SERIES[open], unit=t.dataset.unit;
+
+  document.getElementById('dk').style.setProperty('--c',c);
+  document.getElementById('dk').querySelector('b').style.background=c;
+  document.getElementById('dk').querySelector('span').textContent=t.querySelector('.k').textContent.trim();
+  document.getElementById('dTitle').textContent=t.dataset.title;
+  document.getElementById('dDesc').textContent=t.dataset.desc;
+  document.getElementById('dBig').textContent=(open==='crew'?Math.round(s.v):s.v.toFixed(1))+unit;
+  const arr=s.data;
+  document.getElementById('s1').textContent=fmt(open,Math.max(...arr));
+  document.getElementById('s2').textContent=fmt(open,arr.reduce((a,b)=>a+b,0)/arr.length);
+  document.getElementById('s3').textContent=fmt(open,Math.min(...arr));
+  detail.style.setProperty('--c',c);
+
+  // FIRST: sit exactly on the tile
+  Object.assign(detail.style,{
+    top:fromRect.top+'px', left:fromRect.left+'px',
+    width:fromRect.width+'px', height:fromRect.height+'px', borderRadius:'22px'
+  });
+  detail.setAttribute('data-on','');
+  scrim.setAttribute('data-on','');
+  detail.getBoundingClientRect();                       // force the layout to stick
+
+  // LAST: grow to the target box; CSS interpolates the four numbers
+  const W=Math.min(360,innerWidth-32), H=Math.min(470,innerHeight-60);
+  requestAnimationFrame(()=>{
+    Object.assign(detail.style,{
+      top:((innerHeight-H)/2)+'px', left:((innerWidth-W)/2)+'px',
+      width:W+'px', height:H+'px', borderRadius:'28px'
+    });
+    detail.setAttribute('data-open','');
+  });
+}
+function fmt(id,v){
+  const [lo,hi,u]=SEED[id]; const val=lo+(hi-lo)*v;
+  return (id==='crew'?Math.round(val):val.toFixed(1))+u;
+}
+function collapse(){
+  if(!open) return;
+  const t=tiles.find(x=>x.dataset.id===open);
+  const r=t.getBoundingClientRect();
+  detail.removeAttribute('data-open');
+  Object.assign(detail.style,{top:r.top+'px',left:r.left+'px',
+    width:r.width+'px',height:r.height+'px',borderRadius:'22px'});
+  scrim.removeAttribute('data-on');
+  open=null;
+  setTimeout(()=>detail.removeAttribute('data-on'), reduce?10:520);
+}
+document.getElementById('close').onclick=collapse;
+scrim.onclick=collapse;
+addEventListener('keydown',e=>{ if(e.key==='Escape') collapse(); });
+
+/* --------------------------- drag to reorder --------------------------- */
+let dragging=null, startX=0, startY=0, moved=false, offX=0, offY=0, ph=null;
+
+tiles.forEach(t=>{
+  t.addEventListener('pointerdown',e=>{
+    if(open) return;
+    startX=e.clientX; startY=e.clientY; moved=false;
+    const b=t.getBoundingClientRect(); offX=e.clientX-b.left; offY=e.clientY-b.top;
+    const onMove=ev=>{
+      if(!moved && Math.hypot(ev.clientX-startX,ev.clientY-startY)>7){
+        moved=true; beginDrag(t,b);
+      }
+      if(moved) moveDrag(ev);
+    };
+    const onUp=()=>{
+      removeEventListener('pointermove',onMove); removeEventListener('pointerup',onUp);
+      if(moved) endDrag(); else expand(t);
+    };
+    addEventListener('pointermove',onMove); addEventListener('pointerup',onUp);
+  });
+});
+
+function beginDrag(t,b){
+  dragging=t;
+  ph=document.createElement('div');                       // placeholder keeps the gap
+  ph.style.cssText='grid-column:span '+(getComputedStyle(t).getPropertyValue('--col').trim()||1)+
+    ';min-height:'+b.height+'px;border-radius:22px;border:1.5px dashed rgba(255,255,255,.18)';
+  t.after(ph);
+  Object.assign(t.style,{width:b.width+'px',height:b.height+'px',
+    top:b.top+'px',left:b.left+'px',transform:''});
+  t.classList.add('ghost');
+}
+function moveDrag(e){
+  dragging.style.top=(e.clientY-offY)+'px';
+  dragging.style.left=(e.clientX-offX)+'px';
+  dragging.style.transform='scale(1.05) rotate('+Math.max(-4,Math.min(4,(e.movementX||0)))+'deg)';
+
+  const under=document.elementsFromPoint(e.clientX,e.clientY)
+    .find(el=>el.classList && el.classList.contains('tile') && el!==dragging);
+  if(!under) return;
+  const first=snapshot();
+  const b=under.getBoundingClientRect();
+  const after = e.clientY > b.top+b.height/2 || (e.clientX > b.left+b.width/2 && Math.abs(e.clientY-(b.top+b.height/2))<b.height/2);
+  under[after?'after':'before'](ph);
+  play(first);
+}
+function endDrag(){
+  const first=snapshot();
+  ph.replaceWith(dragging);
+  dragging.classList.remove('ghost');
+  dragging.style.cssText=dragging.style.cssText
+    .replace(/(top|left|width|height|transform):[^;]*;?/g,'');
+  // re-apply the tile's own custom props that lived in the inline style
+  play(first, dragging);
+  dragging=null; ph=null;
+}
+function snapshot(){
+  const m=new Map();
+  [...grid.children].forEach(el=>{ if(el!==dragging) m.set(el, el.getBoundingClientRect()); });
+  return m;
+}
+function play(first, extra){
+  if(reduce) return;
+  [...grid.children].forEach(el=>{
+    const a=first.get(el); if(!a) return;
+    const b=el.getBoundingClientRect();
+    const dx=a.left-b.left, dy=a.top-b.top;
+    if(!dx&&!dy) return;
+    el.animate([{transform:'translate('+dx+'px,'+dy+'px)'},{transform:'none'}],
+      {duration:420,easing:'cubic-bezier(.3,1.1,.3,1)'});
+  });
+  if(extra) extra.animate([{transform:'scale(1.05)'},{transform:'none'}],
+    {duration:340,easing:'cubic-bezier(.3,1.4,.3,1)'});
+}
+
+addEventListener('resize',()=>{ if(open){ const t=tiles.find(x=>x.dataset.id===open); if(t) collapse(); } });
+</script>
+</body>
+</html>

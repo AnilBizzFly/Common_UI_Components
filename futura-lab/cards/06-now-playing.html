@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Now Playing</title>
+<style>
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;min-height:100%;display:grid;place-items:center;padding:74px 20px 64px;
+  overflow-x:hidden;font:400 15px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#e9edff;background:#06070d;--c:#ff2fb3}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(105px);
+  pointer-events:none;z-index:0}
+body::before{width:54vmax;height:54vmax;left:-20vmax;top:-24vmax;
+  background:color-mix(in srgb,var(--c) 30%,transparent)}
+body::after{width:46vmax;height:46vmax;right:-18vmax;bottom:-22vmax;background:rgba(0,190,255,.16)}
+
+.bar{position:fixed;inset:0 0 auto 0;z-index:5;display:flex;align-items:center;
+  justify-content:space-between;gap:10px;padding:16px 18px;
+  font:600 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.2em;text-transform:uppercase}
+.bar a{color:rgba(233,237,255,.4);text-decoration:none;padding:8px 11px;border-radius:9px;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);transition:.22s}
+.bar a:hover{color:#fff;border-color:color-mix(in srgb,var(--c) 55%,transparent);
+  background:color-mix(in srgb,var(--c) 16%,transparent)}
+.bar .rt{display:flex;gap:8px}
+
+.stage{position:relative;z-index:1;width:min(460px,100%);text-align:center}
+.eyebrow{margin:0 0 10px;font:600 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.3em;
+  text-transform:uppercase;color:color-mix(in srgb,var(--c) 70%,#8890b8)}
+h1{margin:0 0 8px;font-size:clamp(26px,6vw,34px);font-weight:650;letter-spacing:-.04em}
+.desc{margin:0;font-size:13.5px;color:rgba(233,237,255,.48);line-height:1.6}
+
+.demo{margin:24px 0 0;padding:40px 22px;border-radius:26px;min-height:176px;position:relative;
+  display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:16px;
+  background:linear-gradient(165deg,rgba(255,255,255,.075),rgba(255,255,255,.018));
+  border:1px solid rgba(255,255,255,.09);
+  box-shadow:0 26px 60px -30px #000,0 1px 0 0 rgba(255,255,255,.12) inset;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.demo.block{display:block;text-align:left;padding:26px 22px}
+.demo.bare{background:none;border:0;box-shadow:none;backdrop-filter:none;padding:14px 0}
+
+.note{margin:14px 0 0;font:500 11px/1.7 ui-monospace,Menlo,monospace;letter-spacing:.05em;
+  color:rgba(233,237,255,.32)}
+.note b{color:color-mix(in srgb,var(--c) 75%,#fff);font-weight:600}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important}
+}
+
+.card{position:relative;width:min(320px,100%);border-radius:22px;overflow:hidden;
+  background:linear-gradient(165deg,rgba(255,255,255,.075),rgba(255,255,255,.02));
+  border:1px solid rgba(255,255,255,.1);
+  box-shadow:0 26px 60px -28px #000,0 1px 0 0 rgba(255,255,255,.12) inset}
+.pad{padding:18px}
+.card h3{margin:0;font-size:17px;font-weight:650;letter-spacing:-.03em}
+.card .sub{margin:5px 0 0;font-size:12.5px;color:rgba(233,237,255,.46);line-height:1.5}
+.k{font:600 8.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.2em;text-transform:uppercase;
+  color:rgba(233,237,255,.38)}
+
+.card{background:linear-gradient(160deg,#241539,#0d0a1c)}
+.row{display:flex;align-items:center;gap:14px}
+.cov{width:62px;height:62px;border-radius:18px;flex:none;
+  background:conic-gradient(from 40deg,#ff2fb3,#7c5cff,#31e0ff,#ff2fb3);
+  box-shadow:0 0 28px -8px #7c5cff;animation:rot 8s linear infinite;animation-play-state:paused}
+[data-play] .cov{animation-play-state:running}
+@keyframes rot{to{transform:rotate(1turn)}}
+.pp{width:44px;height:44px;flex:none;border:0;border-radius:50%;cursor:pointer;background:#fff;
+  color:#0b0716;display:grid;place-items:center;transition:transform .2s cubic-bezier(.2,1.6,.4,1)}
+.pp:active{transform:scale(.88)}
+.pp svg{width:16px;height:16px;fill:currentColor}
+.pp .pa{display:none}
+[data-play] .pp .pl{display:none}
+[data-play] .pp .pa{display:block}
+.eq{display:flex;align-items:flex-end;gap:3px;height:30px;margin-top:16px}
+.eq i{flex:1;border-radius:2px;background:linear-gradient(180deg,#31e0ff,#7c5cff);height:15%;
+  transition:height .12s linear}
+.bar{height:4px;border-radius:99px;background:rgba(255,255,255,.12);margin-top:14px;overflow:hidden}
+.bar span{display:block;height:100%;width:0%;border-radius:99px;
+  background:linear-gradient(90deg,#31e0ff,#ff2fb3)}
+.time{display:flex;justify-content:space-between;margin-top:8px;
+  font:600 10px/1 ui-monospace,monospace;color:rgba(233,237,255,.35)}
+</style>
+</head>
+<body>
+<nav class="bar">
+  <a href="index.html">&larr; cards</a>
+  <span class="rt"><a href="05-profile.html" title="previous">&larr;</a><a href="07-weather.html" title="next">&rarr;</a></span>
+</nav>
+
+<main class="stage">
+  <p class="eyebrow">Cards &middot; 06 / 12</p>
+  <h1>Now Playing</h1>
+  <p class="desc">Play spins the disc, runs a 22-band equaliser and advances the scrubber. Pause freezes all three.</p>
+  <div class="demo">
+    <div class="card" id="card">
+      <div class="pad">
+        <div class="row">
+          <div class="cov"></div>
+          <div style="flex:1;min-width:0">
+            <h3 style="font-size:16px">Solar Static</h3>
+            <p class="sub" style="margin-top:3px">Aeon Drift</p>
+          </div>
+          <button class="pp" id="pp" aria-label="play">
+            <svg class="pl" viewBox="0 0 24 24"><path d="M8 5v14l12-7z"/></svg>
+            <svg class="pa" viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>
+          </button>
+        </div>
+        <div class="eq" id="eq"></div>
+        <div class="bar"><span id="fill"></span></div>
+        <div class="time"><span id="cur">0:00</span><span>3:48</span></div>
+      </div>
+    </div>
+  </div>
+  <p class="note">Bars are driven by offset sine waves, so the motion never repeats exactly.</p>
+</main>
+<script>
+const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+const $=id=>document.getElementById(id);
+const card=$('card'), eq=$('eq'), fill=$('fill'), cur=$('cur');
+for(let i=0;i<22;i++) eq.appendChild(document.createElement('i'));
+let playing=false, p=0;
+$('pp').addEventListener('click',()=>{ playing=!playing; card.toggleAttribute('data-play',playing); });
+setInterval(()=>{
+  if(!playing) return;
+  [...eq.children].forEach((b,i)=>
+    b.style.height=(12+Math.abs(Math.sin(Date.now()/240+i*.6))*80)+'%');
+  p=(p+.35)%100; fill.style.width=p+'%';
+  const s=Math.floor(228*p/100);
+  cur.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+}, reduce?500:70);
+</script>
+</body>
+</html>

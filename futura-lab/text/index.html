@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kinetic text — Futura Lab</title>
+<style>
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;min-height:100%;display:grid;place-items:center;padding:74px 20px 64px;
+  overflow-x:hidden;font:400 15px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#e9edff;background:#06070d;--c:#ff9ee0}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(105px);
+  pointer-events:none;z-index:0}
+body::before{width:54vmax;height:54vmax;left:-20vmax;top:-24vmax;
+  background:color-mix(in srgb,var(--c) 30%,transparent)}
+body::after{width:46vmax;height:46vmax;right:-18vmax;bottom:-22vmax;background:rgba(0,190,255,.16)}
+
+.bar{position:fixed;inset:0 0 auto 0;z-index:5;display:flex;align-items:center;
+  justify-content:space-between;gap:10px;padding:16px 18px;
+  font:600 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.2em;text-transform:uppercase}
+.bar a{color:rgba(233,237,255,.4);text-decoration:none;padding:8px 11px;border-radius:9px;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);transition:.22s}
+.bar a:hover{color:#fff;border-color:color-mix(in srgb,var(--c) 55%,transparent);
+  background:color-mix(in srgb,var(--c) 16%,transparent)}
+.bar .rt{display:flex;gap:8px}
+
+.stage{position:relative;z-index:1;width:min(460px,100%);text-align:center}
+.eyebrow{margin:0 0 10px;font:600 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.3em;
+  text-transform:uppercase;color:color-mix(in srgb,var(--c) 70%,#8890b8)}
+h1{margin:0 0 8px;font-size:clamp(26px,6vw,34px);font-weight:650;letter-spacing:-.04em}
+.desc{margin:0;font-size:13.5px;color:rgba(233,237,255,.48);line-height:1.6}
+
+.demo{margin:24px 0 0;padding:40px 22px;border-radius:26px;min-height:176px;position:relative;
+  display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:16px;
+  background:linear-gradient(165deg,rgba(255,255,255,.075),rgba(255,255,255,.018));
+  border:1px solid rgba(255,255,255,.09);
+  box-shadow:0 26px 60px -30px #000,0 1px 0 0 rgba(255,255,255,.12) inset;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.demo.block{display:block;text-align:left;padding:26px 22px}
+.demo.bare{background:none;border:0;box-shadow:none;backdrop-filter:none;padding:14px 0}
+
+.note{margin:14px 0 0;font:500 11px/1.7 ui-monospace,Menlo,monospace;letter-spacing:.05em;
+  color:rgba(233,237,255,.32)}
+.note b{color:color-mix(in srgb,var(--c) 75%,#fff);font-weight:600}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important}
+}
+
+body{display:block;place-items:unset;padding:74px 20px 70px}
+.sheet{position:relative;z-index:1;max-width:760px;margin:0 auto}
+.hd{margin-bottom:26px}
+.hd h1{font-size:clamp(30px,7vw,44px);letter-spacing:-.05em;margin-bottom:8px}
+.hd p{margin:0;color:rgba(233,237,255,.5);font-size:14.5px}
+.count{display:inline-block;margin-top:14px;padding:6px 11px;border-radius:99px;
+  font:700 9.5px/1 ui-monospace,monospace;letter-spacing:.18em;color:var(--c);
+  background:color-mix(in srgb,var(--c) 14%,transparent);
+  border:1px solid color-mix(in srgb,var(--c) 32%,transparent)}
+.list{display:flex;flex-direction:column;gap:7px}
+.row{display:flex;align-items:center;gap:14px;padding:15px 17px;border-radius:17px;
+  text-decoration:none;color:inherit;
+  background:linear-gradient(165deg,rgba(255,255,255,.06),rgba(255,255,255,.015));
+  border:1px solid rgba(255,255,255,.08);
+  transition:transform .3s cubic-bezier(.2,1.1,.3,1),border-color .3s,background .3s}
+.row:hover{transform:translateX(6px);border-color:color-mix(in srgb,var(--c) 50%,transparent);
+  background:color-mix(in srgb,var(--c) 10%,rgba(255,255,255,.02))}
+.row .n{font:700 11px/1 ui-monospace,monospace;letter-spacing:.14em;color:rgba(233,237,255,.28);
+  flex:none;width:26px}
+.row .t{flex:1;min-width:0}
+.row .t b{display:block;font-size:15px;font-weight:600;letter-spacing:-.02em}
+.row .t em{display:block;font-style:normal;font-size:12.5px;color:rgba(233,237,255,.42);
+  margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .dot{width:8px;height:8px;border-radius:50%;flex:none;box-shadow:0 0 12px currentColor}
+.row .go{flex:none;color:rgba(233,237,255,.3);transition:transform .3s,color .3s}
+.row:hover .go{color:#fff;transform:translateX(4px)}
+</style>
+</head>
+<body>
+<nav class="bar"><a href="../index.html">&larr; futura lab</a></nav>
+<div class="sheet">
+  <div class="hd">
+    <h1>Kinetic text</h1>
+    <p>Type that moves with intent. Every one of them replays on demand.</p>
+    <span class="count">16 PROTOTYPES</span>
+  </div>
+  <div class="list">
+    <a class="row" href="01-scramble.html">
+      <span class="n">01</span>
+      <span class="t"><b>Scramble Decode</b><em>The word resolves out of random glyphs, locking in one character at a time from the left.</em></span>
+      <span class="dot" style="background:#4dffcf;color:#4dffcf"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="02-shine.html">
+      <span class="n">02</span>
+      <span class="t"><b>Specular Shine</b><em>A bright band travels through the letterforms themselves, as if a light were passing behind the text.</em></span>
+      <span class="dot" style="background:#8ee7ff;color:#8ee7ff"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="03-letter-stagger.html">
+      <span class="n">03</span>
+      <span class="t"><b>Letter Stagger</b><em>Every character is its own element, rising and untwisting on a 46ms cascade.</em></span>
+      <span class="dot" style="background:#a06bff;color:#a06bff"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="04-typewriter.html">
+      <span class="n">04</span>
+      <span class="t"><b>Typewriter Loop</b><em>Types a phrase, holds, deletes it faster than it wrote it, then moves to the next one. Forever.</em></span>
+      <span class="dot" style="background:#ff9ee0;color:#ff9ee0"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="05-glitch.html">
+      <span class="n">05</span>
+      <span class="t"><b>RGB Glitch</b><em>Magenta and cyan copies of the text slip out of register in short bursts, then snap back.</em></span>
+      <span class="dot" style="background:#ff2fb3;color:#ff2fb3"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="06-wave.html">
+      <span class="n">06</span>
+      <span class="t"><b>Letter Wave</b><em>A travelling swell runs through the word &mdash; each letter lifts and swells 70ms after the one before it.</em></span>
+      <span class="dot" style="background:#8ee7ff;color:#8ee7ff"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="07-blur-in.html">
+      <span class="n">07</span>
+      <span class="t"><b>Blur In</b><em>The sentence arrives out of focus, one word at a time, resolving as it settles.</em></span>
+      <span class="dot" style="background:#c9b6ff;color:#c9b6ff"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="08-word-rotator.html">
+      <span class="n">08</span>
+      <span class="t"><b>Word Rotator</b><em>A slot machine for a single word. The list duplicates its first item so the loop back is invisible.</em></span>
+      <span class="dot" style="background:#ff9ee0;color:#ff9ee0"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="09-marquee.html">
+      <span class="n">09</span>
+      <span class="t"><b>Seamless Marquee</b><em>The list is printed twice and shifted by exactly half, so the loop point never lands on a gap.</em></span>
+      <span class="dot" style="background:#31e0ff;color:#31e0ff"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="10-odometer.html">
+      <span class="n">10</span>
+      <span class="t"><b>Odometer Roll</b><em>Each digit is a strip of 0-9 sliding to the right number, with a 70ms stagger so they land in sequence.</em></span>
+      <span class="dot" style="background:#8ea8ff;color:#8ea8ff"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="11-magnetic-letters.html">
+      <span class="n">11</span>
+      <span class="t"><b>Magnetic Letters</b><em>Every letter pushes away from your cursor and grows as it flees, snapping back once you are 90px out.</em></span>
+      <span class="dot" style="background:#ff9ee0;color:#ff9ee0"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="12-outline-fill.html">
+      <span class="n">12</span>
+      <span class="t"><b>Outline to Fill</b><em>Hollow stroked type that floods with colour from the left when you hover it.</em></span>
+      <span class="dot" style="background:#ffd23d;color:#ffd23d"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="13-flip-letters.html">
+      <span class="n">13</span>
+      <span class="t"><b>3D Letter Flip</b><em>Hover and every character rolls a full turn on the X axis, one after another.</em></span>
+      <span class="dot" style="background:#a06bff;color:#a06bff"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="14-neon-flicker.html">
+      <span class="n">14</span>
+      <span class="t"><b>Neon Flicker</b><em>Four stacked text-shadows build the tube and the halo; an irregular keyframe makes the gas stutter.</em></span>
+      <span class="dot" style="background:#31e0ff;color:#31e0ff"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="15-spotlight-text.html">
+      <span class="n">15</span>
+      <span class="t"><b>Spotlight Text</b><em>The type sits at 14% opacity until your cursor drags a pool of colour across it.</em></span>
+      <span class="dot" style="background:#ffd23d;color:#ffd23d"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="16-decrypt-lines.html">
+      <span class="n">16</span>
+      <span class="t"><b>Line Decrypt</b><em>A terminal boot sequence: each line types out behind a flickering cipher character, then the next one starts.</em></span>
+      <span class="dot" style="background:#4dffcf;color:#4dffcf"></span>
+      <span class="go">&rarr;</span>
+    </a>
+  </div>
+</div>
+</body>
+</html>

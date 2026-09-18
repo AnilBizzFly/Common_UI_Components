@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Buttons — Futura Lab</title>
+<style>
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;min-height:100%;display:grid;place-items:center;padding:74px 20px 64px;
+  overflow-x:hidden;font:400 15px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#e9edff;background:#06070d;--c:#7c5cff}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(105px);
+  pointer-events:none;z-index:0}
+body::before{width:54vmax;height:54vmax;left:-20vmax;top:-24vmax;
+  background:color-mix(in srgb,var(--c) 30%,transparent)}
+body::after{width:46vmax;height:46vmax;right:-18vmax;bottom:-22vmax;background:rgba(0,190,255,.16)}
+
+.bar{position:fixed;inset:0 0 auto 0;z-index:5;display:flex;align-items:center;
+  justify-content:space-between;gap:10px;padding:16px 18px;
+  font:600 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.2em;text-transform:uppercase}
+.bar a{color:rgba(233,237,255,.4);text-decoration:none;padding:8px 11px;border-radius:9px;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);transition:.22s}
+.bar a:hover{color:#fff;border-color:color-mix(in srgb,var(--c) 55%,transparent);
+  background:color-mix(in srgb,var(--c) 16%,transparent)}
+.bar .rt{display:flex;gap:8px}
+
+.stage{position:relative;z-index:1;width:min(460px,100%);text-align:center}
+.eyebrow{margin:0 0 10px;font:600 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.3em;
+  text-transform:uppercase;color:color-mix(in srgb,var(--c) 70%,#8890b8)}
+h1{margin:0 0 8px;font-size:clamp(26px,6vw,34px);font-weight:650;letter-spacing:-.04em}
+.desc{margin:0;font-size:13.5px;color:rgba(233,237,255,.48);line-height:1.6}
+
+.demo{margin:24px 0 0;padding:40px 22px;border-radius:26px;min-height:176px;position:relative;
+  display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:16px;
+  background:linear-gradient(165deg,rgba(255,255,255,.075),rgba(255,255,255,.018));
+  border:1px solid rgba(255,255,255,.09);
+  box-shadow:0 26px 60px -30px #000,0 1px 0 0 rgba(255,255,255,.12) inset;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.demo.block{display:block;text-align:left;padding:26px 22px}
+.demo.bare{background:none;border:0;box-shadow:none;backdrop-filter:none;padding:14px 0}
+
+.note{margin:14px 0 0;font:500 11px/1.7 ui-monospace,Menlo,monospace;letter-spacing:.05em;
+  color:rgba(233,237,255,.32)}
+.note b{color:color-mix(in srgb,var(--c) 75%,#fff);font-weight:600}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important}
+}
+
+body{display:block;place-items:unset;padding:74px 20px 70px}
+.sheet{position:relative;z-index:1;max-width:760px;margin:0 auto}
+.hd{margin-bottom:26px}
+.hd h1{font-size:clamp(30px,7vw,44px);letter-spacing:-.05em;margin-bottom:8px}
+.hd p{margin:0;color:rgba(233,237,255,.5);font-size:14.5px}
+.count{display:inline-block;margin-top:14px;padding:6px 11px;border-radius:99px;
+  font:700 9.5px/1 ui-monospace,monospace;letter-spacing:.18em;color:var(--c);
+  background:color-mix(in srgb,var(--c) 14%,transparent);
+  border:1px solid color-mix(in srgb,var(--c) 32%,transparent)}
+.list{display:flex;flex-direction:column;gap:7px}
+.row{display:flex;align-items:center;gap:14px;padding:15px 17px;border-radius:17px;
+  text-decoration:none;color:inherit;
+  background:linear-gradient(165deg,rgba(255,255,255,.06),rgba(255,255,255,.015));
+  border:1px solid rgba(255,255,255,.08);
+  transition:transform .3s cubic-bezier(.2,1.1,.3,1),border-color .3s,background .3s}
+.row:hover{transform:translateX(6px);border-color:color-mix(in srgb,var(--c) 50%,transparent);
+  background:color-mix(in srgb,var(--c) 10%,rgba(255,255,255,.02))}
+.row .n{font:700 11px/1 ui-monospace,monospace;letter-spacing:.14em;color:rgba(233,237,255,.28);
+  flex:none;width:26px}
+.row .t{flex:1;min-width:0}
+.row .t b{display:block;font-size:15px;font-weight:600;letter-spacing:-.02em}
+.row .t em{display:block;font-style:normal;font-size:12.5px;color:rgba(233,237,255,.42);
+  margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .dot{width:8px;height:8px;border-radius:50%;flex:none;box-shadow:0 0 12px currentColor}
+.row .go{flex:none;color:rgba(233,237,255,.3);transition:transform .3s,color .3s}
+.row:hover .go{color:#fff;transform:translateX(4px)}
+</style>
+</head>
+<body>
+<nav class="bar"><a href="../index.html">&larr; futura lab</a></nav>
+<div class="sheet">
+  <div class="hd">
+    <h1>Buttons</h1>
+    <p>Press, hold, load, copy, toggle — every state wired, not a hover picture.</p>
+    <span class="count">24 PROTOTYPES</span>
+  </div>
+  <div class="list">
+    <a class="row" href="01-magnetic.html">
+      <span class="n">01</span>
+      <span class="t"><b>Magnetic Button</b><em>The body chases your cursor and the label lags behind it, so the button feels like it has mass.</em></span>
+      <span class="dot" style="background:#7c5cff;color:#7c5cff"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="02-gooey.html">
+      <span class="n">02</span>
+      <span class="t"><b>Gooey Split</b><em>Two metaballs hide behind the pill. On hover they pull apart and an SVG goo filter stretches the liquid between them.</em></span>
+      <span class="dot" style="background:#ff2fb3;color:#ff2fb3"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="03-liquid-fill.html">
+      <span class="n">03</span>
+      <span class="t"><b>Liquid Fill</b><em>A wave crest rides on top of the rising fill, so it reads as liquid instead of a growing rectangle.</em></span>
+      <span class="dot" style="background:#4dffcf;color:#4dffcf"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="04-ripple.html">
+      <span class="n">04</span>
+      <span class="t"><b>Pointer Ripple</b><em>A circle is born at the exact pixel you pressed and expands past the edges of the button.</em></span>
+      <span class="dot" style="background:#8cbeff;color:#8cbeff"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="05-border-beam.html">
+      <span class="n">05</span>
+      <span class="t"><b>Border Beam</b><em>A conic gradient spins behind the button; an inset panel covers all of it except a 2px rim.</em></span>
+      <span class="dot" style="background:#31e0ff;color:#31e0ff"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="06-glitch.html">
+      <span class="n">06</span>
+      <span class="t"><b>Glitch Split</b><em>Two clipped copies of the label in magenta and cyan jitter out of register while you hover.</em></span>
+      <span class="dot" style="background:#ff3d8b;color:#ff3d8b"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="07-load-success.html">
+      <span class="n">07</span>
+      <span class="t"><b>Load &rarr; Success</b><em>Click and the button collapses to a circle, spins, then turns green and draws a tick before resetting.</em></span>
+      <span class="dot" style="background:#31e0ff;color:#31e0ff"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="08-hold-confirm.html">
+      <span class="n">08</span>
+      <span class="t"><b>Hold to Confirm</b><em>Destructive actions should cost something. Press and keep pressing for 1.2s &mdash; let go early and it rewinds.</em></span>
+      <span class="dot" style="background:#ff5e79;color:#ff5e79"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="09-copy.html">
+      <span class="n">09</span>
+      <span class="t"><b>Copy to Clipboard</b><em>Writes real text to your clipboard, confirms, and rolls back. Falls back to execCommand when the page is opened from disk.</em></span>
+      <span class="dot" style="background:#4dffcf;color:#4dffcf"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="10-icon-expand.html">
+      <span class="n">10</span>
+      <span class="t"><b>Icon Expand</b><em>A 54px circle that unrolls into a full label on hover, with the icon staying put.</em></span>
+      <span class="dot" style="background:#7c5cff;color:#7c5cff"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="11-push-3d.html">
+      <span class="n">11</span>
+      <span class="t"><b>3D Push Key</b><em>A solid shadow below the face collapses on press, so the key travels 6px into the page.</em></span>
+      <span class="dot" style="background:#ffd23d;color:#ffd23d"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="12-neon.html">
+      <span class="n">12</span>
+      <span class="t"><b>Neon Invert</b><em>Outlined neon tube that floods with its own colour on hover and throws light onto the surface behind it.</em></span>
+      <span class="dot" style="background:#31e0ff;color:#31e0ff"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="13-shine.html">
+      <span class="n">13</span>
+      <span class="t"><b>Specular Shine</b><em>A skewed highlight sweeps across the face on hover, like light catching a polished edge.</em></span>
+      <span class="dot" style="background:#a06bff;color:#a06bff"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="14-like-burst.html">
+      <span class="n">14</span>
+      <span class="t"><b>Like Burst</b><em>Toggling the heart fills it, bumps the count, and throws ten particles out on a circle.</em></span>
+      <span class="dot" style="background:#ff6e8a;color:#ff6e8a"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="15-download.html">
+      <span class="n">15</span>
+      <span class="t"><b>Download Progress</b><em>The button becomes its own progress bar, counts percent, then confirms and resets.</em></span>
+      <span class="dot" style="background:#4dffcf;color:#4dffcf"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="16-arrow-relay.html">
+      <span class="n">16</span>
+      <span class="t"><b>Arrow Relay</b><em>The arrow exits stage right while an identical one enters from the left, inside a clipped window.</em></span>
+      <span class="dot" style="background:#ffffff;color:#ffffff"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="17-scramble.html">
+      <span class="n">17</span>
+      <span class="t"><b>Text Scramble</b><em>The label decodes character by character out of random glyphs whenever you hover or click it.</em></span>
+      <span class="dot" style="background:#4dffcf;color:#4dffcf"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="18-pulse-rings.html">
+      <span class="n">18</span>
+      <span class="t"><b>Pulse Rings</b><em>Two rings expand out of the button on a staggered loop &mdash; the "we are live" signal.</em></span>
+      <span class="dot" style="background:#ff5fa8;color:#ff5fa8"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="19-split-reveal.html">
+      <span class="n">19</span>
+      <span class="t"><b>Split Reveal</b><em>The face tears in half horizontally and slides away to expose the real call to action underneath.</em></span>
+      <span class="dot" style="background:#a06bff;color:#a06bff"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="20-spotlight.html">
+      <span class="n">20</span>
+      <span class="t"><b>Spotlight Border</b><em>A soft light tracks your cursor around the 1.4px border and spills faintly onto the face.</em></span>
+      <span class="dot" style="background:#8ea8ff;color:#8ea8ff"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="21-segmented.html">
+      <span class="n">21</span>
+      <span class="t"><b>Segmented Control</b><em>A single thumb measures the target tab and slides to it, resizing as it goes.</em></span>
+      <span class="dot" style="background:#ffffff;color:#ffffff"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="22-radial-fab.html">
+      <span class="n">22</span>
+      <span class="t"><b>Radial FAB</b><em>The plus rotates 135&deg; into a cross while three actions fan out along an arc.</em></span>
+      <span class="dot" style="background:#ff2fb3;color:#ff2fb3"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="23-ghost-underline.html">
+      <span class="n">23</span>
+      <span class="t"><b>Ghost Underline</b><em>The quietest button in the set: a gradient rule wipes in from the left and out to the right.</em></span>
+      <span class="dot" style="background:#31e0ff;color:#31e0ff"></span>
+      <span class="go">&rarr;</span>
+    </a>
+    <a class="row" href="24-tactile-key.html">
+      <span class="n">24</span>
+      <span class="t"><b>Tactile Key</b><em>A keycap with a real travel distance. It also fires when you actually press &#8984;K or Ctrl+K.</em></span>
+      <span class="dot" style="background:#8ea8ff;color:#8ea8ff"></span>
+      <span class="go">&rarr;</span>
+    </a>
+  </div>
+</div>
+</body>
+</html>

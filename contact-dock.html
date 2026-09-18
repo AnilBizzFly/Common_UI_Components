@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The word is the dock</title>
+<style>
+:root{
+  --bg:#080b14; --ink:#eef2fb; --mut:#8b95b3; --dim:#5a6482; --faint:#3a4260;
+}
+*{box-sizing:border-box}
+html{height:100%}
+body{
+  margin:0;min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:30px 20px;gap:0;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:var(--ink);background:var(--bg);overflow-x:hidden;
+}
+body::before{content:"";position:fixed;width:70vmax;height:70vmax;border-radius:50%;
+  filter:blur(150px);background:rgba(90,120,255,.1);top:-30vmax;left:50%;margin-left:-35vmax;pointer-events:none}
+
+.kick{margin:0 0 10px;font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.24em;color:var(--faint)}
+.lede{margin:0 0 132px;max-width:34ch;text-align:center;font-size:14px;line-height:1.7;color:var(--dim)}
+.lede b{color:var(--mut);font-weight:600}
+
+/* ============ the dock ============ */
+.dock{
+  position:relative;z-index:1;display:flex;align-items:flex-end;justify-content:center;
+  margin:0;padding:0 0 4px;list-style:none;
+  touch-action:none;
+}
+/* the floor the caps grow up off */
+.dock::after{
+  content:"";position:absolute;left:50%;bottom:0;width:118%;max-width:640px;height:1px;
+  transform:translateX(-50%);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.18) 22%,rgba(255,255,255,.18) 78%,transparent);
+}
+
+.key{
+  --x:0px; --s:1; --z:0px; --r:0deg; --lit:0;
+  --h:70px;                       /* the cap grows off the bottom, so lift = --h * (--s - 1) */
+  position:relative;width:56px;height:var(--h);flex:0 0 auto;
+  /* one number per key drives the lift, the spread, the flip and the light */
+  transform:translate3d(var(--x),0,0);
+}
+.key_hit{
+  position:absolute;inset:0;display:block;text-decoration:none;outline:none;
+  perspective:820px;
+}
+.key_hit:focus-visible{outline:2px solid #fff;outline-offset:4px;border-radius:18px}
+
+.key_glow{
+  position:absolute;left:50%;bottom:-10px;width:78px;height:78px;margin-left:-39px;
+  border-radius:50%;background:var(--brand);filter:blur(22px);
+  opacity:calc(var(--lit) * .8);pointer-events:none;
+}
+
+/* the cap grows and turns - four numbers, and nothing else */
+.key_cap{
+  position:absolute;inset:0;
+  transform-style:preserve-3d;
+  /* it grows UP off the floor of the dock, the way a dock icon does */
+  transform-origin:50% 100%;
+  transform:translate3d(0,0,var(--z)) scale(var(--s)) rotateY(var(--r));
+}
+
+/* letter in front, channel behind */
+.key_face{
+  position:absolute;inset:4px;display:grid;place-items:center;border-radius:16px;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+}
+.key_face--letter{
+  font:800 34px/1 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  letter-spacing:-.02em;color:var(--ink);
+  text-shadow:0 2px 14px rgba(0,0,0,.5);
+}
+.key_face--icon{
+  transform:rotateY(180deg);
+  background:var(--brand);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 10px 26px -8px var(--brand);
+}
+.key_face--icon svg{width:26px;height:26px;fill:var(--on)}
+
+.key_tip{
+  position:absolute;left:50%;bottom:100%;
+  /* clear the grown cap: -10px gap, -8px of travel, minus the lift itself */
+  transform:translate(-50%,calc(-10px - var(--lit) * 8px - var(--h) * (var(--s) - 1)));
+  padding:4px 10px;border-radius:99px;white-space:nowrap;pointer-events:none;
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  font:600 10px/1.6 ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink);
+  opacity:calc((var(--lit) - .55) * 2.6);
+}
+
+.hint{margin:56px 0 0;font:600 10px/1 ui-monospace,Menlo,monospace;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+
+@media (max-width:560px){
+  .key{--h:58px;width:44px}
+  .key_face--letter{font-size:27px}
+  .key_face--icon svg{width:21px;height:21px}
+  .lede{margin-bottom:112px}
+}
+@media (prefers-reduced-motion:reduce){ .key,.key_cap{transition:none} }
+</style>
+</head>
+<body>
+
+<p class="kick">RELAY STUDIO</p>
+<p class="lede">The word is the dock. <b>Sweep it</b> and CONTACT turns into your channels.</p>
+
+<ul class="dock" id="dock"></ul>
+
+<p class="hint">sweep &middot; or tab through</p>
+
+<script>
+const ICON = {
+  mail:'<path d="M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm1.4 2L12 12.6 19.6 7Z"/>',
+  gh:'<path d="M12 .5a11.5 11.5 0 0 0-3.6 22.4c.6.1.8-.2.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.8 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.5-2.7 5.5-5.3 5.8.4.4.8 1.1.8 2.2v3.3c0 .4.2.7.8.6A11.5 11.5 0 0 0 12 .5Z"/>',
+  li:'<path d="M6.9 8.5H4V20h2.9V8.5ZM5.4 3.6a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4ZM20 13.6c0-3.2-1.7-4.6-4-4.6-1.8 0-2.6 1-3.1 1.7V8.5H10V20h2.9v-6.3c0-1.3.3-2.6 1.9-2.6s1.7 1.5 1.7 2.7V20H20v-6.4Z"/>',
+  x:'<path d="M17.5 3h3.2l-7 8 8.2 10h-6.4l-5-6.1L4.7 21H1.5l7.5-8.6L1.2 3h6.6l4.5 5.6ZM16.4 19.1h1.8L7.7 4.8H5.8Z"/>',
+  dr:'<path d="M12 0a12 12 0 1 0 0 24 12 12 0 0 0 0-24Zm7.9 5.5a10.2 10.2 0 0 1 2.3 6.3c-.3-.1-3.6-.7-6.9-.3l-.5-1.2c3.4-1.4 4.8-3.4 5.1-4.8ZM12 1.8c2.5 0 4.8.9 6.5 2.5-.2 1.2-1.5 3-4.7 4.3A50 50 0 0 0 9.3 2.2 10.2 10.2 0 0 1 12 1.8ZM7.3 2.9c.5.7 2.6 3.6 4.4 6.3-5 1.3-9.3 1.3-9.8 1.3A10.3 10.3 0 0 1 7.3 2.9ZM1.8 12v-.3c.5 0 5.6.1 10.9-1.5l.7 1.4c-4.7 1.4-7.4 5.4-7.9 6.2A10.2 10.2 0 0 1 1.8 12Zm10.2 10.2c-2.3 0-4.4-.8-6.1-2.1.4-.7 2.5-4.5 7.6-6.3 1.9 5 2.7 9.2 2.9 10.1a10.2 10.2 0 0 1-4.4 1.1v-2.8Zm6.2-1.3c-.1-.8-.8-4.8-2.6-9.7 3.1-.5 5.8.3 6.2.4a10.2 10.2 0 0 1-3.6 6.5Z"/>',
+  cal:'<path d="M7 2v2h10V2h2v2h2a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h2V2Zm13 8H4v10h16Z"/>',
+  tg:'<path d="M21.9 4.3 18.8 19c-.2 1-.9 1.3-1.7.8l-4.7-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.3-4.8L18.2 6c.4-.3-.1-.5-.6-.2L6.8 12.6l-4.7-1.5c-1-.3-1-1 .2-1.5l18.3-7c.9-.3 1.6.2 1.3 1.7Z"/>'
+};
+
+/* the word, one channel per letter */
+const KEYS = [
+  { l:'C', name:'Email',    brand:'#ff6b57', href:'mailto:hey@relay.studio', icon:'mail' },
+  { l:'O', name:'GitHub',   brand:'#c9d1d9', href:'https://github.com/relay', icon:'gh' },
+  { l:'N', name:'LinkedIn', brand:'#0a66c2', href:'https://linkedin.com/in/relay', icon:'li' },
+  { l:'T', name:'X',        brand:'#e8eaed', href:'https://x.com/relay', icon:'x' },
+  { l:'A', name:'Dribbble', brand:'#ea4c89', href:'https://dribbble.com/relay', icon:'dr' },
+  { l:'C', name:'Calendar', brand:'#7c8cff', href:'https://cal.com/relay', icon:'cal' },
+  { l:'T', name:'Telegram', brand:'#2aabee', href:'https://t.me/relay', icon:'tg' }
+];
+
+/* a light chip needs a dark glyph — decide it, don't guess it */
+const onColour = hex => {
+  const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.substr(i, 2), 16) / 255)
+    .map(c => c <= .03928 ? c / 12.92 : Math.pow((c + .055) / 1.055, 2.4));
+  return (.2126 * r + .7152 * g + .0722 * b) > .45 ? '#0a0e1a' : '#ffffff';
+};
+
+const dock = document.getElementById('dock');
+dock.innerHTML = KEYS.map(k => `
+  <li class="key" style="--brand:${k.brand};--on:${onColour(k.brand)}">
+    <a class="key_hit" href="${k.href}" aria-label="${k.name}">
+      <span class="key_glow"></span>
+      <span class="key_cap">
+        <span class="key_face key_face--letter" aria-hidden="true">${k.l}</span>
+        <span class="key_face key_face--icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">${ICON[k.icon]}</svg>
+        </span>
+      </span>
+    </a>
+    <span class="key_tip" aria-hidden="true">${k.name}</span>
+  </li>`).join('');
+
+const keys = [...dock.querySelectorAll('.key')];
+
+/* ---- the four numbers, all of them functions of one ---- */
+const RANGE = 138;   // px of influence either side of the pointer
+const LIFT  = 1.05;  // extra scale at full strength
+const DEPTH = 78;    // px of z
+const GROW  = 34;    // px of extra width a key claims — this is the spread
+const FLIP  = 180;   // deg
+
+const smooth = t => t * t * (3 - 2 * t);
+const strength = dx => {
+  const d = Math.min(1, Math.abs(dx) / RANGE);
+  return smooth(1 - d);
+};
+
+let centres = [], target = keys.map(() => 0), now = keys.map(() => 0), px = null;
+
+function measure(){
+  /* read the RESTING centres: --x is live every frame, so zero it first or the
+     spread feeds back into its own input and the row creeps */
+  keys.forEach(k => k.style.setProperty('--x', '0px'));
+  void dock.offsetWidth;
+  centres = keys.map(k => { const r = k.getBoundingClientRect(); return r.left + r.width / 2; });
+}
+
+function aim(){
+  target = px === null ? keys.map(() => 0) : centres.map(c => strength(c - px));
+}
+
+function paint(){
+  let moved = false;
+  for (let i = 0; i < keys.length; i++){
+    const d = target[i] - now[i];
+    if (Math.abs(d) > 0.0005){ now[i] += d * 0.22; moved = true; }
+    else now[i] = target[i];
+  }
+
+  /* the spread: walk outward from the strongest key, accumulating the width
+     each neighbour has claimed — that is what keeps the row from overlapping */
+  const grow = now.map(t => t * GROW);
+  const lead = now.indexOf(Math.max(...now));
+  const x = new Array(keys.length).fill(0);
+  let acc = grow[lead] / 2;
+  for (let i = lead + 1; i < keys.length; i++){ x[i] = acc + grow[i] / 2; acc += grow[i]; }
+  acc = grow[lead] / 2;
+  for (let i = lead - 1; i >= 0; i--){ x[i] = -(acc + grow[i] / 2); acc += grow[i]; }
+
+  keys.forEach((k, i) => {
+    const t = now[i];
+    k.style.setProperty('--x', x[i].toFixed(2) + 'px');
+    k.style.setProperty('--s', (1 + LIFT * t).toFixed(4));
+    k.style.setProperty('--z', (DEPTH * t).toFixed(2) + 'px');
+    k.style.setProperty('--r', (FLIP * t).toFixed(2) + 'deg');
+    k.style.setProperty('--lit', t.toFixed(4));
+  });
+
+  requestAnimationFrame(paint);
+}
+
+dock.addEventListener('pointermove', e => { px = e.clientX; aim(); });
+dock.addEventListener('pointerleave', () => { px = null; aim(); });
+dock.addEventListener('pointercancel', () => { px = null; aim(); });
+
+/* tab lands on a real link, so the sweep follows the focus too */
+keys.forEach((k, i) => {
+  const a = k.querySelector('.key_hit');
+  a.addEventListener('focus', () => { px = centres[i]; aim(); });
+  a.addEventListener('blur', () => { px = null; aim(); });
+});
+
+addEventListener('resize', () => { measure(); aim(); });
+measure(); aim(); paint();
+</script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dropzone</title>
+<style>
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;min-height:100%;display:grid;place-items:center;padding:74px 20px 64px;
+  overflow-x:hidden;font:400 15px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#e9edff;background:#06070d;--c:#4dffcf}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(105px);
+  pointer-events:none;z-index:0}
+body::before{width:54vmax;height:54vmax;left:-20vmax;top:-24vmax;
+  background:color-mix(in srgb,var(--c) 30%,transparent)}
+body::after{width:46vmax;height:46vmax;right:-18vmax;bottom:-22vmax;background:rgba(0,190,255,.16)}
+
+.bar{position:fixed;inset:0 0 auto 0;z-index:5;display:flex;align-items:center;
+  justify-content:space-between;gap:10px;padding:16px 18px;
+  font:600 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.2em;text-transform:uppercase}
+.bar a{color:rgba(233,237,255,.4);text-decoration:none;padding:8px 11px;border-radius:9px;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);transition:.22s}
+.bar a:hover{color:#fff;border-color:color-mix(in srgb,var(--c) 55%,transparent);
+  background:color-mix(in srgb,var(--c) 16%,transparent)}
+.bar .rt{display:flex;gap:8px}
+
+.stage{position:relative;z-index:1;width:min(460px,100%);text-align:center}
+.eyebrow{margin:0 0 10px;font:600 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.3em;
+  text-transform:uppercase;color:color-mix(in srgb,var(--c) 70%,#8890b8)}
+h1{margin:0 0 8px;font-size:clamp(26px,6vw,34px);font-weight:650;letter-spacing:-.04em}
+.desc{margin:0;font-size:13.5px;color:rgba(233,237,255,.48);line-height:1.6}
+
+.demo{margin:24px 0 0;padding:40px 22px;border-radius:26px;min-height:176px;position:relative;
+  display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:16px;
+  background:linear-gradient(165deg,rgba(255,255,255,.075),rgba(255,255,255,.018));
+  border:1px solid rgba(255,255,255,.09);
+  box-shadow:0 26px 60px -30px #000,0 1px 0 0 rgba(255,255,255,.12) inset;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.demo.block{display:block;text-align:left;padding:26px 22px}
+.demo.bare{background:none;border:0;box-shadow:none;backdrop-filter:none;padding:14px 0}
+
+.note{margin:14px 0 0;font:500 11px/1.7 ui-monospace,Menlo,monospace;letter-spacing:.05em;
+  color:rgba(233,237,255,.32)}
+.note b{color:color-mix(in srgb,var(--c) 75%,#fff);font-weight:600}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important}
+}
+
+.dz{position:relative;border-radius:18px;padding:32px 18px;text-align:center;cursor:pointer;
+  border:1.7px dashed rgba(255,255,255,.18);background:rgba(255,255,255,.03);transition:.3s}
+.dz[data-over]{border-color:var(--c);background:color-mix(in srgb,var(--c) 12%,transparent);
+  transform:scale(1.015)}
+.dz svg{width:34px;height:34px;stroke:var(--c);fill:none;stroke-width:1.7;stroke-linecap:round;
+  stroke-linejoin:round;transition:transform .35s cubic-bezier(.2,1.5,.4,1)}
+.dz[data-over] svg{transform:translateY(-6px) scale(1.14)}
+.dz p{margin:11px 0 0;font-size:13.5px;color:rgba(233,237,255,.55)}
+.dz p b{color:#fff;font-weight:600}
+.files{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.file{padding:11px 13px;border-radius:12px;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.07);font-size:13px;animation:fade .3s both;position:relative;
+  overflow:hidden}
+.file .pr{position:absolute;left:0;bottom:0;height:2.5px;width:0%;
+  background:linear-gradient(90deg,var(--c),#31e0ff);transition:width .2s linear}
+.file small{float:right;color:rgba(233,237,255,.4);font-family:ui-monospace,monospace;font-size:11px}
+@keyframes fade{from{opacity:0;transform:translateY(7px)}}
+</style>
+</head>
+<body>
+<nav class="bar">
+  <a href="index.html">&larr; forms</a>
+  <span class="rt"><a href="10-tag-input.html" title="previous">&larr;</a><a href="12-autogrow-textarea.html" title="next">&rarr;</a></span>
+</nav>
+
+<main class="stage">
+  <p class="eyebrow">Forms &middot; 11 / 15</p>
+  <h1>Dropzone</h1>
+  <p class="desc">Real drag-and-drop with a live hover state, a file picker fallback, and a progress bar per file.</p>
+  <div class="demo block">
+    <div class="dz" id="dz">
+      <svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>
+      <p><b>Drop files here</b> or click to browse</p>
+      <input type="file" id="pick" multiple hidden>
+    </div>
+    <div class="files" id="files"></div>
+  </div>
+  <p class="note">Reads name and size off the actual <b>File</b> objects &mdash; nothing is uploaded anywhere.</p>
+</main>
+<script>
+const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+const $=id=>document.getElementById(id);
+const dz=$('dz'), pick=$('pick'), files=$('files');
+['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{
+  e.preventDefault(); dz.setAttribute('data-over',''); }));
+['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{
+  e.preventDefault(); dz.removeAttribute('data-over'); }));
+dz.addEventListener('drop',e=>add([...e.dataTransfer.files]));
+dz.addEventListener('click',()=>pick.click());
+pick.addEventListener('change',()=>add([...pick.files]));
+function add(list){
+  list.slice(0,5).forEach(f=>{
+    const el=document.createElement('div'); el.className='file';
+    el.innerHTML=f.name.slice(0,30)+'<small>'+(f.size/1024).toFixed(0)+' KB</small><span class="pr"></span>';
+    files.appendChild(el);
+    const pr=el.querySelector('.pr'); let p=0;
+    const id=setInterval(()=>{
+      p=Math.min(100,p+6+Math.random()*13); pr.style.width=p+'%';
+      if(p>=100){ clearInterval(id); pr.style.background='#4dffcf'; }
+    }, reduce?20:85);
+  });
+}
+</script>
+</body>
+</html>

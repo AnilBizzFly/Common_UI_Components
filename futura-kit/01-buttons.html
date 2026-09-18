@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Button Systems</title>
+<style>
+@property --ang{syntax:'<angle>';inherits:false;initial-value:0deg}
+@property --mx{syntax:'<percentage>';inherits:true;initial-value:50%}
+@property --my{syntax:'<percentage>';inherits:true;initial-value:50%}
+
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;padding:46px 20px 70px;overflow-x:hidden;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#e9edff;background:#06070d}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(110px);pointer-events:none;z-index:0}
+body::before{width:56vmax;height:56vmax;left:-20vmax;top:-26vmax;background:rgba(96,60,255,.26)}
+body::after{width:48vmax;height:48vmax;right:-18vmax;bottom:-24vmax;background:rgba(0,214,190,.17)}
+
+.wrap{position:relative;z-index:1;max-width:1120px;margin:0 auto}
+.head{margin-bottom:34px}
+.head p:first-child{margin:0 0 10px;font:600 10px/1 ui-monospace,Menlo,monospace;
+  letter-spacing:.38em;text-transform:uppercase;color:rgba(233,237,255,.38)}
+.head h1{margin:0 0 8px;font-size:clamp(30px,6vw,46px);font-weight:650;letter-spacing:-.05em;
+  background:linear-gradient(100deg,#fff,#8ee7ff 45%,#c08bff 75%,#fff);background-size:220% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 7s linear infinite}
+@keyframes shine{to{background-position:220% 0}}
+.head h1 + p{margin:0;color:rgba(233,237,255,.48);font-size:14.5px;max-width:62ch}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:13px}
+.cell{position:relative;min-height:158px;border-radius:22px;padding:24px 16px 16px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  background:linear-gradient(165deg,rgba(255,255,255,.07),rgba(255,255,255,.018));
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:0 20px 50px -28px #000,0 1px 0 0 rgba(255,255,255,.1) inset;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.cap{font:600 8.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.2em;text-transform:uppercase;
+  color:rgba(233,237,255,.34);text-align:center}
+.cell .no{position:absolute;top:12px;left:14px;font:700 9px/1 ui-monospace,monospace;
+  letter-spacing:.16em;color:rgba(233,237,255,.2)}
+
+/* ============================ shared base ============================ */
+.b{position:relative;border:0;cursor:pointer;font:650 14px/1 ui-sans-serif,system-ui;
+  padding:14px 26px;border-radius:14px;color:#fff;background:rgba(255,255,255,.08);
+  isolation:isolate;overflow:hidden;-webkit-tap-highlight-color:transparent}
+
+/* 01 magnetic ------------------------------------------------------- */
+.b-mag{background:linear-gradient(130deg,#7c5cff,#31e0ff);color:#07080f;border-radius:16px;
+  box-shadow:0 12px 30px -12px #7c5cff;transition:transform .25s cubic-bezier(.2,1.2,.3,1)}
+.b-mag span{display:inline-block;transition:transform .25s cubic-bezier(.2,1.2,.3,1)}
+
+/* 02 gooey ---------------------------------------------------------- */
+.goowrap{filter:url(#goo);display:grid;place-items:center;padding:8px}
+.b-goo{background:#ff2fb3;border-radius:999px;padding:15px 30px}
+.b-goo::before,.b-goo::after{content:"";position:absolute;width:38px;height:38px;border-radius:50%;
+  background:#ff2fb3;top:50%;margin-top:-19px;z-index:-1;transition:transform .55s cubic-bezier(.3,1.4,.4,1)}
+.b-goo::before{left:6px}.b-goo::after{right:6px}
+.b-goo:hover::before{transform:translate(-26px,-16px) scale(.8)}
+.b-goo:hover::after{transform:translate(26px,16px) scale(.8)}
+
+/* 03 liquid fill ----------------------------------------------------- */
+.b-liq{background:transparent;border:1.5px solid #4dffcf;color:#4dffcf;border-radius:14px;
+  transition:color .4s .05s}
+.b-liq::before{content:"";position:absolute;inset:auto 0 0 0;height:0;z-index:-1;background:#4dffcf;
+  transition:height .45s cubic-bezier(.4,1,.3,1)}
+.b-liq::after{content:"";position:absolute;left:0;right:0;bottom:0;height:0;z-index:-1;
+  background:radial-gradient(circle at 20% 0,transparent 12px,#4dffcf 12.5px) repeat-x;
+  background-size:34px 18px;transition:bottom .45s cubic-bezier(.4,1,.3,1)}
+.b-liq:hover{color:#05100c}
+.b-liq:hover::before{height:100%}
+.b-liq:hover::after{height:18px;bottom:calc(100% - 4px)}
+
+/* 04 ripple ---------------------------------------------------------- */
+.b-rip{background:#1b1f39;border:1px solid rgba(255,255,255,.12)}
+.rip{position:absolute;border-radius:50%;background:rgba(140,190,255,.45);
+  transform:translate(-50%,-50%) scale(0);pointer-events:none;animation:rip .65s ease-out forwards}
+@keyframes rip{to{transform:translate(-50%,-50%) scale(1);opacity:0}}
+
+/* 05 conic border beam ----------------------------------------------- */
+.b-beam{background:#0b0d18;border-radius:15px;padding:15px 28px}
+.b-beam::before{content:"";position:absolute;inset:-2px;z-index:-2;border-radius:17px;
+  background:conic-gradient(from var(--ang),transparent 0 62%,#31e0ff 78%,#a06bff 92%,transparent 100%);
+  animation:rot 2.6s linear infinite}
+.b-beam::after{content:"";position:absolute;inset:0;z-index:-1;border-radius:14px;background:#0b0d18}
+@keyframes rot{to{--ang:360deg}}
+
+/* 06 glitch ---------------------------------------------------------- */
+.b-glitch{background:#12142a;border:1px solid rgba(255,255,255,.14);letter-spacing:.06em}
+.b-glitch::before,.b-glitch::after{content:attr(data-t);position:absolute;inset:0;
+  display:grid;place-items:center;opacity:0;transition:opacity .1s}
+.b-glitch::before{color:#ff3d8b;clip-path:inset(0 0 55% 0)}
+.b-glitch::after{color:#31e0ff;clip-path:inset(55% 0 0 0)}
+.b-glitch:hover::before{opacity:1;animation:gl1 .38s steps(2,end) infinite}
+.b-glitch:hover::after{opacity:1;animation:gl2 .32s steps(2,end) infinite}
+@keyframes gl1{0%,100%{transform:translate(-3px,-1px)}50%{transform:translate(3px,1px)}}
+@keyframes gl2{0%,100%{transform:translate(3px,1px)}50%{transform:translate(-3px,-1px)}}
+
+/* 07 load -> success -------------------------------------------------- */
+.b-load{background:linear-gradient(130deg,#31e0ff,#7c5cff);color:#07080f;width:150px;height:48px;
+  padding:0;border-radius:14px;
+  transition:width .45s cubic-bezier(.4,1.4,.4,1),border-radius .45s,background .4s}
+.b-load .t{transition:opacity .2s}
+.b-load .sp,.b-load .ok{position:absolute;inset:0;display:grid;place-items:center;opacity:0;transition:opacity .2s}
+.b-load .sp i{width:19px;height:19px;border-radius:50%;border:2.5px solid rgba(7,8,15,.3);
+  border-top-color:#07080f;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(1turn)}}
+.b-load[data-s="load"]{width:48px;border-radius:50%}
+.b-load[data-s="load"] .t{opacity:0}
+.b-load[data-s="load"] .sp{opacity:1}
+.b-load[data-s="ok"]{width:48px;border-radius:50%;background:linear-gradient(130deg,#3dffa8,#25d9e6)}
+.b-load[data-s="ok"] .t{opacity:0}
+.b-load[data-s="ok"] .ok{opacity:1}
+.b-load .ok svg{width:22px;height:22px;fill:none;stroke:#07080f;stroke-width:3;stroke-linecap:round;
+  stroke-linejoin:round;stroke-dasharray:26;stroke-dashoffset:26;animation:draw .4s .08s forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+
+/* 08 hold to confirm --------------------------------------------------- */
+.b-hold{background:#20101c;border:1px solid #ff5e79;color:#ff8a9c;border-radius:14px}
+.b-hold::before{content:"";position:absolute;inset:0;z-index:-1;
+  background:linear-gradient(90deg,#ff5e79,#ff9a6e);width:var(--p,0%);transition:width .06s linear}
+.b-hold[data-s="done"]{color:#07080f;border-color:#ff9a6e}
+.b-hold[data-s="done"]::before{width:100%}
+
+/* 09 copy -------------------------------------------------------------- */
+.b-copy{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);
+  display:flex;align-items:center;gap:9px;font-family:ui-monospace,Menlo,monospace;font-size:12.5px}
+.b-copy svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.9}
+.b-copy[data-s="ok"]{border-color:#4dffcf;color:#4dffcf}
+
+/* 10 icon expand -------------------------------------------------------- */
+.b-exp{background:#7c5cff;border-radius:999px;width:52px;height:52px;padding:0;
+  display:flex;align-items:center;gap:0;overflow:hidden;
+  transition:width .45s cubic-bezier(.3,1.3,.3,1),gap .45s,padding .45s;
+  box-shadow:0 12px 30px -12px #7c5cff}
+.b-exp svg{width:20px;height:20px;flex:none;margin-left:16px;stroke:#fff;fill:none;stroke-width:2.2;
+  stroke-linecap:round;stroke-linejoin:round}
+.b-exp em{font-style:normal;white-space:nowrap;max-width:0;opacity:0;overflow:hidden;
+  transition:max-width .45s cubic-bezier(.3,1.3,.3,1),opacity .3s}
+.b-exp:hover{width:168px}
+.b-exp:hover em{max-width:120px;opacity:1;margin:0 18px 0 10px}
+
+/* 11 3D push ------------------------------------------------------------ */
+.b-3d{background:#ffd23d;color:#151005;border-radius:14px;
+  box-shadow:0 6px 0 0 #b78e00,0 12px 24px -8px rgba(0,0,0,.7);
+  transition:transform .09s,box-shadow .09s}
+.b-3d:active{transform:translateY(6px);box-shadow:0 0 0 0 #b78e00,0 4px 12px -6px rgba(0,0,0,.7)}
+
+/* 12 neon --------------------------------------------------------------- */
+.b-neon{background:transparent;border:2px solid #31e0ff;color:#31e0ff;border-radius:12px;
+  text-shadow:0 0 10px #31e0ff;box-shadow:0 0 14px -4px #31e0ff,0 0 20px -8px #31e0ff inset;
+  transition:.3s}
+.b-neon:hover{background:#31e0ff;color:#04121a;text-shadow:none;
+  box-shadow:0 0 30px -2px #31e0ff,0 0 70px -10px #31e0ff}
+
+/* 13 shine sweep --------------------------------------------------------- */
+.b-shine{background:linear-gradient(130deg,#2a2150,#46308c);border:1px solid rgba(255,255,255,.16)}
+.b-shine::after{content:"";position:absolute;top:0;bottom:0;width:70px;left:-90px;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);
+  transform:skewX(-22deg);transition:left .6s cubic-bezier(.4,.1,.2,1)}
+.b-shine:hover::after{left:120%}
+
+/* 14 like burst ---------------------------------------------------------- */
+.b-like{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+  display:flex;align-items:center;gap:9px;font-variant-numeric:tabular-nums;overflow:visible}
+.b-like svg{width:19px;height:19px;fill:none;stroke:#ff6e8a;stroke-width:2;
+  transition:transform .35s cubic-bezier(.2,1.8,.4,1)}
+.b-like[data-s="on"]{border-color:#ff6e8a;color:#ff9fb1}
+.b-like[data-s="on"] svg{fill:#ff6e8a;transform:scale(1.18)}
+.spark{position:absolute;left:50%;top:50%;width:5px;height:5px;border-radius:50%;background:#ff6e8a;
+  pointer-events:none;animation:spk .6s ease-out forwards}
+@keyframes spk{to{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}}
+
+/* 15 download progress ---------------------------------------------------- */
+.b-dl{background:#101426;border:1px solid rgba(255,255,255,.12);width:170px;text-align:center}
+.b-dl::before{content:"";position:absolute;inset:0;z-index:-1;width:var(--p,0%);
+  background:linear-gradient(90deg,#4dffcf,#31e0ff);transition:width .18s linear}
+.b-dl[data-s="done"]{color:#05100c}
+
+/* 16 arrow slide ----------------------------------------------------------- */
+.b-arrow{background:#fff;color:#07080f;border-radius:999px;display:flex;align-items:center;gap:10px;
+  padding:14px 22px}
+.b-arrow .ic{position:relative;width:18px;height:14px;overflow:hidden}
+.b-arrow .ic svg{position:absolute;top:0;left:0;width:18px;height:14px;stroke:#07080f;fill:none;
+  stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;
+  transition:transform .4s cubic-bezier(.3,1.2,.3,1)}
+.b-arrow .ic svg:last-child{transform:translateX(-22px)}
+.b-arrow:hover .ic svg:first-child{transform:translateX(22px)}
+.b-arrow:hover .ic svg:last-child{transform:translateX(0)}
+
+/* 17 scramble --------------------------------------------------------------- */
+.b-scr{background:#0d1020;border:1px solid #4dffcf44;color:#4dffcf;
+  font-family:ui-monospace,Menlo,monospace;font-size:13px;letter-spacing:.1em;min-width:168px}
+
+/* 18 pulse rings ------------------------------------------------------------ */
+.b-pulse{background:linear-gradient(130deg,#ff5fa8,#ff9a6e);color:#180810;border-radius:999px;
+  overflow:visible}
+.b-pulse::before,.b-pulse::after{content:"";position:absolute;inset:0;border-radius:999px;
+  border:1.5px solid #ff5fa8;animation:ping 2.2s cubic-bezier(.2,.6,.3,1) infinite;z-index:-1}
+.b-pulse::after{animation-delay:1.1s}
+@keyframes ping{to{transform:scale(1.55);opacity:0}}
+
+/* 19 split reveal ------------------------------------------------------------ */
+.b-split{background:#12142a;border:1px solid rgba(255,255,255,.12);padding:0;width:170px;height:48px}
+.b-split .half{position:absolute;left:0;width:100%;height:50%;background:#12142a;display:grid;
+  place-items:center;transition:transform .45s cubic-bezier(.4,1.1,.3,1);z-index:2}
+.b-split .half.t{top:0;align-items:flex-end;padding-bottom:1px}
+.b-split .half.b{bottom:0;align-items:flex-start;padding-top:1px}
+.b-split .under{position:absolute;inset:0;display:grid;place-items:center;
+  background:linear-gradient(130deg,#a06bff,#31e0ff);color:#07080f;z-index:1}
+.b-split:hover .half.t{transform:translateY(-100%)}
+.b-split:hover .half.b{transform:translateY(100%)}
+
+/* 20 spotlight border --------------------------------------------------------- */
+.b-spot{background:#0c0e1c;border-radius:15px;padding:15px 28px}
+.b-spot::before{content:"";position:absolute;inset:0;border-radius:15px;padding:1.4px;z-index:-1;
+  background:radial-gradient(110px 110px at var(--mx) var(--my),#fff,rgba(120,140,255,.25) 40%,transparent 70%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  mask-composite:exclude}
+.b-spot::after{content:"";position:absolute;inset:0;border-radius:15px;z-index:-2;opacity:0;
+  background:radial-gradient(90px 90px at var(--mx) var(--my),rgba(120,150,255,.3),transparent 70%);
+  transition:opacity .3s}
+.b-spot:hover::after{opacity:1}
+
+/* 21 segmented toggle ---------------------------------------------------------- */
+.seg{position:relative;display:flex;padding:4px;border-radius:14px;background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.1)}
+.seg button{position:relative;z-index:2;border:0;background:none;cursor:pointer;color:rgba(233,237,255,.5);
+  font:600 12.5px/1 ui-sans-serif,system-ui;padding:10px 16px;border-radius:11px;transition:color .3s}
+.seg button[aria-pressed="true"]{color:#07080f}
+.seg .thumb{position:absolute;top:4px;bottom:4px;left:4px;border-radius:11px;z-index:1;
+  background:linear-gradient(130deg,#fff,#c9d4ff);
+  transition:transform .42s cubic-bezier(.34,1.35,.4,1),width .42s cubic-bezier(.34,1.35,.4,1)}
+
+/* 22 fab menu ------------------------------------------------------------------ */
+.fab{position:relative;width:54px;height:54px}
+.fab .main{position:absolute;inset:0;border-radius:50%;border:0;cursor:pointer;z-index:3;
+  background:linear-gradient(130deg,#7c5cff,#ff2fb3);color:#fff;font-size:22px;line-height:1;
+  box-shadow:0 12px 30px -10px #7c5cff;transition:transform .4s cubic-bezier(.3,1.4,.3,1)}
+.fab[data-open] .main{transform:rotate(135deg)}
+.fab i{position:absolute;left:11px;top:11px;width:32px;height:32px;border-radius:50%;
+  background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);display:grid;place-items:center;
+  font-size:13px;font-style:normal;z-index:2;
+  transition:transform .45s cubic-bezier(.3,1.4,.3,1),opacity .3s;opacity:0}
+.fab[data-open] i{opacity:1}
+.fab[data-open] i:nth-of-type(1){transform:translate(0,-58px)}
+.fab[data-open] i:nth-of-type(2){transform:translate(-50px,-30px)}
+.fab[data-open] i:nth-of-type(3){transform:translate(50px,-30px)}
+
+/* 23 ghost underline ------------------------------------------------------------ */
+.b-ghost{background:none;padding:12px 4px;border-radius:0;color:#cdd5f5;font-weight:600}
+.b-ghost::after{content:"";position:absolute;left:0;bottom:6px;height:2px;width:100%;
+  background:linear-gradient(90deg,#31e0ff,#a06bff);transform:scaleX(0);transform-origin:right;
+  transition:transform .42s cubic-bezier(.4,1,.3,1)}
+.b-ghost:hover::after{transform:scaleX(1);transform-origin:left}
+
+/* 24 tactile key ----------------------------------------------------------------- */
+.b-key{background:linear-gradient(180deg,#2b3050,#191d34);border-radius:12px;
+  border:1px solid rgba(255,255,255,.16);font-family:ui-monospace,Menlo,monospace;font-size:13px;
+  box-shadow:0 4px 0 #0e1120,0 10px 22px -8px #000,0 1px 0 rgba(255,255,255,.25) inset;
+  transition:transform .08s,box-shadow .08s}
+.b-key:active,.b-key.down{transform:translateY(4px);
+  box-shadow:0 0 0 #0e1120,0 4px 10px -6px #000,0 1px 0 rgba(255,255,255,.2) inset}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><filter id="goo">
+  <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="b"/>
+  <feColorMatrix in="b" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 19 -8"/>
+</filter></svg>
+
+<div class="wrap">
+  <div class="head">
+    <p>futura kit · 01</p>
+    <h1>Button systems</h1>
+    <p>Twenty-four interaction patterns. Every state is real — press, hold, load, copy, toggle — not a hover picture.</p>
+  </div>
+
+  <div class="grid">
+    <div class="cell"><span class="no">01</span><button class="b b-mag" id="mag"><span>Magnetic</span></button><span class="cap">magnetic pull</span></div>
+
+    <div class="cell"><span class="no">02</span><div class="goowrap"><button class="b b-goo">Gooey</button></div><span class="cap">metaball split</span></div>
+
+    <div class="cell"><span class="no">03</span><button class="b b-liq">Liquid fill</button><span class="cap">wave rise</span></div>
+
+    <div class="cell"><span class="no">04</span><button class="b b-rip" id="rip">Ripple</button><span class="cap">pointer ripple</span></div>
+
+    <div class="cell"><span class="no">05</span><button class="b b-beam">Border beam</button><span class="cap">conic sweep</span></div>
+
+    <div class="cell"><span class="no">06</span><button class="b b-glitch" data-t="Glitch">Glitch</button><span class="cap">rgb split</span></div>
+
+    <div class="cell"><span class="no">07</span><button class="b b-load" id="load" data-s="idle">
+      <span class="t">Deploy</span><span class="sp"><i></i></span>
+      <span class="ok"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span></button>
+      <span class="cap">load → success</span></div>
+
+    <div class="cell"><span class="no">08</span><button class="b b-hold" id="hold" data-s="idle">Hold to delete</button><span class="cap">hold 1.2s</span></div>
+
+    <div class="cell"><span class="no">09</span><button class="b b-copy" id="copy" data-s="idle">
+      <svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg>
+      <span>npm i futura</span></button><span class="cap">clipboard</span></div>
+
+    <div class="cell"><span class="no">10</span><button class="b b-exp">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><em>Add to project</em></button>
+      <span class="cap">icon expand</span></div>
+
+    <div class="cell"><span class="no">11</span><button class="b b-3d">Press me</button><span class="cap">3d push</span></div>
+
+    <div class="cell"><span class="no">12</span><button class="b b-neon">Neon</button><span class="cap">glow invert</span></div>
+
+    <div class="cell"><span class="no">13</span><button class="b b-shine">Shine</button><span class="cap">specular sweep</span></div>
+
+    <div class="cell"><span class="no">14</span><button class="b b-like" id="like" data-s="off">
+      <svg viewBox="0 0 24 24"><path d="M12 20s-7-4.3-7-9a4 4 0 017-2.6A4 4 0 0119 11c0 4.7-7 9-7 9z"/></svg>
+      <span id="likeN">248</span></button><span class="cap">burst toggle</span></div>
+
+    <div class="cell"><span class="no">15</span><button class="b b-dl" id="dl" data-s="idle">Download</button><span class="cap">progress fill</span></div>
+
+    <div class="cell"><span class="no">16</span><button class="b b-arrow">Continue
+      <span class="ic">
+        <svg viewBox="0 0 18 14"><path d="M1 7h15M11 2l5 5-5 5"/></svg>
+        <svg viewBox="0 0 18 14"><path d="M1 7h15M11 2l5 5-5 5"/></svg>
+      </span></button><span class="cap">arrow relay</span></div>
+
+    <div class="cell"><span class="no">17</span><button class="b b-scr" data-word="INITIALISE">INITIALISE</button><span class="cap">text scramble</span></div>
+
+    <div class="cell"><span class="no">18</span><button class="b b-pulse">Go live</button><span class="cap">pulse rings</span></div>
+
+    <div class="cell"><span class="no">19</span><button class="b b-split">
+      <span class="under">Let&rsquo;s go</span>
+      <span class="half t">Split</span><span class="half b">Split</span></button><span class="cap">split reveal</span></div>
+
+    <div class="cell"><span class="no">20</span><button class="b b-spot">Spotlight</button><span class="cap">cursor border</span></div>
+
+    <div class="cell"><span class="no">21</span><div class="seg" id="seg"><span class="thumb"></span>
+      <button aria-pressed="true">Day</button><button aria-pressed="false">Week</button><button aria-pressed="false">Year</button>
+    </div><span class="cap">segmented</span></div>
+
+    <div class="cell"><span class="no">22</span><div class="fab" id="fab">
+      <i>★</i><i>✎</i><i>↗</i><button class="main">+</button></div><span class="cap">radial fab</span></div>
+
+    <div class="cell"><span class="no">23</span><button class="b b-ghost">Read the docs</button><span class="cap">ghost underline</span></div>
+
+    <div class="cell"><span class="no">24</span><button class="b b-key" id="key">⌘ K</button><span class="cap">tactile key</span></div>
+  </div>
+</div>
+
+<script>
+const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+/* 01 magnetic — the label lags behind the body for a bit of weight */
+const mag=document.getElementById('mag'), magT=mag.querySelector('span');
+mag.addEventListener('pointermove',e=>{
+  if(reduce) return;
+  const b=mag.getBoundingClientRect();
+  const x=(e.clientX-b.left-b.width/2)/b.width, y=(e.clientY-b.top-b.height/2)/b.height;
+  mag.style.transform='translate('+(x*22)+'px,'+(y*16)+'px)';
+  magT.style.transform='translate('+(x*9)+'px,'+(y*7)+'px)';
+});
+mag.addEventListener('pointerleave',()=>{ mag.style.transform=''; magT.style.transform=''; });
+
+/* 04 ripple from the exact press point */
+document.getElementById('rip').addEventListener('pointerdown',e=>{
+  const b=e.currentTarget.getBoundingClientRect(), d=Math.max(b.width,b.height)*2.4;
+  const s=document.createElement('span'); s.className='rip';
+  s.style.cssText='width:'+d+'px;height:'+d+'px;left:'+(e.clientX-b.left)+'px;top:'+(e.clientY-b.top)+'px';
+  e.currentTarget.appendChild(s); setTimeout(()=>s.remove(),660);
+});
+
+/* 07 load → success → reset */
+const load=document.getElementById('load');
+load.addEventListener('click',()=>{
+  if(load.dataset.s!=='idle') return;
+  load.dataset.s='load';
+  setTimeout(()=>{ load.dataset.s='ok';
+    setTimeout(()=>load.dataset.s='idle',1500); }, reduce?200:1500);
+});
+
+/* 08 hold to confirm — a real 1200ms timer you can abandon */
+const hold=document.getElementById('hold'); let raf=null,t0=0;
+function holdStart(){
+  if(hold.dataset.s==='done') return;
+  t0=performance.now();
+  (function step(t){
+    const p=Math.min(1,(t-t0)/1200);
+    hold.style.setProperty('--p',(p*100)+'%');
+    if(p<1){ raf=requestAnimationFrame(step); }
+    else{ hold.dataset.s='done'; hold.textContent='Deleted';
+      setTimeout(()=>{ hold.dataset.s='idle'; hold.textContent='Hold to delete';
+        hold.style.setProperty('--p','0%'); },1600); }
+  })(t0);
+}
+function holdEnd(){ if(hold.dataset.s==='done') return;
+  cancelAnimationFrame(raf); hold.style.setProperty('--p','0%'); }
+hold.addEventListener('pointerdown',holdStart);
+addEventListener('pointerup',holdEnd);
+hold.addEventListener('pointerleave',holdEnd);
+
+/* 09 clipboard, with a fallback for file:// */
+const copy=document.getElementById('copy'), copyTxt=copy.querySelector('span');
+copy.addEventListener('click',async()=>{
+  const text='npm i futura';
+  try{ await navigator.clipboard.writeText(text); }
+  catch(e){ const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta);
+    ta.select(); try{document.execCommand('copy');}catch(_){} ta.remove(); }
+  copy.dataset.s='ok'; copyTxt.textContent='Copied!';
+  setTimeout(()=>{ copy.dataset.s='idle'; copyTxt.textContent=text; },1500);
+});
+
+/* 14 like with particle burst */
+const like=document.getElementById('like'), likeN=document.getElementById('likeN');
+let liked=false, n=248;
+like.addEventListener('click',()=>{
+  liked=!liked; like.dataset.s=liked?'on':'off';
+  likeN.textContent = n + (liked?1:0);
+  if(!liked||reduce) return;
+  for(let i=0;i<10;i++){
+    const s=document.createElement('span'); s.className='spark';
+    const a=(i/10)*6.2832, d=26+Math.random()*16;
+    s.style.setProperty('--dx',(Math.cos(a)*d)+'px');
+    s.style.setProperty('--dy',(Math.sin(a)*d)+'px');
+    like.appendChild(s); setTimeout(()=>s.remove(),620);
+  }
+});
+
+/* 15 download progress */
+const dl=document.getElementById('dl');
+dl.addEventListener('click',()=>{
+  if(dl.dataset.s!=='idle') return;
+  dl.dataset.s='run'; let p=0;
+  const id=setInterval(()=>{
+    p=Math.min(100,p+4+Math.random()*7);
+    dl.style.setProperty('--p',p+'%');
+    dl.textContent=Math.round(p)+'%';
+    if(p>=100){ clearInterval(id); dl.dataset.s='done'; dl.textContent='Saved ✓';
+      setTimeout(()=>{ dl.dataset.s='idle'; dl.textContent='Download';
+        dl.style.setProperty('--p','0%'); },1600); }
+  }, reduce?20:90);
+});
+
+/* 17 scramble */
+const CH='ABCDEFGHIJKLMNOPQRSTUVWXYZ#%$@*/<>';
+document.querySelectorAll('.b-scr').forEach(btn=>{
+  const word=btn.dataset.word; let id=null;
+  const run=()=>{
+    if(reduce) return; clearInterval(id);
+    let f=0;
+    id=setInterval(()=>{
+      btn.textContent=word.split('').map((c,i)=>
+        i < f/2 ? c : CH[Math.floor(Math.random()*CH.length)]).join('');
+      if(f++ > word.length*2){ clearInterval(id); btn.textContent=word; }
+    },32);
+  };
+  btn.addEventListener('pointerenter',run);
+  btn.addEventListener('click',run);
+});
+
+/* 20 spotlight border follows the cursor */
+document.querySelectorAll('.b-spot').forEach(b=>{
+  b.addEventListener('pointermove',e=>{
+    const r=b.getBoundingClientRect();
+    b.style.setProperty('--mx',((e.clientX-r.left)/r.width*100)+'%');
+    b.style.setProperty('--my',((e.clientY-r.top)/r.height*100)+'%');
+  });
+});
+
+/* 21 segmented control */
+const seg=document.getElementById('seg'), thumb=seg.querySelector('.thumb');
+const segBtns=[...seg.querySelectorAll('button')];
+function moveThumb(i){
+  const b=segBtns[i].getBoundingClientRect(), s=seg.getBoundingClientRect();
+  thumb.style.width=b.width+'px';
+  thumb.style.transform='translateX('+(b.left-s.left-4)+'px)';
+  segBtns.forEach((x,n)=>x.setAttribute('aria-pressed',n===i));
+}
+segBtns.forEach((b,i)=>b.addEventListener('click',()=>moveThumb(i)));
+requestAnimationFrame(()=>moveThumb(0));
+addEventListener('resize',()=>moveThumb(segBtns.findIndex(b=>b.getAttribute('aria-pressed')==='true')));
+
+/* 22 radial fab */
+const fab=document.getElementById('fab');
+fab.querySelector('.main').addEventListener('click',()=>fab.toggleAttribute('data-open'));
+
+/* 24 the key also responds to the real ⌘K / Ctrl+K */
+const key=document.getElementById('key');
+addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){
+    e.preventDefault(); key.classList.add('down');
+    setTimeout(()=>key.classList.remove('down'),140);
+  }
+});
+</script>
+</body>
+</html>

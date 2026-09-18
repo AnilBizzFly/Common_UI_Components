@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Parallax Tilt</title>
+<style>
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;min-height:100%;display:grid;place-items:center;padding:74px 20px 64px;
+  overflow-x:hidden;font:400 15px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#e9edff;background:#06070d;--c:#8ee7ff}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(105px);
+  pointer-events:none;z-index:0}
+body::before{width:54vmax;height:54vmax;left:-20vmax;top:-24vmax;
+  background:color-mix(in srgb,var(--c) 30%,transparent)}
+body::after{width:46vmax;height:46vmax;right:-18vmax;bottom:-22vmax;background:rgba(0,190,255,.16)}
+
+.bar{position:fixed;inset:0 0 auto 0;z-index:5;display:flex;align-items:center;
+  justify-content:space-between;gap:10px;padding:16px 18px;
+  font:600 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.2em;text-transform:uppercase}
+.bar a{color:rgba(233,237,255,.4);text-decoration:none;padding:8px 11px;border-radius:9px;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);transition:.22s}
+.bar a:hover{color:#fff;border-color:color-mix(in srgb,var(--c) 55%,transparent);
+  background:color-mix(in srgb,var(--c) 16%,transparent)}
+.bar .rt{display:flex;gap:8px}
+
+.stage{position:relative;z-index:1;width:min(460px,100%);text-align:center}
+.eyebrow{margin:0 0 10px;font:600 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.3em;
+  text-transform:uppercase;color:color-mix(in srgb,var(--c) 70%,#8890b8)}
+h1{margin:0 0 8px;font-size:clamp(26px,6vw,34px);font-weight:650;letter-spacing:-.04em}
+.desc{margin:0;font-size:13.5px;color:rgba(233,237,255,.48);line-height:1.6}
+
+.demo{margin:24px 0 0;padding:40px 22px;border-radius:26px;min-height:176px;position:relative;
+  display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:16px;
+  background:linear-gradient(165deg,rgba(255,255,255,.075),rgba(255,255,255,.018));
+  border:1px solid rgba(255,255,255,.09);
+  box-shadow:0 26px 60px -30px #000,0 1px 0 0 rgba(255,255,255,.12) inset;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.demo.block{display:block;text-align:left;padding:26px 22px}
+.demo.bare{background:none;border:0;box-shadow:none;backdrop-filter:none;padding:14px 0}
+
+.note{margin:14px 0 0;font:500 11px/1.7 ui-monospace,Menlo,monospace;letter-spacing:.05em;
+  color:rgba(233,237,255,.32)}
+.note b{color:color-mix(in srgb,var(--c) 75%,#fff);font-weight:600}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important}
+}
+
+.card{position:relative;width:min(320px,100%);border-radius:22px;overflow:hidden;
+  background:linear-gradient(165deg,rgba(255,255,255,.075),rgba(255,255,255,.02));
+  border:1px solid rgba(255,255,255,.1);
+  box-shadow:0 26px 60px -28px #000,0 1px 0 0 rgba(255,255,255,.12) inset}
+.pad{padding:18px}
+.card h3{margin:0;font-size:17px;font-weight:650;letter-spacing:-.03em}
+.card .sub{margin:5px 0 0;font-size:12.5px;color:rgba(233,237,255,.46);line-height:1.5}
+.k{font:600 8.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.2em;text-transform:uppercase;
+  color:rgba(233,237,255,.38)}
+
+.demo{perspective:1100px}
+.tilt{transform-style:preserve-3d;transition:transform .45s cubic-bezier(.2,1,.3,1)}
+.tilt .art{height:132px;background:conic-gradient(from 210deg at 30% 20%,#1b1440,#3b1f6e,#0f4a76,#5d1d63,#1b1440)}
+.tilt .glare{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .3s;
+  background:radial-gradient(260px 260px at var(--mx,50%) var(--my,50%),rgba(255,255,255,.42),transparent 60%)}
+.tilt:hover .glare{opacity:1}
+.tilt .lift{transform:translateZ(38px)}
+</style>
+</head>
+<body>
+<nav class="bar">
+  <a href="index.html">&larr; cards</a>
+  <span class="rt"><a href="12-pricing.html" title="previous">&larr;</a><a href="02-spotlight-border.html" title="next">&rarr;</a></span>
+</nav>
+
+<main class="stage">
+  <p class="eyebrow">Cards &middot; 01 / 12</p>
+  <h1>Parallax Tilt</h1>
+  <p class="desc">The card rotates toward your pointer while a glare sweeps the surface and the text floats 38px forward in Z.</p>
+  <div class="demo">
+    <div class="card tilt" id="c">
+      <div class="art"></div><div class="glare"></div>
+      <div class="pad lift">
+        <span class="k">holo layer</span>
+        <h3 style="margin-top:7px">Parallax Tilt</h3>
+        <p class="sub">Move your pointer across the surface. The art stays back, the text comes forward.</p>
+      </div>
+    </div>
+  </div>
+  <p class="note"><b>preserve-3d</b> plus a translateZ on the copy &mdash; that is what sells the depth.</p>
+</main>
+<script>
+const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+const $=id=>document.getElementById(id);
+const c=$('c');
+c.addEventListener('pointermove',e=>{
+  const b=c.getBoundingClientRect();
+  const px=(e.clientX-b.left)/b.width, py=(e.clientY-b.top)/b.height;
+  c.style.setProperty('--mx',(px*100)+'%'); c.style.setProperty('--my',(py*100)+'%');
+  if(!reduce) c.style.transform='rotateY('+((px-.5)*15)+'deg) rotateX('+(-(py-.5)*13)+'deg) translateZ(12px)';
+});
+c.addEventListener('pointerleave',()=>{ c.style.transform=''; });
+</script>
+</body>
+</html>

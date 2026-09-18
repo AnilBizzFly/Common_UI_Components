@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wave Fill</title>
+<style>
+*{box-sizing:border-box}
+html{height:100%}
+body{
+  margin:0;min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:48px;padding:40px 20px;overflow:hidden;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#eaf6ff;background:#04101c;
+}
+body::before{content:"";position:fixed;inset:-20%;z-index:0;
+  background:radial-gradient(46vmax 40vmax at 24% 18%,rgba(0,180,255,.28),transparent 62%),
+             radial-gradient(40vmax 40vmax at 78% 82%,rgba(0,255,200,.22),transparent 62%);
+  filter:blur(26px);animation:tide 22s ease-in-out infinite}
+@keyframes tide{0%,100%{transform:scale(1) translate(0,0)}50%{transform:scale(1.12) translate(-3vmax,2vmax)}}
+
+.head{position:relative;z-index:2;text-align:center}
+.head p:first-child{margin:0 0 10px;font:600 10px/1 ui-monospace,Menlo,monospace;
+  letter-spacing:.3em;color:rgba(255,255,255,.38)}
+.head h1{margin:0 0 8px;font-size:clamp(28px,7vw,44px);font-weight:600;letter-spacing:-.045em}
+.head p:last-child{margin:0;font-size:14px;color:rgba(255,255,255,.5)}
+
+/* ============ the tank ============ */
+.wv{
+  position:relative;z-index:2;isolation:isolate;overflow:hidden;
+  min-width:250px;padding:22px 42px;cursor:pointer;
+  border:1.6px solid rgba(120,225,255,.5);border-radius:16px;
+  background:rgba(120,225,255,.05);
+  font:inherit;font-size:16px;font-weight:700;letter-spacing:.01em;color:#eaf6ff;
+  box-shadow:0 18px 46px -18px rgba(0,190,255,.55), 0 0 0 1px rgba(255,255,255,.04) inset;
+  transition:border-color .4s,box-shadow .4s,transform .16s;
+}
+.wv:hover{border-color:rgba(120,225,255,.95);box-shadow:0 24px 60px -18px rgba(0,190,255,.85)}
+.wv:active{transform:scale(.98)}
+.wv:focus-visible{outline:2px solid #78e1ff;outline-offset:5px}
+
+/* the water: a block that rises, with the wave riding its top edge */
+.tide{position:absolute;left:-6%;right:-6%;bottom:0;height:0;pointer-events:none;
+  background:linear-gradient(180deg,#5ee7ff,#2ea8ff 55%,#1d6dff);
+  transition:height .72s cubic-bezier(.3,.9,.35,1)}
+.wv:hover .tide,.wv:focus-visible .tide{height:118%}
+.wv.flood .tide{height:190%;transition-duration:.5s}
+
+/* two crests at different speeds — one wave alone reads as a moving stripe */
+.tide svg{position:absolute;left:0;bottom:100%;width:200%;height:22px;display:block}
+.tide .c1{fill:#5ee7ff;animation:roll 3.4s linear infinite}
+.tide .c2{fill:#5ee7ff;opacity:.55;animation:roll 2.1s linear infinite reverse;bottom:calc(100% - 5px)}
+@keyframes roll{to{transform:translateX(-50%)}}
+
+/* the label sits above the water and inverts as it passes — one blend mode, no JS */
+.wv .lbl{position:relative;z-index:3;display:flex;align-items:center;justify-content:center;gap:11px;
+  mix-blend-mode:difference;color:#fff}
+.wv svg.ico{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2.2;
+  stroke-linecap:round;stroke-linejoin:round}
+
+/* droplets thrown off the top when it floods */
+.drops{position:absolute;inset:0;z-index:4;pointer-events:none;overflow:visible}
+.drops i{position:absolute;bottom:22px;left:50%;width:8px;height:8px;border-radius:50%;
+  background:#7ceaff;opacity:0}
+.wv.flood .drops i{animation:spit .85s cubic-bezier(.15,.75,.4,1) forwards}
+@keyframes spit{
+  0%{opacity:1;transform:translate(0,0) scale(1)}
+  100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.3)}
+}
+
+.readout{position:relative;z-index:2;font:600 10px/1 ui-monospace,Menlo,monospace;
+  letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.32)}
+.readout b{color:#5ee7ff}
+
+@media (prefers-reduced-motion:reduce){
+  body::before,.tide .c1,.tide .c2{animation:none}
+  .tide{transition-duration:.01ms}
+}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <p>06 &middot; WAVE FILL</p>
+  <h1>It floods on the way in</h1>
+  <p>Two crests at different speeds, and a label that inverts itself as the water passes.</p>
+</div>
+
+<button class="wv" id="wv" type="button">
+  <span class="tide">
+    <svg class="c1" viewBox="0 0 200 22" preserveAspectRatio="none">
+      <path d="M0 12 C 12 2, 26 2, 38 12 S 62 22, 75 12 S 100 2, 113 12 S 138 22, 150 12 S 175 2, 188 12 S 200 18, 200 22 L0 22 Z"/>
+    </svg>
+    <svg class="c2" viewBox="0 0 200 22" preserveAspectRatio="none">
+      <path d="M0 14 C 14 6, 30 20, 46 12 S 74 4, 92 14 S 120 20, 138 11 S 168 4, 186 13 S 200 16, 200 22 L0 22 Z"/>
+    </svg>
+  </span>
+
+  <span class="drops" aria-hidden="true"></span>
+
+  <span class="lbl">
+    <svg class="ico" viewBox="0 0 24 24"><path d="M12 3s6.5 6.4 6.5 11a6.5 6.5 0 0 1-13 0C5.5 9.4 12 3 12 3Z"/></svg>
+    Dive in
+  </span>
+</button>
+
+<p class="readout" id="readout">tank <b>empty</b></p>
+
+<script>
+const wv = document.getElementById('wv'), readout = document.getElementById('readout');
+const drops = wv.querySelector('.drops');
+
+/* one droplet per index, thrown on an even fan so the splash is not a puff */
+for (let i = 0; i < 11; i++){
+  const d = document.createElement('i');
+  const a = -Math.PI / 2 + (i / 10 - .5) * 2.1;      // a fan, not a full circle
+  const v = 58 + Math.random() * 46;
+  d.style.setProperty('--dx', (Math.cos(a) * v).toFixed(1) + 'px');
+  d.style.setProperty('--dy', (Math.sin(a) * v).toFixed(1) + 'px');
+  d.style.left = (26 + Math.random() * 48) + '%';
+  d.style.animationDelay = (i * 14) + 'ms';
+  const s = 5 + Math.random() * 6;
+  d.style.width = d.style.height = s.toFixed(1) + 'px';
+  drops.appendChild(d);
+}
+
+wv.addEventListener('pointerenter', () => readout.innerHTML = 'tank <b>filling</b>');
+wv.addEventListener('pointerleave', () => { if (!wv.classList.contains('flood')) readout.innerHTML = 'tank <b>empty</b>'; });
+
+wv.addEventListener('click', () => {
+  wv.classList.remove('flood'); void wv.offsetWidth; wv.classList.add('flood');
+  readout.innerHTML = 'tank <b>overflowed</b>';
+  setTimeout(() => {
+    wv.classList.remove('flood');
+    readout.innerHTML = wv.matches(':hover') ? 'tank <b>filling</b>' : 'tank <b>empty</b>';
+  }, 1500);
+});
+</script>
+</body>
+</html>

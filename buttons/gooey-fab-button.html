@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gooey FAB</title>
+<style>
+*{box-sizing:border-box}
+html{height:100%}
+body{
+  margin:0;min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:0;padding:40px 20px;overflow:hidden;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#f4f1ff;background:#0b0616;
+}
+body::before{content:"";position:fixed;inset:-25%;z-index:0;
+  background:
+    radial-gradient(38vmax 38vmax at 22% 26%,rgba(124,63,255,.5),transparent 62%),
+    radial-gradient(34vmax 34vmax at 78% 72%,rgba(255,45,143,.42),transparent 62%),
+    radial-gradient(30vmax 30vmax at 62% 12%,rgba(0,212,255,.3),transparent 62%);
+  filter:blur(30px);animation:drift 24s ease-in-out infinite}
+@keyframes drift{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.14) rotate(6deg)}}
+
+.head{position:relative;z-index:2;text-align:center;margin-bottom:min(16vh,120px)}
+.head p:first-child{margin:0 0 10px;font:600 10px/1 ui-monospace,Menlo,monospace;
+  letter-spacing:.3em;color:rgba(255,255,255,.45)}
+.head h1{margin:0 0 8px;font-size:clamp(28px,7vw,44px);font-weight:600;letter-spacing:-.045em}
+.head p:last-child{margin:0;font-size:14px;color:rgba(255,255,255,.55)}
+
+/* ============ the goo ============ */
+/* blur everything, then crush the alpha ramp — touching shapes fuse, and
+   separating ones stretch a neck before they snap */
+.goo{position:relative;z-index:2;width:280px;height:280px;
+  display:grid;place-items:center;filter:url(#goo)}
+
+.blob{position:absolute;border-radius:50%;border:0;padding:0;cursor:pointer;
+  background:linear-gradient(140deg,#a855f7,#ec4899);
+  transition:transform .55s cubic-bezier(.34,1.5,.5,1),background .3s}
+
+.core{width:76px;height:76px;z-index:3;
+  background:linear-gradient(140deg,#c084fc,#f472b6 60%,#fb7185);
+  box-shadow:0 14px 40px -8px rgba(192,132,252,.7)}
+.core:focus-visible{outline:2px solid #fff;outline-offset:8px}
+
+/* four satellites, parked dead centre so the goo reads as one lump at rest */
+.sat{width:56px;height:56px;transform:translate(0,0) scale(.35);z-index:2}
+.open .sat{transform:translate(var(--tx),var(--ty)) scale(1)}
+.sat:nth-of-type(2){transition-delay:.02s}
+.sat:nth-of-type(3){transition-delay:.06s}
+.sat:nth-of-type(4){transition-delay:.10s}
+.sat:nth-of-type(5){transition-delay:.14s}
+
+/* the icons must live OUTSIDE the goo filter or they melt with it */
+.icons{position:absolute;inset:0;z-index:4;pointer-events:none}
+.icons span{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;
+  display:grid;place-items:center;
+  transform:translate(0,0) scale(.4);opacity:0;
+  transition:transform .55s cubic-bezier(.34,1.5,.5,1),opacity .3s}
+.open ~ .icons span{opacity:1;transform:translate(var(--tx),var(--ty)) scale(1)}
+.open ~ .icons span:nth-child(1){transition-delay:.10s}
+.open ~ .icons span:nth-child(2){transition-delay:.14s}
+.open ~ .icons span:nth-child(3){transition-delay:.18s}
+.open ~ .icons span:nth-child(4){transition-delay:.22s}
+.icons svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:2.1;
+  stroke-linecap:round;stroke-linejoin:round}
+
+/* the plus turns into a cross */
+.plus{position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;z-index:5;
+  pointer-events:none;transition:transform .55s cubic-bezier(.34,1.6,.5,1)}
+.plus i{position:absolute;left:50%;top:50%;background:#fff;border-radius:2px}
+.plus i:first-child{width:24px;height:3px;margin:-1.5px 0 0 -12px}
+.plus i:last-child{width:3px;height:24px;margin:-12px 0 0 -1.5px;
+  transition:transform .4s cubic-bezier(.34,1.6,.5,1)}
+.open ~ .plus{transform:rotate(135deg)}
+
+/* the label that rides out with each blob */
+.tips{position:absolute;inset:0;z-index:6;pointer-events:none}
+.tips b{position:absolute;left:50%;top:50%;margin:-9px 0 0 -50px;width:100px;text-align:center;
+  font:700 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;
+  color:rgba(255,255,255,.9);text-shadow:0 2px 10px rgba(11,6,22,.9);
+  transform:translate(var(--tx),calc(var(--ty) + 40px));opacity:0;transition:opacity .3s}
+.open ~ .tips b{opacity:1}
+.open ~ .tips b:nth-child(1){transition-delay:.24s}
+.open ~ .tips b:nth-child(2){transition-delay:.28s}
+.open ~ .tips b:nth-child(3){transition-delay:.32s}
+.open ~ .tips b:nth-child(4){transition-delay:.36s}
+
+.readout{position:relative;z-index:2;margin-top:min(14vh,100px);
+  font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.2em;
+  text-transform:uppercase;color:rgba(255,255,255,.35)}
+.readout b{color:#f472b6}
+
+@media (prefers-reduced-motion:reduce){
+  body::before{animation:none}
+  .goo{filter:none}
+  .blob,.icons span,.plus{transition-duration:.01ms}
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="goo">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="9" result="b"/>
+      <feColorMatrix in="b" mode="matrix"
+        values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -10" result="g"/>
+      <feBlend in="SourceGraphic" in2="g"/>
+    </filter>
+  </defs>
+</svg>
+
+<div class="head">
+  <p>02 &middot; GOOEY FAB</p>
+  <h1>It stretches, then snaps</h1>
+  <p>One SVG filter turns four buttons into one lump of liquid.</p>
+</div>
+
+<div class="goo" id="goo">
+  <button class="blob core" id="core" type="button" aria-expanded="false" aria-label="Actions"></button>
+  <button class="blob sat" style="--tx:-96px;--ty:-30px" type="button" tabindex="-1" aria-hidden="true"></button>
+  <button class="blob sat" style="--tx:-38px;--ty:-100px" type="button" tabindex="-1" aria-hidden="true"></button>
+  <button class="blob sat" style="--tx:38px;--ty:-100px"  type="button" tabindex="-1" aria-hidden="true"></button>
+  <button class="blob sat" style="--tx:96px;--ty:-30px"   type="button" tabindex="-1" aria-hidden="true"></button>
+
+  <div class="icons" aria-hidden="true">
+    <span style="--tx:-96px;--ty:-30px"><svg viewBox="0 0 24 24"><path d="M4 12h16M12 4v16"/></svg></span>
+    <span style="--tx:-38px;--ty:-100px"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg></span>
+    <span style="--tx:38px;--ty:-100px"><svg viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></svg></span>
+    <span style="--tx:96px;--ty:-30px"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.2A1.6 1.6 0 0 0 7 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H1a2 2 0 1 1 0-4h.2A1.6 1.6 0 0 0 2.6 7"/></svg></span>
+  </div>
+
+  <span class="plus" aria-hidden="true"><i></i><i></i></span>
+
+  <div class="tips" aria-hidden="true">
+    <b style="--tx:-96px;--ty:-30px">New</b>
+    <b style="--tx:-38px;--ty:-100px">Import</b>
+    <b style="--tx:38px;--ty:-100px">Share</b>
+    <b style="--tx:96px;--ty:-30px">Settings</b>
+  </div>
+</div>
+
+<p class="readout" id="readout">menu <b>closed</b></p>
+
+<script>
+const goo = document.getElementById('goo'), core = document.getElementById('core'),
+      readout = document.getElementById('readout');
+const sats = [...goo.querySelectorAll('.sat')];
+let open = false;
+
+function set(next){
+  open = next;
+  goo.classList.toggle('open', open);
+  core.setAttribute('aria-expanded', String(open));
+  sats.forEach(s => { s.tabIndex = open ? 0 : -1; s.setAttribute('aria-hidden', String(!open)); });
+  readout.innerHTML = 'menu <b>' + (open ? 'open' : 'closed') + '</b>';
+}
+
+core.addEventListener('click', () => set(!open));
+addEventListener('keydown', e => { if (e.key === 'Escape' && open) { set(false); core.focus(); } });
+addEventListener('pointerdown', e => { if (open && !goo.contains(e.target)) set(false); });
+sats.forEach((s, i) => s.addEventListener('click', () => {
+  readout.innerHTML = 'picked <b>' + ['new','import','share','settings'][i] + '</b>';
+  set(false);
+}));
+</script>
+</body>
+</html>

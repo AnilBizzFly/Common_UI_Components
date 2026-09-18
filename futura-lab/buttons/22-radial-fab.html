@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Radial FAB</title>
+<style>
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;min-height:100%;display:grid;place-items:center;padding:74px 20px 64px;
+  overflow-x:hidden;font:400 15px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#e9edff;background:#06070d;--c:#ff2fb3}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(105px);
+  pointer-events:none;z-index:0}
+body::before{width:54vmax;height:54vmax;left:-20vmax;top:-24vmax;
+  background:color-mix(in srgb,var(--c) 30%,transparent)}
+body::after{width:46vmax;height:46vmax;right:-18vmax;bottom:-22vmax;background:rgba(0,190,255,.16)}
+
+.bar{position:fixed;inset:0 0 auto 0;z-index:5;display:flex;align-items:center;
+  justify-content:space-between;gap:10px;padding:16px 18px;
+  font:600 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.2em;text-transform:uppercase}
+.bar a{color:rgba(233,237,255,.4);text-decoration:none;padding:8px 11px;border-radius:9px;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);transition:.22s}
+.bar a:hover{color:#fff;border-color:color-mix(in srgb,var(--c) 55%,transparent);
+  background:color-mix(in srgb,var(--c) 16%,transparent)}
+.bar .rt{display:flex;gap:8px}
+
+.stage{position:relative;z-index:1;width:min(460px,100%);text-align:center}
+.eyebrow{margin:0 0 10px;font:600 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.3em;
+  text-transform:uppercase;color:color-mix(in srgb,var(--c) 70%,#8890b8)}
+h1{margin:0 0 8px;font-size:clamp(26px,6vw,34px);font-weight:650;letter-spacing:-.04em}
+.desc{margin:0;font-size:13.5px;color:rgba(233,237,255,.48);line-height:1.6}
+
+.demo{margin:24px 0 0;padding:40px 22px;border-radius:26px;min-height:176px;position:relative;
+  display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:16px;
+  background:linear-gradient(165deg,rgba(255,255,255,.075),rgba(255,255,255,.018));
+  border:1px solid rgba(255,255,255,.09);
+  box-shadow:0 26px 60px -30px #000,0 1px 0 0 rgba(255,255,255,.12) inset;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.demo.block{display:block;text-align:left;padding:26px 22px}
+.demo.bare{background:none;border:0;box-shadow:none;backdrop-filter:none;padding:14px 0}
+
+.note{margin:14px 0 0;font:500 11px/1.7 ui-monospace,Menlo,monospace;letter-spacing:.05em;
+  color:rgba(233,237,255,.32)}
+.note b{color:color-mix(in srgb,var(--c) 75%,#fff);font-weight:600}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important}
+}
+
+.fab{position:relative;width:62px;height:62px;margin-top:40px}
+.fab .main{position:absolute;inset:0;border-radius:50%;border:0;cursor:pointer;z-index:3;
+  background:linear-gradient(130deg,#7c5cff,#ff2fb3);color:#fff;font-size:26px;line-height:1;
+  box-shadow:0 14px 34px -10px #7c5cff;transition:transform .42s cubic-bezier(.3,1.4,.3,1)}
+.fab[data-open] .main{transform:rotate(135deg)}
+.fab i{position:absolute;left:13px;top:13px;width:36px;height:36px;border-radius:50%;
+  background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);display:grid;
+  place-items:center;font-size:14px;font-style:normal;z-index:2;opacity:0;
+  transition:transform .48s cubic-bezier(.3,1.4,.3,1),opacity .3s}
+.fab[data-open] i{opacity:1}
+.fab[data-open] i:nth-of-type(1){transform:translate(0,-66px)}
+.fab[data-open] i:nth-of-type(2){transform:translate(-58px,-34px)}
+.fab[data-open] i:nth-of-type(3){transform:translate(58px,-34px)}
+</style>
+</head>
+<body>
+<nav class="bar">
+  <a href="index.html">&larr; buttons</a>
+  <span class="rt"><a href="21-segmented.html" title="previous">&larr;</a><a href="23-ghost-underline.html" title="next">&rarr;</a></span>
+</nav>
+
+<main class="stage">
+  <p class="eyebrow">Buttons &middot; 22 / 24</p>
+  <h1>Radial FAB</h1>
+  <p class="desc">The plus rotates 135&deg; into a cross while three actions fan out along an arc.</p>
+  <div class="demo">
+    <div class="fab" id="fab"><i>&#9733;</i><i>&#9998;</i><i>&#8599;</i><button class="main">+</button></div>
+  </div>
+  <p class="note">Each satellite has its own translate; the stagger comes from the spring easing.</p>
+</main>
+<script>
+const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+const $=id=>document.getElementById(id);
+const fab=$('fab');
+fab.querySelector('.main').addEventListener('click',()=>fab.toggleAttribute('data-open'));
+</script>
+</body>
+</html>

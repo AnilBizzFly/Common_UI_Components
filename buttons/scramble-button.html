@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Scramble</title>
+<style>
+*{box-sizing:border-box}
+html{height:100%}
+body{
+  margin:0;min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:48px;padding:40px 20px;overflow:hidden;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#d7ffe9;background:#03070a;
+}
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(58vmax 40vmax at 50% 8%,rgba(0,255,163,.12),transparent 66%),
+             radial-gradient(44vmax 44vmax at 82% 88%,rgba(0,180,255,.1),transparent 64%)}
+/* scanlines, because this one is meant to look like a terminal */
+body::after{content:"";position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.5;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.28) 0 1px,transparent 1px 3px)}
+
+.head{position:relative;z-index:2;text-align:center}
+.head p:first-child{margin:0 0 10px;font:600 10px/1 ui-monospace,Menlo,monospace;
+  letter-spacing:.3em;color:rgba(0,255,163,.5)}
+.head h1{margin:0 0 8px;font-size:clamp(28px,7vw,44px);font-weight:600;letter-spacing:-.045em;color:#eafff5}
+.head p:last-child{margin:0;font-size:14px;color:rgba(215,255,233,.45)}
+
+/* ============ the terminal button ============ */
+.term{position:relative;z-index:2;display:flex;flex-direction:column;gap:14px;align-items:center}
+
+.scr{
+  position:relative;isolation:isolate;overflow:hidden;
+  min-width:280px;padding:20px 32px;cursor:pointer;
+  border:1px solid rgba(0,255,163,.34);border-radius:4px;
+  background:linear-gradient(180deg,rgba(0,255,163,.09),rgba(0,255,163,.03));
+  font:700 15px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.22em;color:#00ffa3;text-transform:uppercase;
+  box-shadow:0 0 0 1px rgba(0,255,163,.08) inset, 0 18px 46px -18px rgba(0,255,163,.5);
+  transition:border-color .3s,box-shadow .3s,background .3s,transform .12s;
+}
+.scr:hover{border-color:rgba(0,255,163,.75);
+  box-shadow:0 0 0 1px rgba(0,255,163,.2) inset,0 22px 56px -18px rgba(0,255,163,.7)}
+.scr:active{transform:translateY(2px)}
+.scr:focus-visible{outline:2px solid #00ffa3;outline-offset:4px}
+.scr[data-state="ok"]{border-color:rgba(0,255,163,.9);color:#04120c;
+  background:linear-gradient(180deg,#00ffa3,#00d488)}
+.scr[data-state="ok"] .cursor{background:#04120c}
+
+/* the glyph row — each character is its own cell so it can flicker alone */
+.scr .row{position:relative;display:flex;gap:.06em;justify-content:center;white-space:pre}
+.scr .row i{display:inline-block;min-width:.62em;font-style:normal;text-align:center;
+  transition:color .1s,text-shadow .1s}
+.scr .row i.hot{color:#eafff5;text-shadow:0 0 14px rgba(0,255,163,.95)}
+
+.cursor{display:inline-block;width:.55em;height:1em;margin-left:.15em;vertical-align:-.12em;
+  background:#00ffa3;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* the sweep that runs the glyphs as they resolve */
+.scr .sweep{position:absolute;top:0;bottom:0;width:70px;pointer-events:none;left:-80px;
+  background:linear-gradient(90deg,transparent,rgba(0,255,163,.4),transparent);
+  filter:blur(4px);opacity:0}
+.scr.run .sweep{animation:sweep 1.05s cubic-bezier(.3,.7,.3,1)}
+@keyframes sweep{0%{left:-80px;opacity:1}100%{left:100%;opacity:0}}
+
+/* the corner ticks */
+.scr b{position:absolute;width:9px;height:9px;border:1.5px solid rgba(0,255,163,.85);pointer-events:none}
+.scr b:nth-of-type(1){top:5px;left:5px;border-right:0;border-bottom:0}
+.scr b:nth-of-type(2){top:5px;right:5px;border-left:0;border-bottom:0}
+.scr b:nth-of-type(3){bottom:5px;left:5px;border-right:0;border-top:0}
+.scr b:nth-of-type(4){bottom:5px;right:5px;border-left:0;border-top:0}
+
+.log{min-height:16px;font:600 10px/1.6 ui-monospace,Menlo,monospace;letter-spacing:.18em;
+  text-transform:uppercase;color:rgba(0,255,163,.42)}
+.log span{opacity:0;animation:in .3s forwards}
+@keyframes in{to{opacity:1}}
+
+@media (prefers-reduced-motion:reduce){
+  body::after{display:none}.cursor{animation:none}
+}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <p>04 &middot; SCRAMBLE</p>
+  <h1>It resolves left to right</h1>
+  <p>Every character locks in on its own frame, with a sweep chasing the unresolved ones.</p>
+</div>
+
+<div class="term">
+  <button class="scr" id="scr" type="button" data-state="idle">
+    <b></b><b></b><b></b><b></b>
+    <span class="sweep"></span>
+    <span class="row" id="row"></span>
+  </button>
+  <p class="log" id="log"></p>
+</div>
+
+<script>
+const scr = document.getElementById('scr'), row = document.getElementById('row'),
+      log = document.getElementById('log');
+
+const GLYPHS = '▚▞█▓▒░#@%&$/\\<>=+*ABCDEFGHJKLMNPQRSTUVWXYZ0123456789';
+const IDLE = 'INITIALISE';
+const OK   = 'ACCESS GRANTED';
+let running = false, raf = null;
+
+function cells(text){
+  row.innerHTML = [...text].map(c => `<i>${c === ' ' ? '&nbsp;' : c}</i>`).join('')
+    + '<span class="cursor"></span>';
+  return [...row.querySelectorAll('i')];
+}
+
+/* each character gets a start frame and an end frame; before its window it is blank,
+   inside it flickers, after it is simply itself. that stagger IS the effect. */
+function scramble(text, { speed = 1 } = {}){
+  return new Promise(resolve => {
+    const target = [...text];
+    const el = cells(text.replace(/./g, ' '));
+    const plan = target.map((ch, i) => ({
+      ch,
+      from: Math.floor(i * 2.2 * speed),
+      to:   Math.floor(i * 2.2 * speed) + 8 + Math.floor(Math.random() * 12)
+    }));
+    let frame = 0;
+    cancelAnimationFrame(raf);
+
+    (function step(){
+      let done = 0;
+      plan.forEach((p, i) => {
+        const node = el[i];
+        if (frame >= p.to){
+          done++;
+          if (node.textContent !== p.ch){ node.textContent = p.ch === ' ' ? ' ' : p.ch; }
+          node.classList.remove('hot');
+        } else if (frame >= p.from){
+          node.textContent = GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
+          node.classList.add('hot');
+        } else {
+          node.textContent = ' ';
+        }
+      });
+      frame++;
+      if (done < plan.length) raf = requestAnimationFrame(step);
+      else resolve();
+    })();
+  });
+}
+
+function say(msg){
+  log.innerHTML = '<span>&gt; ' + msg + '</span>';
+}
+
+async function run(){
+  if (running) return;
+  running = true;
+  scr.dataset.state = 'busy';
+  scr.classList.remove('run'); void scr.offsetWidth; scr.classList.add('run');
+
+  say('handshake…');
+  await scramble('AUTHENTICATING', { speed: .8 });
+  await new Promise(r => setTimeout(r, 420));
+
+  scr.classList.remove('run'); void scr.offsetWidth; scr.classList.add('run');
+  await scramble(OK, { speed: .7 });
+  scr.dataset.state = 'ok';
+  say('session opened');
+
+  await new Promise(r => setTimeout(r, 1900));
+  scr.dataset.state = 'idle';
+  await scramble(IDLE, { speed: 1 });
+  say('');
+  running = false;
+}
+
+scr.addEventListener('click', run);
+scr.addEventListener('pointerenter', () => { if (!running) scramble(IDLE, { speed: 1.4 }); });
+
+cells(IDLE);
+</script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Product Card</title>
+<style>
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;min-height:100%;display:grid;place-items:center;padding:74px 20px 64px;
+  overflow-x:hidden;font:400 15px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#e9edff;background:#06070d;--c:#ff7a45}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(105px);
+  pointer-events:none;z-index:0}
+body::before{width:54vmax;height:54vmax;left:-20vmax;top:-24vmax;
+  background:color-mix(in srgb,var(--c) 30%,transparent)}
+body::after{width:46vmax;height:46vmax;right:-18vmax;bottom:-22vmax;background:rgba(0,190,255,.16)}
+
+.bar{position:fixed;inset:0 0 auto 0;z-index:5;display:flex;align-items:center;
+  justify-content:space-between;gap:10px;padding:16px 18px;
+  font:600 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.2em;text-transform:uppercase}
+.bar a{color:rgba(233,237,255,.4);text-decoration:none;padding:8px 11px;border-radius:9px;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);transition:.22s}
+.bar a:hover{color:#fff;border-color:color-mix(in srgb,var(--c) 55%,transparent);
+  background:color-mix(in srgb,var(--c) 16%,transparent)}
+.bar .rt{display:flex;gap:8px}
+
+.stage{position:relative;z-index:1;width:min(460px,100%);text-align:center}
+.eyebrow{margin:0 0 10px;font:600 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.3em;
+  text-transform:uppercase;color:color-mix(in srgb,var(--c) 70%,#8890b8)}
+h1{margin:0 0 8px;font-size:clamp(26px,6vw,34px);font-weight:650;letter-spacing:-.04em}
+.desc{margin:0;font-size:13.5px;color:rgba(233,237,255,.48);line-height:1.6}
+
+.demo{margin:24px 0 0;padding:40px 22px;border-radius:26px;min-height:176px;position:relative;
+  display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:16px;
+  background:linear-gradient(165deg,rgba(255,255,255,.075),rgba(255,255,255,.018));
+  border:1px solid rgba(255,255,255,.09);
+  box-shadow:0 26px 60px -30px #000,0 1px 0 0 rgba(255,255,255,.12) inset;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.demo.block{display:block;text-align:left;padding:26px 22px}
+.demo.bare{background:none;border:0;box-shadow:none;backdrop-filter:none;padding:14px 0}
+
+.note{margin:14px 0 0;font:500 11px/1.7 ui-monospace,Menlo,monospace;letter-spacing:.05em;
+  color:rgba(233,237,255,.32)}
+.note b{color:color-mix(in srgb,var(--c) 75%,#fff);font-weight:600}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important}
+}
+
+.card{position:relative;width:min(320px,100%);border-radius:22px;overflow:hidden;
+  background:linear-gradient(165deg,rgba(255,255,255,.075),rgba(255,255,255,.02));
+  border:1px solid rgba(255,255,255,.1);
+  box-shadow:0 26px 60px -28px #000,0 1px 0 0 rgba(255,255,255,.12) inset}
+.pad{padding:18px}
+.card h3{margin:0;font-size:17px;font-weight:650;letter-spacing:-.03em}
+.card .sub{margin:5px 0 0;font-size:12.5px;color:rgba(233,237,255,.46);line-height:1.5}
+.k{font:600 8.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.2em;text-transform:uppercase;
+  color:rgba(233,237,255,.38)}
+
+.art{height:148px;position:relative;overflow:hidden;
+  background:radial-gradient(90% 90% at 50% 20%,#ff8a5b,#7a1f4f 60%,#1a0a20)}
+.obj{position:absolute;left:50%;top:52%;width:94px;height:94px;margin:-47px 0 0 -47px;
+  border-radius:28px;background:linear-gradient(145deg,#fff,#ffd9c2 40%,#ff7a45);
+  box-shadow:0 24px 44px -14px rgba(0,0,0,.72),0 0 0 1px rgba(255,255,255,.42) inset;
+  transition:transform .55s cubic-bezier(.2,1.2,.3,1)}
+.card:hover .obj{transform:translateY(-9px) rotate(-8deg) scale(1.07)}
+.tag{position:absolute;top:13px;left:13px;padding:6px 10px;border-radius:9px;
+  background:rgba(0,0,0,.45);backdrop-filter:blur(6px);
+  font:700 9px/1 ui-monospace,monospace;letter-spacing:.14em;color:#ffd6c2}
+.buy{display:flex;align-items:center;gap:10px;margin-top:16px}
+.price{font-size:19px;font-weight:650;letter-spacing:-.03em;flex:1;font-variant-numeric:tabular-nums}
+.price s{font-size:12.5px;color:rgba(233,237,255,.35);font-weight:400;margin-left:6px}
+.atc{border:0;border-radius:13px;padding:12px 18px;cursor:pointer;
+  font:650 13px/1 ui-sans-serif,system-ui;color:#1a0a08;
+  background:linear-gradient(130deg,#ffd9c2,#ff7a45);box-shadow:0 12px 26px -10px #ff7a45;
+  transition:transform .2s cubic-bezier(.2,1.5,.4,1),background .3s}
+.atc:active{transform:scale(.95)}
+.atc[data-s="ok"]{background:linear-gradient(130deg,#3dffa8,#25d9e6)}
+.fly{position:fixed;z-index:99;width:18px;height:18px;border-radius:50%;pointer-events:none;
+  background:#ff7a45;box-shadow:0 0 16px #ff7a45}
+</style>
+</head>
+<body>
+<nav class="bar">
+  <a href="index.html">&larr; cards</a>
+  <span class="rt"><a href="03-flip.html" title="previous">&larr;</a><a href="05-profile.html" title="next">&rarr;</a></span>
+</nav>
+
+<main class="stage">
+  <p class="eyebrow">Cards &middot; 04 / 12</p>
+  <h1>Product Card</h1>
+  <p class="desc">The object lifts and tilts on hover, and adding to cart throws a dot along an arc toward the basket.</p>
+  <div class="demo">
+    <div class="card">
+      <div class="art"><span class="tag">NEW DROP</span><div class="obj"></div></div>
+      <div class="pad">
+        <span class="k">aero series</span>
+        <h3 style="margin-top:7px">Nimbus Cube</h3>
+        <div class="buy">
+          <span class="price">$148<s>$189</s></span>
+          <button class="atc" id="atc" data-s="idle">Add to cart</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="note">The flying dot is a WAAPI keyframe on a <b>position:fixed</b> node, removed on finish.</p>
+</main>
+<script>
+const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+const $=id=>document.getElementById(id);
+const atc=$('atc');
+atc.addEventListener('click',()=>{
+  if(atc.dataset.s!=='idle') return;
+  const b=atc.getBoundingClientRect();
+  if(!reduce){
+    const d=document.createElement('div'); d.className='fly';
+    d.style.left=(b.left+b.width/2-9)+'px'; d.style.top=(b.top+b.height/2-9)+'px';
+    document.body.appendChild(d);
+    d.animate([
+      {transform:'translate(0,0) scale(1)',opacity:1},
+      {transform:'translate(70px,-110px) scale(1.5)',opacity:.9,offset:.5},
+      {transform:'translate(200px,-230px) scale(.2)',opacity:0}
+    ],{duration:780,easing:'cubic-bezier(.4,0,.6,1)'}).onfinish=()=>d.remove();
+  }
+  atc.dataset.s='ok'; atc.textContent='Added';
+  setTimeout(()=>{ atc.dataset.s='idle'; atc.textContent='Add to cart'; },1600);
+});
+</script>
+</body>
+</html>

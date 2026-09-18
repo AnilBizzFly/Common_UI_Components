@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Switch Trio</title>
+<style>
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;min-height:100%;display:grid;place-items:center;padding:74px 20px 64px;
+  overflow-x:hidden;font:400 15px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#e9edff;background:#06070d;--c:#4dffcf}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(105px);
+  pointer-events:none;z-index:0}
+body::before{width:54vmax;height:54vmax;left:-20vmax;top:-24vmax;
+  background:color-mix(in srgb,var(--c) 30%,transparent)}
+body::after{width:46vmax;height:46vmax;right:-18vmax;bottom:-22vmax;background:rgba(0,190,255,.16)}
+
+.bar{position:fixed;inset:0 0 auto 0;z-index:5;display:flex;align-items:center;
+  justify-content:space-between;gap:10px;padding:16px 18px;
+  font:600 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.2em;text-transform:uppercase}
+.bar a{color:rgba(233,237,255,.4);text-decoration:none;padding:8px 11px;border-radius:9px;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);transition:.22s}
+.bar a:hover{color:#fff;border-color:color-mix(in srgb,var(--c) 55%,transparent);
+  background:color-mix(in srgb,var(--c) 16%,transparent)}
+.bar .rt{display:flex;gap:8px}
+
+.stage{position:relative;z-index:1;width:min(460px,100%);text-align:center}
+.eyebrow{margin:0 0 10px;font:600 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.3em;
+  text-transform:uppercase;color:color-mix(in srgb,var(--c) 70%,#8890b8)}
+h1{margin:0 0 8px;font-size:clamp(26px,6vw,34px);font-weight:650;letter-spacing:-.04em}
+.desc{margin:0;font-size:13.5px;color:rgba(233,237,255,.48);line-height:1.6}
+
+.demo{margin:24px 0 0;padding:40px 22px;border-radius:26px;min-height:176px;position:relative;
+  display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:16px;
+  background:linear-gradient(165deg,rgba(255,255,255,.075),rgba(255,255,255,.018));
+  border:1px solid rgba(255,255,255,.09);
+  box-shadow:0 26px 60px -30px #000,0 1px 0 0 rgba(255,255,255,.12) inset;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.demo.block{display:block;text-align:left;padding:26px 22px}
+.demo.bare{background:none;border:0;box-shadow:none;backdrop-filter:none;padding:14px 0}
+
+.note{margin:14px 0 0;font:500 11px/1.7 ui-monospace,Menlo,monospace;letter-spacing:.05em;
+  color:rgba(233,237,255,.32)}
+.note b{color:color-mix(in srgb,var(--c) 75%,#fff);font-weight:600}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important}
+}
+
+.sws{display:flex;flex-direction:column;gap:20px}
+.sw{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.sw span{font-size:14px;color:rgba(233,237,255,.72)}
+.t1{position:relative;width:54px;height:30px;border:0;padding:0;cursor:pointer;border-radius:99px;
+  background:rgba(255,255,255,.12);transition:background .3s}
+.t1::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;
+  background:#fff;transition:transform .36s cubic-bezier(.3,1.5,.4,1),width .25s}
+.t1:active::after{width:31px}
+.t1[aria-pressed="true"]{background:linear-gradient(90deg,#4dffcf,#31e0ff)}
+.t1[aria-pressed="true"]::after{transform:translateX(24px)}
+.t1:active[aria-pressed="true"]::after{transform:translateX(17px)}
+.t2{position:relative;width:54px;height:30px;border:1.5px solid rgba(255,255,255,.2);padding:0;
+  cursor:pointer;border-radius:9px;background:transparent;transition:.3s;overflow:hidden}
+.t2::after{content:"";position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:6px;
+  background:rgba(255,255,255,.5);
+  transition:transform .34s cubic-bezier(.3,1.5,.4,1),background .3s}
+.t2[aria-pressed="true"]{border-color:#4dffcf;box-shadow:0 0 18px -4px #4dffcf inset}
+.t2[aria-pressed="true"]::after{transform:translateX(24px);background:#4dffcf}
+.t3{position:relative;width:54px;height:30px;border:0;padding:0;cursor:pointer;border-radius:99px;
+  background:#20122a;transition:background .4s}
+.t3::before{content:"";position:absolute;inset:0;border-radius:99px;opacity:0;transition:opacity .4s;
+  background:radial-gradient(circle at 76% 50%,#ff2fb3,transparent 60%)}
+.t3::after{content:"";position:absolute;top:4px;left:4px;width:22px;height:22px;border-radius:50%;
+  background:#6a5b7a;box-shadow:0 0 0 0 #ff2fb3;
+  transition:transform .4s cubic-bezier(.3,1.5,.4,1),background .4s,box-shadow .4s}
+.t3[aria-pressed="true"]::before{opacity:1}
+.t3[aria-pressed="true"]::after{transform:translateX(24px);background:#fff;box-shadow:0 0 20px 2px #ff2fb3}
+</style>
+</head>
+<body>
+<nav class="bar">
+  <a href="index.html">&larr; forms</a>
+  <span class="rt"><a href="06-range-bubble.html" title="previous">&larr;</a><a href="08-check-radio.html" title="next">&rarr;</a></span>
+</nav>
+
+<main class="stage">
+  <p class="eyebrow">Forms &middot; 07 / 15</p>
+  <h1>Switch Trio</h1>
+  <p class="desc">Three takes on the same control: a pill that stretches as it travels, a square one, and a neon one that lights its own housing.</p>
+  <div class="demo block">
+    <div class="sws">
+      <div class="sw"><span>Pill &mdash; stretches while it travels</span><button class="t1" aria-pressed="true"></button></div>
+      <div class="sw"><span>Square &mdash; lights its border</span><button class="t2" aria-pressed="false"></button></div>
+      <div class="sw"><span>Neon &mdash; glows through the housing</span><button class="t3" aria-pressed="true"></button></div>
+    </div>
+  </div>
+  <p class="note">The stretch is <b>:active</b> widening the knob before it lands.</p>
+</main>
+<script>
+const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+const $=id=>document.getElementById(id);
+document.querySelectorAll('.t1,.t2,.t3').forEach(b=>b.addEventListener('click',()=>
+  b.setAttribute('aria-pressed', b.getAttribute('aria-pressed')==='true'?'false':'true')));
+</script>
+</body>
+</html>

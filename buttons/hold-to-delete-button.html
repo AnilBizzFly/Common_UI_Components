@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hold to delete</title>
+<style>
+@property --hold { syntax:'<number>'; inherits:false; initial-value:0 }
+
+:root{--bg:#0e0910;--card:#1e1218;--line:rgba(255,255,255,.08);
+--txt:#f6ecef;--mut:#b3939c;--dim:#7a6066;--faint:#4d3b41;
+--bad:#ff5f6d;--bad-2:#ff8f5f;--ok:#5fe0ac;--ease:cubic-bezier(.25,1,.5,1)}
+*{box-sizing:border-box}html{height:100%}
+body{margin:0;min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+gap:26px;padding:30px 20px;font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+color:var(--txt);background:var(--bg);-webkit-user-select:none;user-select:none}
+body::before{content:"";position:fixed;width:58vmax;height:58vmax;border-radius:50%;filter:blur(150px);
+background:rgba(255,95,109,.12);top:-24vmax;left:50%;margin-left:-29vmax;pointer-events:none}
+
+.head{text-align:center;z-index:1}
+.head p:first-child{margin:0 0 7px;font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.22em;color:var(--faint)}
+.head h1{margin:0 0 5px;font-size:21px;letter-spacing:-.03em}
+.head p:last-child{margin:0;font-size:13px;color:var(--dim)}
+
+/* ---------- the button ---------- */
+/* one number, --hold 0..1, paints the ring, the fill and the shake */
+.hold{position:relative;width:210px;height:52px;z-index:1;
+font:inherit;font-size:14.5px;font-weight:700;color:var(--bad);
+background:transparent;border:0;border-radius:99px;cursor:pointer;overflow:hidden;
+touch-action:none;-webkit-tap-highlight-color:transparent}
+.hold:focus-visible{outline:2px solid var(--bad);outline-offset:4px}
+
+/* the track and the sweep are the same conic — --hold just moves the stop */
+.hold::before{content:"";position:absolute;inset:0;border-radius:99px;
+background:conic-gradient(from -90deg,
+  var(--bad) calc(var(--hold) * 360deg), rgba(255,95,109,.16) 0);
+transition:none}
+.hold::after{content:"";position:absolute;inset:2px;border-radius:99px;
+background:var(--card);transition:background .3s}
+
+.hold span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:9px;
+transition:opacity .2s,transform .3s var(--ease)}
+.hold svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2.3;
+stroke-linecap:round;stroke-linejoin:round}
+.hold .idle{opacity:1}
+.hold .gone{opacity:0;transform:scale(.9);color:var(--ok)}
+.hold .gone svg{stroke-dasharray:26;stroke-dashoffset:26}
+
+.hold[data-state="holding"] .idle span{color:var(--bad-2)}
+.hold[data-state="done"] .idle{opacity:0;transform:scale(1.08)}
+.hold[data-state="done"] .gone{opacity:1;transform:none}
+.hold[data-state="done"] .gone svg{transition:stroke-dashoffset .4s ease .1s;stroke-dashoffset:0}
+.hold[data-state="done"]::before{background:var(--ok)}
+.hold[data-state="done"]::after{background:rgba(95,224,172,.14)}
+
+/* the nearer it gets, the more it trembles — same one number */
+.hold[data-state="holding"]{animation:jitter .09s linear infinite}
+@keyframes jitter{
+  0%,100%{transform:translate(0,0)}
+  25%{transform:translate(calc(var(--hold) * 1.6px),calc(var(--hold) * -1.2px))}
+  75%{transform:translate(calc(var(--hold) * -1.4px),calc(var(--hold) * 1px))}
+}
+
+.pct{font:600 10.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.13em;
+text-transform:uppercase;color:var(--faint);z-index:1;font-variant-numeric:tabular-nums}
+.pct b{color:var(--bad)}
+@media (prefers-reduced-motion:reduce){.hold{animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <p>BUTTON 06</p><h1>Hold to delete</h1>
+  <p>Let go early and it rewinds &mdash; twice as fast as it filled.</p>
+</div>
+
+<button class="hold" id="hold" type="button" data-state="idle" aria-label="Hold to delete workspace">
+  <span class="idle"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg><span>Hold to delete</span></span>
+  <span class="gone"><svg viewBox="0 0 24 24"><path d="m4 12.5 5 5L20 6.5"/></svg>Deleted</span>
+</button>
+
+<p class="pct" id="pct">hold <b>0%</b></p>
+
+<script>
+const hold = document.getElementById('hold'), pct = document.getElementById('pct');
+const FILL = 1400;          // ms to arm
+const REWIND = 2.2;         // release rewinds this much faster than it filled
+let v = 0, down = false, raf = null, last = 0, locked = false;
+
+function paint(){
+  hold.style.setProperty('--hold', v.toFixed(4));
+  pct.innerHTML = 'hold <b>' + Math.round(v * 100) + '%</b>';
+}
+
+function tick(now){
+  const dt = Math.min(64, now - last); last = now;
+  if (down) v += dt / FILL;
+  else      v -= (dt / FILL) * REWIND;
+
+  if (v >= 1){ v = 1; paint(); return finish(); }
+  if (v <= 0){ v = 0; paint(); hold.dataset.state = 'idle'; raf = null; return; }
+  paint();
+  raf = requestAnimationFrame(tick);
+}
+
+function start(e){
+  if (locked) return;
+  down = true;
+  hold.setPointerCapture?.(e.pointerId);
+  hold.dataset.state = 'holding';
+  if (!raf){ last = performance.now(); raf = requestAnimationFrame(tick); }
+}
+function stop(){
+  if (locked) return;
+  down = false;
+  if (!raf){ last = performance.now(); raf = requestAnimationFrame(tick); }
+}
+function finish(){
+  cancelAnimationFrame(raf); raf = null; locked = true; down = false;
+  hold.dataset.state = 'done';
+  pct.innerHTML = 'hold <b>armed &mdash; workspace gone</b>';
+  setTimeout(() => {
+    locked = false; v = 0; paint();
+    hold.dataset.state = 'idle';
+    pct.innerHTML = 'hold <b>0%</b>';
+  }, 2100);
+}
+
+hold.addEventListener('pointerdown', start);
+hold.addEventListener('pointerup', stop);
+hold.addEventListener('pointercancel', stop);
+hold.addEventListener('pointerleave', stop);
+/* keyboard gets the same contract: hold the key, not one press */
+hold.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) start(e); });
+hold.addEventListener('keyup',   e => { if (e.key === ' ' || e.key === 'Enter') stop(); });
+hold.addEventListener('click', e => e.preventDefault());
+
+paint();
+</script>
+</body>
+</html>

@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Like</title>
+<style>
+:root{--bg:#0b0810;--card:#1a1220;--line:rgba(255,255,255,.08);
+--txt:#f6ecf3;--mut:#b193a8;--dim:#7a6072;--faint:#4d3b48;
+--a:#ff4d7e;--b:#ff9a5a;--ease:cubic-bezier(.25,1,.5,1)}
+*{box-sizing:border-box}html{height:100%}
+body{margin:0;min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+gap:26px;padding:30px 20px;font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+color:var(--txt);background:var(--bg)}
+body::before{content:"";position:fixed;width:58vmax;height:58vmax;border-radius:50%;filter:blur(150px);
+background:rgba(255,77,126,.14);top:-24vmax;left:50%;margin-left:-29vmax;pointer-events:none}
+
+.head{text-align:center;z-index:1}
+.head p:first-child{margin:0 0 7px;font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.22em;color:var(--faint)}
+.head h1{margin:0 0 5px;font-size:21px;letter-spacing:-.03em}
+.head p:last-child{margin:0;font-size:13px;color:var(--dim)}
+
+.card{position:relative;z-index:1;width:min(340px,100%);padding:18px;border-radius:20px;
+background:linear-gradient(168deg,var(--card),#120b18);border:1px solid var(--line);
+box-shadow:0 30px 66px -28px rgba(0,0,0,.9)}
+.card p{margin:0 0 16px;font-size:13.5px;line-height:1.6;color:var(--mut)}
+.acts{display:flex;align-items:center;gap:6px}
+
+/* ---------- the button ---------- */
+.like{position:relative;display:flex;align-items:center;gap:9px;padding:9px 15px 9px 12px;
+font:inherit;font-size:13.5px;font-weight:650;color:var(--dim);
+background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:99px;cursor:pointer;
+transition:color .25s,background .25s,border-color .25s}
+.like:hover{color:var(--mut);background:rgba(255,255,255,.08)}
+.like[aria-pressed="true"]{color:var(--a);background:rgba(255,77,126,.12);border-color:rgba(255,77,126,.34)}
+
+.heart{position:relative;width:21px;height:21px;flex:0 0 auto}
+.heart svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.heart .wire{fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round}
+.heart .solid{fill:url(#hg);transform-box:fill-box;transform-origin:50% 55%;transform:scale(0)}
+.like[aria-pressed="true"] .heart .wire{opacity:0}
+.like[aria-pressed="true"] .heart .solid{animation:thump .52s cubic-bezier(.3,1.5,.4,1) forwards}
+@keyframes thump{0%{transform:scale(0)}45%{transform:scale(1.28)}70%{transform:scale(.92)}100%{transform:scale(1)}}
+
+/* the ring that snaps outward once */
+.heart::after{content:"";position:absolute;inset:-3px;border-radius:50%;
+border:2px solid var(--a);opacity:0;transform:scale(.2)}
+.like.burst .heart::after{animation:ring .5s cubic-bezier(.2,.8,.3,1) forwards}
+@keyframes ring{0%{opacity:.85;transform:scale(.2)}100%{opacity:0;transform:scale(2.1)}}
+
+/* ---------- the burst ---------- */
+/* eight sparks on an even radial spread — no library, just an angle per index */
+.spark{position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px 0 0 -2.5px;
+border-radius:50%;pointer-events:none;opacity:0}
+.like.burst .spark{animation:fling .58s cubic-bezier(.15,.75,.35,1) forwards}
+@keyframes fling{
+  0%{opacity:1;transform:translate(0,0) scale(1)}
+  100%{opacity:0;transform:translate(var(--sx),var(--sy)) scale(.2)}
+}
+
+.count{font-variant-numeric:tabular-nums;min-width:2.4ch;text-align:left}
+.count i{display:inline-block;font-style:normal}
+.count i.roll{animation:roll .34s var(--ease)}
+@keyframes roll{0%{transform:translateY(60%);opacity:0}100%{transform:none;opacity:1}}
+
+.readout{font:600 10.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.13em;
+text-transform:uppercase;color:var(--faint);z-index:1}
+.readout b{color:var(--a)}
+@media (prefers-reduced-motion:reduce){.like *{animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <p>BUTTON 02</p><h1>Like</h1>
+  <p>A thump, a ring, and eight sparks on an even spread.</p>
+</div>
+
+<div class="card">
+  <p>&ldquo;Shipped the parallel index rebuild. p95 during reindex is down about 60%.&rdquo;</p>
+  <div class="acts">
+    <button class="like" id="like" type="button" aria-pressed="false">
+      <span class="heart" id="heart">
+        <svg viewBox="0 0 24 24">
+          <defs><linearGradient id="hg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#ff4d7e"/><stop offset="1" stop-color="#ff9a5a"/></linearGradient></defs>
+          <path class="wire" d="M12 20.4 4.2 12.9a4.8 4.8 0 0 1 6.8-6.8l1 1 1-1a4.8 4.8 0 0 1 6.8 6.8Z"/>
+          <path class="solid" d="M12 20.4 4.2 12.9a4.8 4.8 0 0 1 6.8-6.8l1 1 1-1a4.8 4.8 0 0 1 6.8 6.8Z"/>
+        </svg>
+      </span>
+      <span class="count" id="count">248</span>
+    </button>
+  </div>
+</div>
+
+<p class="readout" id="readout">state <b>not liked</b></p>
+
+<script>
+const like = document.getElementById('like'), heart = document.getElementById('heart'),
+      count = document.getElementById('count'), readout = document.getElementById('readout');
+const HUES = ['#ff4d7e','#ff9a5a','#ffd166','#7cc4ff','#a98bff','#5fe0ac'];
+let liked = false, n = 248;
+
+/* one spark per index, evenly spaced round the circle, jittered so it isn't a wheel */
+function burst(){
+  for (let i = 0; i < 8; i++){
+    const a = (i / 8) * Math.PI * 2 + (Math.random() - .5) * .4;
+    const d = 22 + Math.random() * 14;
+    const s = document.createElement('i');
+    s.className = 'spark';
+    s.style.background = HUES[i % HUES.length];
+    s.style.setProperty('--sx', (Math.cos(a) * d).toFixed(1) + 'px');
+    s.style.setProperty('--sy', (Math.sin(a) * d).toFixed(1) + 'px');
+    s.style.animationDelay = (i * 8) + 'ms';
+    heart.appendChild(s);
+    setTimeout(() => s.remove(), 700);
+  }
+}
+
+function setCount(v){
+  count.innerHTML = '';
+  [...String(v)].forEach((c, i) => {
+    const el = document.createElement('i');
+    el.textContent = c;
+    el.className = 'roll';
+    el.style.animationDelay = (i * 26) + 'ms';
+    count.appendChild(el);
+  });
+}
+
+like.addEventListener('click', () => {
+  liked = !liked;
+  like.setAttribute('aria-pressed', String(liked));
+  n += liked ? 1 : -1;
+  setCount(n);
+  readout.innerHTML = 'state <b>' + (liked ? 'liked' : 'not liked') + '</b>';
+  if (!liked) return;
+  like.classList.remove('burst'); void like.offsetWidth; like.classList.add('burst');
+  burst();
+});
+
+setCount(n);
+</script>
+</body>
+</html>

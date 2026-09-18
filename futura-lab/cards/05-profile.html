@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Profile Card</title>
+<style>
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;min-height:100%;display:grid;place-items:center;padding:74px 20px 64px;
+  overflow-x:hidden;font:400 15px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#e9edff;background:#06070d;--c:#31e0ff}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(105px);
+  pointer-events:none;z-index:0}
+body::before{width:54vmax;height:54vmax;left:-20vmax;top:-24vmax;
+  background:color-mix(in srgb,var(--c) 30%,transparent)}
+body::after{width:46vmax;height:46vmax;right:-18vmax;bottom:-22vmax;background:rgba(0,190,255,.16)}
+
+.bar{position:fixed;inset:0 0 auto 0;z-index:5;display:flex;align-items:center;
+  justify-content:space-between;gap:10px;padding:16px 18px;
+  font:600 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.2em;text-transform:uppercase}
+.bar a{color:rgba(233,237,255,.4);text-decoration:none;padding:8px 11px;border-radius:9px;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);transition:.22s}
+.bar a:hover{color:#fff;border-color:color-mix(in srgb,var(--c) 55%,transparent);
+  background:color-mix(in srgb,var(--c) 16%,transparent)}
+.bar .rt{display:flex;gap:8px}
+
+.stage{position:relative;z-index:1;width:min(460px,100%);text-align:center}
+.eyebrow{margin:0 0 10px;font:600 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.3em;
+  text-transform:uppercase;color:color-mix(in srgb,var(--c) 70%,#8890b8)}
+h1{margin:0 0 8px;font-size:clamp(26px,6vw,34px);font-weight:650;letter-spacing:-.04em}
+.desc{margin:0;font-size:13.5px;color:rgba(233,237,255,.48);line-height:1.6}
+
+.demo{margin:24px 0 0;padding:40px 22px;border-radius:26px;min-height:176px;position:relative;
+  display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:16px;
+  background:linear-gradient(165deg,rgba(255,255,255,.075),rgba(255,255,255,.018));
+  border:1px solid rgba(255,255,255,.09);
+  box-shadow:0 26px 60px -30px #000,0 1px 0 0 rgba(255,255,255,.12) inset;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.demo.block{display:block;text-align:left;padding:26px 22px}
+.demo.bare{background:none;border:0;box-shadow:none;backdrop-filter:none;padding:14px 0}
+
+.note{margin:14px 0 0;font:500 11px/1.7 ui-monospace,Menlo,monospace;letter-spacing:.05em;
+  color:rgba(233,237,255,.32)}
+.note b{color:color-mix(in srgb,var(--c) 75%,#fff);font-weight:600}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important}
+}
+
+.card{position:relative;width:min(320px,100%);border-radius:22px;overflow:hidden;
+  background:linear-gradient(165deg,rgba(255,255,255,.075),rgba(255,255,255,.02));
+  border:1px solid rgba(255,255,255,.1);
+  box-shadow:0 26px 60px -28px #000,0 1px 0 0 rgba(255,255,255,.12) inset}
+.pad{padding:18px}
+.card h3{margin:0;font-size:17px;font-weight:650;letter-spacing:-.03em}
+.card .sub{margin:5px 0 0;font-size:12.5px;color:rgba(233,237,255,.46);line-height:1.5}
+.k{font:600 8.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.2em;text-transform:uppercase;
+  color:rgba(233,237,255,.38)}
+
+.card{text-align:center}
+.cover{height:82px;background:linear-gradient(110deg,#7c5cff,#31e0ff,#ff2fb3);
+  background-size:200% 100%;animation:pan 9s linear infinite}
+@keyframes pan{to{background-position:200% 0}}
+.av{width:76px;height:76px;border-radius:26px;margin:-40px auto 0;position:relative;
+  background:linear-gradient(145deg,#fff,#b8c6ff);border:3px solid #0b0d17;
+  display:grid;place-items:center;font:700 24px/1 ui-sans-serif,system-ui;color:#161a33;
+  box-shadow:0 16px 32px -12px #000;transition:transform .45s cubic-bezier(.2,1.4,.3,1)}
+.card:hover .av{transform:translateY(-5px) rotate(-6deg)}
+.stats{display:flex;margin:16px 0 0}
+.stats div{flex:1}
+.stats b{display:block;font-size:17px;font-weight:650;font-variant-numeric:tabular-nums}
+.stats span{font:600 8px/1 ui-monospace,monospace;letter-spacing:.16em;text-transform:uppercase;
+  color:rgba(233,237,255,.36)}
+.follow{width:100%;margin-top:17px;padding:13px;border:0;border-radius:14px;cursor:pointer;
+  font:650 13.5px/1 ui-sans-serif,system-ui;color:#07080f;background:#fff;
+  transition:transform .2s cubic-bezier(.2,1.5,.4,1),background .3s,color .3s}
+.follow:active{transform:scale(.97)}
+.follow[data-s="on"]{background:rgba(255,255,255,.1);color:#fff;
+  box-shadow:0 0 0 1px rgba(255,255,255,.22) inset}
+</style>
+</head>
+<body>
+<nav class="bar">
+  <a href="index.html">&larr; cards</a>
+  <span class="rt"><a href="04-product.html" title="previous">&larr;</a><a href="06-now-playing.html" title="next">&rarr;</a></span>
+</nav>
+
+<main class="stage">
+  <p class="eyebrow">Cards &middot; 05 / 12</p>
+  <h1>Profile Card</h1>
+  <p class="desc">Counters ease up from zero on load, the avatar tips on hover, and Follow toggles the number for real.</p>
+  <div class="demo">
+    <div class="card">
+      <div class="cover"></div>
+      <div class="av">VO</div>
+      <div class="pad" style="padding-top:13px">
+        <h3>Vega Ortiz</h3>
+        <p class="sub">Motion systems &middot; Reykjav&iacute;k</p>
+        <div class="stats">
+          <div><b data-c="1284">0</b><span>posts</span></div>
+          <div><b data-c="48200" id="fw">0</b><span>followers</span></div>
+          <div><b data-c="312">0</b><span>following</span></div>
+        </div>
+        <button class="follow" id="follow" data-s="off">Follow</button>
+      </div>
+    </div>
+  </div>
+  <p class="note">Count-up is an <b>ease-out cubic</b> over 1.2s, formatted to 48.2k.</p>
+</main>
+<script>
+const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+const $=id=>document.getElementById(id);
+const fmt=n=>n>=1000?(n/1000).toFixed(1).replace('.0','')+'k':''+n;
+document.querySelectorAll('[data-c]').forEach(el=>{
+  const to=+el.dataset.c;
+  if(reduce){ el.textContent=fmt(to); return; }
+  const t0=performance.now();
+  (function tick(t){
+    const p=Math.min(1,(t-t0)/1200), e=1-Math.pow(1-p,3);
+    el.textContent=fmt(Math.round(to*e));
+    if(p<1) requestAnimationFrame(tick);
+  })(t0);
+});
+const follow=$('follow');
+follow.addEventListener('click',()=>{
+  const on=follow.dataset.s==='off';
+  follow.dataset.s=on?'on':'off';
+  follow.textContent=on?'Following':'Follow';
+  $('fw').textContent=fmt(48200+(on?1:0));
+});
+</script>
+</body>
+</html>

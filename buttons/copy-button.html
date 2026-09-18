@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Copy</title>
+<style>
+:root{--bg:#080c17;--card:#141b2b;--line:rgba(255,255,255,.08);
+--txt:#e9edf8;--mut:#8b95b3;--dim:#5a6482;--faint:#3c4562;
+--a:#7cc4ff;--ok:#5fe0ac;--ease:cubic-bezier(.25,1,.5,1)}
+*{box-sizing:border-box}html{height:100%}
+body{margin:0;min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+gap:26px;padding:30px 20px;font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+color:var(--txt);background:var(--bg)}
+body::before{content:"";position:fixed;width:58vmax;height:58vmax;border-radius:50%;filter:blur(150px);
+background:rgba(124,196,255,.11);top:-24vmax;left:50%;margin-left:-29vmax;pointer-events:none}
+
+.head{text-align:center;z-index:1}
+.head p:first-child{margin:0 0 7px;font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.22em;color:var(--faint)}
+.head h1{margin:0 0 5px;font-size:21px;letter-spacing:-.03em}
+.head p:last-child{margin:0;font-size:13px;color:var(--dim)}
+
+.snip{position:relative;z-index:1;display:flex;align-items:center;gap:12px;width:min(400px,100%);
+padding:12px 12px 12px 16px;border-radius:16px;
+background:linear-gradient(168deg,var(--card),#0e1422);border:1px solid var(--line);
+box-shadow:0 30px 66px -28px rgba(0,0,0,.86)}
+.snip code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+font:500 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--mut)}
+.snip code b{color:var(--a);font-weight:500}
+
+/* ---------- the button ---------- */
+.copy{position:relative;width:40px;height:40px;flex:0 0 auto;display:grid;place-items:center;
+background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:12px;cursor:pointer;
+color:var(--mut);transition:color .22s,background .22s,border-color .3s,width .38s var(--ease)}
+.copy:hover{color:var(--txt);background:rgba(255,255,255,.1)}
+.copy:focus-visible{outline:2px solid var(--a);outline-offset:3px}
+.copy.done{width:104px;color:var(--ok);border-color:rgba(95,224,172,.4);background:rgba(95,224,172,.12)}
+
+.ico{position:relative;width:19px;height:19px;flex:0 0 auto}
+.ico svg{position:absolute;inset:0;width:100%;height:100%;fill:none;stroke:currentColor;
+stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+
+/* two sheets: the back one slips out from under the front one */
+.sheet-back{transform:translate(0,0);transition:transform .34s var(--ease),opacity .24s}
+.copy.done .sheet-back{transform:translate(4px,-4px);opacity:0}
+
+/* the front sheet turns over and comes back as the tick */
+.flip{position:absolute;inset:0;transform-style:preserve-3d;
+transition:transform .46s cubic-bezier(.34,1.25,.4,1)}
+.copy.done .flip{transform:rotateY(180deg)}
+.flip>svg{backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.face-tick{transform:rotateY(180deg)}
+.face-tick path{stroke:var(--ok);stroke-width:2.6}
+
+.word{position:absolute;right:13px;font-size:12.5px;font-weight:650;color:var(--ok);
+opacity:0;transform:translateX(-4px);transition:opacity .2s .12s,transform .3s .12s var(--ease);
+pointer-events:none;white-space:nowrap}
+.copy.done .word{opacity:1;transform:none}
+.copy.done .ico{margin-right:52px;transition:margin .38s var(--ease)}
+
+.readout{font:600 10.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.13em;
+text-transform:uppercase;color:var(--faint);z-index:1}
+.readout b{color:var(--a)}
+@media (prefers-reduced-motion:reduce){.copy,.copy *{transition-duration:.01ms}}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <p>BUTTON 03</p><h1>Copy</h1>
+  <p>The back sheet slips away; the front one turns over as the tick.</p>
+</div>
+
+<div class="snip">
+  <code id="snippet">npm i <b>@featureos/sdk</b> --save</code>
+  <button class="copy" id="copy" type="button" aria-label="Copy to clipboard">
+    <span class="ico">
+      <svg class="sheet-back" viewBox="0 0 24 24"><path d="M8 4h9a2 2 0 0 1 2 2v9"/></svg>
+      <span class="flip">
+        <svg viewBox="0 0 24 24"><rect x="4" y="7" width="13" height="14" rx="2.4"/></svg>
+        <svg class="face-tick" viewBox="0 0 24 24"><path d="m4 12.5 5 5L20 6.5"/></svg>
+      </span>
+    </span>
+    <span class="word">Copied</span>
+  </button>
+</div>
+
+<p class="readout" id="readout">clipboard <b>idle</b></p>
+
+<script>
+const copy = document.getElementById('copy'), snippet = document.getElementById('snippet'),
+      readout = document.getElementById('readout');
+let timer;
+
+copy.addEventListener('click', async () => {
+  const text = snippet.textContent.trim();
+  let ok = true;
+  try {
+    if (navigator.clipboard) await navigator.clipboard.writeText(text);
+    else throw new Error('no clipboard');
+  } catch {
+    /* file:// and http: origins have no async clipboard — fall back */
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = document.execCommand('copy'); } catch { ok = false; }
+    ta.remove();
+  }
+
+  copy.classList.add('done');
+  copy.setAttribute('aria-label', 'Copied');
+  readout.innerHTML = 'clipboard <b>' + (ok ? 'holds the snippet' : 'blocked by the browser') + '</b>';
+
+  clearTimeout(timer);
+  timer = setTimeout(() => {
+    copy.classList.remove('done');
+    copy.setAttribute('aria-label', 'Copy to clipboard');
+    readout.innerHTML = 'clipboard <b>idle</b>';
+  }, 1900);
+});
+</script>
+</body>
+</html>

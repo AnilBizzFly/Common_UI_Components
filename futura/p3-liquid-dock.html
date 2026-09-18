@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Liquid Dock</title>
+<style>
+@property --glow{syntax:'<color>';inherits:true;initial-value:#6ee7ff}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;display:grid;place-items:center;padding:24px 16px;overflow:hidden;
+  font:400 15px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#e9eeff;background:#06070d;--glow:#6ee7ff;
+}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(100px);pointer-events:none}
+body::before{width:50vmax;height:50vmax;left:-14vmax;top:-18vmax;
+  background:color-mix(in srgb,var(--glow) 30%,transparent);transition:background .7s}
+body::after{width:44vmax;height:44vmax;right:-16vmax;bottom:-18vmax;background:rgba(150,60,255,.22)}
+
+.app{position:relative;width:min(376px,100%);display:flex;flex-direction:column;gap:16px}
+
+/* ---------------- panel stack ---------------- */
+.screen{
+  position:relative;height:380px;border-radius:30px;overflow:hidden;
+  background:linear-gradient(168deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
+  border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(22px) saturate(160%);
+  -webkit-backdrop-filter:blur(22px) saturate(160%);
+  box-shadow:0 34px 90px -34px #000,0 1px 0 0 rgba(255,255,255,.15) inset;
+}
+.panel{position:absolute;inset:0;padding:24px 22px;overflow-y:auto;
+  opacity:0;visibility:hidden;transform:translateX(calc(var(--dir,1) * 38px)) scale(.96);
+  transition:opacity .38s,transform .48s cubic-bezier(.2,.9,.25,1),visibility .48s}
+.panel[data-on]{opacity:1;visibility:visible;transform:none}
+.panel h2{margin:0 0 4px;font-size:22px;font-weight:650;letter-spacing:-.03em}
+.panel .sub{margin:0 0 18px;font-size:12.5px;color:rgba(233,238,255,.45)}
+/* children stagger in */
+.panel[data-on] .st{animation:rise .5s cubic-bezier(.2,1,.3,1) both}
+.panel[data-on] .st:nth-child(2){animation-delay:.05s}
+.panel[data-on] .st:nth-child(3){animation-delay:.1s}
+.panel[data-on] .st:nth-child(4){animation-delay:.15s}
+.panel[data-on] .st:nth-child(5){animation-delay:.2s}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}}
+
+/* stat tiles */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{padding:14px;border-radius:17px;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.08);transition:.25s}
+.tile:hover{background:rgba(255,255,255,.085);transform:translateY(-2px)}
+.tile b{display:block;font-size:25px;font-weight:650;letter-spacing:-.04em;
+  font-variant-numeric:tabular-nums;color:var(--glow)}
+.tile span{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:rgba(233,238,255,.4)}
+.spark{display:block;width:100%;height:30px;margin-top:6px}
+
+/* search list */
+.field{display:flex;align-items:center;gap:9px;padding:11px 14px;border-radius:14px;
+  background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.1);transition:.25s}
+.field:focus-within{border-color:color-mix(in srgb,var(--glow) 55%,transparent);
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--glow) 13%,transparent)}
+.field input{flex:1;min-width:0;border:0;background:none;outline:none;color:#fff;font:inherit;font-size:14px}
+.field svg{width:15px;height:15px;stroke:rgba(233,238,255,.4);fill:none;stroke-width:2}
+.rows{margin-top:12px;display:flex;flex-direction:column;gap:7px}
+.row{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:14px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);
+  animation:rise .35s cubic-bezier(.2,1,.3,1) both}
+.row .av{width:30px;height:30px;flex:none;border-radius:10px;display:grid;place-items:center;
+  font:700 11px/1 ui-monospace,monospace;color:#08090f}
+.row p{margin:0;font-size:13px;font-weight:550}
+.row small{display:block;font-size:10.5px;color:rgba(233,238,255,.4);font-weight:400}
+.empty{margin-top:22px;text-align:center;font-size:12.5px;color:rgba(233,238,255,.35)}
+
+/* toggles */
+.opt{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 0;
+  border-bottom:1px solid rgba(255,255,255,.06)}
+.opt p{margin:0;font-size:13.5px;font-weight:550}
+.opt small{display:block;font-size:11px;color:rgba(233,238,255,.4);font-weight:400;margin-top:2px}
+.sw{position:relative;width:46px;height:26px;flex:none;border:0;padding:0;cursor:pointer;border-radius:99px;
+  background:rgba(255,255,255,.12);transition:background .3s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;
+  background:#fff;transition:transform .34s cubic-bezier(.3,1.5,.4,1)}
+.sw[aria-pressed="true"]{background:var(--glow)}
+.sw[aria-pressed="true"]::after{transform:translateX(20px)}
+
+/* orbit canvas */
+#orbit{width:100%;height:230px;display:block;border-radius:18px;cursor:grab;touch-action:none}
+#orbit:active{cursor:grabbing}
+
+/* compose */
+.chipset{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.chip{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#c3cbe6;
+  font:600 11px/1 ui-sans-serif,system-ui;padding:8px 12px;border-radius:99px;cursor:pointer;transition:.2s}
+.chip[aria-pressed="true"]{background:var(--glow);border-color:var(--glow);color:#07080f}
+.send{width:100%;margin-top:16px;padding:14px;border:0;border-radius:16px;cursor:pointer;
+  font:650 14px/1 ui-sans-serif,system-ui;color:#07080f;
+  background:linear-gradient(130deg,var(--glow),#a06bff);
+  box-shadow:0 14px 34px -12px var(--glow);transition:transform .2s cubic-bezier(.2,1.5,.4,1)}
+.send:active{transform:scale(.97)}
+.send.done{background:linear-gradient(130deg,#5affa0,#2ee6b0)}
+
+/* ---------------- the liquid dock ---------------- */
+.dockwrap{position:relative;height:74px}
+.goo{position:absolute;inset:0;filter:url(#goo);pointer-events:none}
+.gooBase{position:absolute;inset:0;border-radius:26px;background:rgba(255,255,255,.07)}
+.blob{position:absolute;top:9px;left:0;width:56px;height:56px;border-radius:22px;
+  background:var(--glow);
+  transform:translateX(var(--x,0px)) scaleX(var(--sx,1));
+  transition:transform .55s cubic-bezier(.34,1.3,.4,1),background .5s}
+.blob.lag{transition-duration:.78s;opacity:.96}
+
+.dock{position:absolute;inset:0;display:flex;align-items:center;border-radius:26px;
+  border:1px solid rgba(255,255,255,.1);
+  box-shadow:0 20px 50px -22px #000,0 1px 0 0 rgba(255,255,255,.14) inset;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.dock button{flex:1;height:100%;border:0;background:none;cursor:pointer;color:rgba(233,238,255,.5);
+  display:grid;place-items:center;position:relative;transition:color .3s}
+.dock button svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.9;
+  stroke-linecap:round;stroke-linejoin:round;
+  transition:transform .45s cubic-bezier(.34,1.6,.4,1)}
+.dock button[aria-selected="true"]{color:#07080f}
+.dock button[aria-selected="true"] svg{transform:translateY(-3px) scale(1.12)}
+.dock button:hover svg{transform:translateY(-3px)}
+.dock button i{position:absolute;bottom:11px;font:600 8px/1 ui-monospace,monospace;letter-spacing:.1em;
+  text-transform:uppercase;opacity:0;transition:opacity .3s,transform .3s;transform:translateY(4px)}
+.dock button[aria-selected="true"] i{opacity:.65;transform:none}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <filter id="goo">
+    <feGaussianBlur in="SourceGraphic" stdDeviation="9" result="b"/>
+    <feColorMatrix in="b" mode="matrix"
+      values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -9" result="g"/>
+    <feBlend in="SourceGraphic" in2="g"/>
+  </filter>
+</svg>
+
+<div class="app">
+  <div class="screen">
+
+    <!-- 0 · PULSE -->
+    <section class="panel" data-panel="0" data-on>
+      <div class="st"><h2>Pulse</h2><p class="sub">Live telemetry, counting up on entry.</p></div>
+      <div class="st grid">
+        <div class="tile"><b data-count="18492">0</b><span>requests</span><canvas class="spark" data-seed="3"></canvas></div>
+        <div class="tile"><b data-count="99.98" data-dec="2">0</b><span>uptime %</span><canvas class="spark" data-seed="7"></canvas></div>
+        <div class="tile"><b data-count="342">0</b><span>nodes</span><canvas class="spark" data-seed="11"></canvas></div>
+        <div class="tile"><b data-count="27" data-suffix="ms">0</b><span>latency</span><canvas class="spark" data-seed="5"></canvas></div>
+      </div>
+    </section>
+
+    <!-- 1 · SEARCH -->
+    <section class="panel" data-panel="1">
+      <div class="st"><h2>Index</h2><p class="sub">Type — the list filters for real.</p></div>
+      <div class="st field">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="qf" placeholder="search crew…" autocomplete="off">
+      </div>
+      <div class="rows st" id="rows"></div>
+    </section>
+
+    <!-- 2 · ORBIT -->
+    <section class="panel" data-panel="2">
+      <div class="st"><h2>Orbit</h2><p class="sub">Drag to spin the constellation.</p></div>
+      <div class="st"><canvas id="orbit"></canvas></div>
+    </section>
+
+    <!-- 3 · COMPOSE -->
+    <section class="panel" data-panel="3">
+      <div class="st"><h2>Beam</h2><p class="sub">Pick channels, fire the packet.</p></div>
+      <div class="st field"><input id="msg" placeholder="message payload…" autocomplete="off"></div>
+      <div class="st chipset">
+        <button class="chip" aria-pressed="true">core</button>
+        <button class="chip" aria-pressed="false">relay</button>
+        <button class="chip" aria-pressed="false">deep-space</button>
+        <button class="chip" aria-pressed="false">archive</button>
+      </div>
+      <button class="send st" id="send">Transmit</button>
+    </section>
+
+    <!-- 4 · SETTINGS -->
+    <section class="panel" data-panel="4">
+      <div class="st"><h2>Core</h2><p class="sub">Toggles wired to the live theme.</p></div>
+      <div class="st">
+        <div class="opt"><div><p>Cyan plasma</p><small>Recolours the whole interface</small></div>
+          <button class="sw" id="swHue" aria-pressed="true"></button></div>
+        <div class="opt"><div><p>Gooey physics</p><small>Metaball merge on the dock</small></div>
+          <button class="sw" id="swGoo" aria-pressed="true"></button></div>
+        <div class="opt"><div><p>Haptic labels</p><small>Show the label under the active icon</small></div>
+          <button class="sw" id="swLbl" aria-pressed="true"></button></div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- dock -->
+  <div class="dockwrap">
+    <div class="goo" id="goo">
+      <div class="gooBase"></div>
+      <div class="blob lag" id="blobLag"></div>
+      <div class="blob" id="blob"></div>
+    </div>
+    <nav class="dock" id="dock" role="tablist">
+      <button role="tab" aria-selected="true"><svg viewBox="0 0 24 24"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg><i>pulse</i></button>
+      <button role="tab" aria-selected="false"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><i>index</i></button>
+      <button role="tab" aria-selected="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><ellipse cx="12" cy="12" rx="10" ry="4.5"/><ellipse cx="12" cy="12" rx="10" ry="4.5" transform="rotate(60 12 12)"/></svg><i>orbit</i></button>
+      <button role="tab" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-2.5-6.5z"/></svg><i>beam</i></button>
+      <button role="tab" aria-selected="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-2.7 1.1V21a2 2 0 11-4 0v-.1A1.6 1.6 0 007.5 19.4l-.1.1a2 2 0 11-2.8-2.8l.1-.1A1.6 1.6 0 003 15V15a2 2 0 110-4h.1A1.6 1.6 0 004.6 8.5l-.1-.1a2 2 0 112.8-2.8l.1.1A1.6 1.6 0 009 4.6V4a2 2 0 114 0v.1a1.6 1.6 0 002.7 1.1l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 001.1 2.7H21a2 2 0 110 4h-.1a1.6 1.6 0 00-1.5 1z"/></svg><i>core</i></button>
+    </nav>
+  </div>
+</div>
+
+<script>
+/* =======================================================================
+   The indicator is two metaballs: a fast one and a lagging one. The SVG
+   goo filter welds them together, so travelling between tabs stretches a
+   single liquid pill instead of sliding a rectangle.
+   ======================================================================= */
+const dock=document.getElementById('dock'), tabs=[...dock.querySelectorAll('button')];
+const panels=[...document.querySelectorAll('.panel')];
+const blob=document.getElementById('blob'), blobLag=document.getElementById('blobLag');
+const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+let cur=0;
+
+function place(i,animate){
+  const b=tabs[i].getBoundingClientRect(), d=dock.getBoundingClientRect();
+  const x=b.left-d.left+(b.width-56)/2;
+  const prevX=parseFloat(blob.style.getPropertyValue('--x'))||0;
+  const dist=Math.abs(x-prevX);
+  // stretch proportional to how far it is jumping — the "liquid" tell
+  const sx=animate&&!reduce ? Math.min(2.1, 1+dist/150) : 1;
+  blob.style.setProperty('--x',x+'px');
+  blobLag.style.setProperty('--x',x+'px');
+  if(animate&&!reduce){
+    blob.style.setProperty('--sx',sx);
+    setTimeout(()=>blob.style.setProperty('--sx',1),150);
+  }
+}
+
+function go(i){
+  if(i===cur) return;
+  const dir = i>cur ? 1 : -1;
+  panels.forEach(p=>{
+    p.style.setProperty('--dir', -dir);   // the leaving panel exits the way you came from
+    p.removeAttribute('data-on');
+  });
+  cur=i;
+  tabs.forEach((t,n)=>t.setAttribute('aria-selected', n===i));
+  panels[i].style.setProperty('--dir', dir);
+  panels[i].setAttribute('data-on','');
+  place(i,true);
+  location.hash='p'+i;
+  if(i===0) countUp();
+  if(i===2) orbitOn=true; else orbitOn=false;
+}
+
+tabs.forEach((t,i)=>{
+  t.addEventListener('click',()=>go(i));
+  // magnetic pull on the icon
+  t.addEventListener('pointermove',e=>{
+    if(reduce) return;
+    const b=t.getBoundingClientRect();
+    const dx=(e.clientX-b.left-b.width/2)/b.width*10;
+    t.querySelector('svg').style.translate=dx+'px -3px';
+  });
+  t.addEventListener('pointerleave',()=>t.querySelector('svg').style.translate='');
+});
+addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight') go((cur+1)%tabs.length);
+  if(e.key==='ArrowLeft')  go((cur-1+tabs.length)%tabs.length);
+});
+addEventListener('resize',()=>place(cur,false));
+
+/* ---------------- panel 0: counters + sparklines ---------------- */
+function countUp(){
+  document.querySelectorAll('[data-count]').forEach(el=>{
+    const to=+el.dataset.count, dec=+(el.dataset.dec||0), suf=el.dataset.suffix||'';
+    if(reduce){ el.textContent=to.toFixed(dec)+suf; return; }
+    const t0=performance.now(), D=1100;
+    (function tick(t){
+      const p=Math.min(1,(t-t0)/D), e=1-Math.pow(1-p,3);
+      el.textContent=(to*e).toFixed(dec).replace(/\B(?=(\d{3})+(?!\d))/g,',')+suf;
+      if(p<1) requestAnimationFrame(tick);
+    })(t0);
+  });
+}
+document.querySelectorAll('.spark').forEach(c=>{
+  const seed=+c.dataset.seed, dpr=Math.min(devicePixelRatio||1,2);
+  const w=c.clientWidth||140, h=30;
+  c.width=w*dpr; c.height=h*dpr; const x=c.getContext('2d'); x.scale(dpr,dpr);
+  const pts=[]; for(let i=0;i<24;i++) pts.push(.25+.5*Math.abs(Math.sin(i*.7+seed)*Math.cos(i*.31+seed*2)));
+  x.beginPath();
+  pts.forEach((v,i)=>{ const px=i/(pts.length-1)*w, py=h-v*h*.9-2; i?x.lineTo(px,py):x.moveTo(px,py); });
+  const g=x.createLinearGradient(0,0,w,0);
+  g.addColorStop(0,'rgba(110,231,255,.25)'); g.addColorStop(1,'rgba(160,107,255,.9)');
+  x.strokeStyle=g; x.lineWidth=1.6; x.lineJoin='round'; x.stroke();
+});
+countUp();
+
+/* ---------------- panel 1: real filtering ---------------- */
+const CREW=[
+  ['Vega Ortiz','flight engineer','#6ee7ff'],['Nyx Adeyemi','navigator','#ff7ab8'],
+  ['Kip Solano','reactor tech','#9dff6e'],['Orion Bell','comms','#ffcf6e'],
+  ['Zara Mbeki','xenobiology','#a06bff'],['Juno Park','medic','#6effd0'],
+  ['Rhys Calder','pilot','#ff9a6e']
+];
+const rows=document.getElementById('rows'), qf=document.getElementById('qf');
+function render(q){
+  const s=q.trim().toLowerCase();
+  const hit=CREW.filter(c=>!s||c[0].toLowerCase().includes(s)||c[1].includes(s));
+  rows.innerHTML = hit.length ? hit.map(([n,r,c],i)=>
+    '<div class="row" style="animation-delay:'+(i*40)+'ms">'+
+      '<div class="av" style="background:'+c+'">'+n.split(' ').map(w=>w[0]).join('')+'</div>'+
+      '<div><p>'+n+'</p><small>'+r+'</small></div></div>').join('')
+    : '<p class="empty">No crew matches “'+s.replace(/[<>]/g,'')+'”.</p>';
+}
+qf.addEventListener('input',e=>render(e.target.value));
+render('');
+
+/* ---------------- panel 2: draggable constellation ---------------- */
+const oc=document.getElementById('orbit'), ox=oc.getContext('2d');
+const ODPR=Math.min(devicePixelRatio||1,2);
+let ow=0,oh=0,ospin=0,ovel=.004,drag=null,orbitOn=false;
+const stars=Array.from({length:130},(_,i)=>{
+  const y=1-(i/129)*2, r=Math.sqrt(1-y*y), th=i*2.39996;
+  return {x:Math.cos(th)*r,y,z:Math.sin(th)*r};
+});
+function ofit(){ const b=oc.getBoundingClientRect(); ow=b.width;oh=b.height;
+  oc.width=ow*ODPR; oc.height=oh*ODPR; ox.setTransform(ODPR,0,0,ODPR,0,0); }
+oc.addEventListener('pointerdown',e=>{ drag={x:e.clientX,v:0}; oc.setPointerCapture(e.pointerId); });
+oc.addEventListener('pointermove',e=>{ if(!drag) return;
+  const d=(e.clientX-drag.x)*.006; ospin+=d; drag.v=d; drag.x=e.clientX; });
+addEventListener('pointerup',()=>{ if(drag){ ovel=drag.v||ovel; drag=null; } });
+function odraw(){
+  requestAnimationFrame(odraw);
+  if(!orbitOn) return;
+  if(!ow) ofit();
+  if(!drag && !reduce){ ospin+=ovel; ovel+=( .004-ovel)*.02; }
+  ox.clearRect(0,0,ow,oh);
+  const cx=ow/2, cy=oh/2, R=Math.min(ow,oh)*.38, s=Math.sin(ospin), c=Math.cos(ospin);
+  const proj=stars.map(p=>{
+    const x=p.x*c-p.z*s, z=p.x*s+p.z*c;
+    const per=1/(2.4-z);
+    return {px:cx+x*R*per*1.5, py:cy+p.y*R*per*1.5, d:(z+1)/2};
+  });
+  // link near neighbours — cheap constellation lines
+  for(let i=0;i<proj.length;i++)for(let j=i+1;j<i+4&&j<proj.length;j++){
+    const a=proj[i],b=proj[j], dist=Math.hypot(a.px-b.px,a.py-b.py);
+    if(dist<44){ ox.strokeStyle='rgba(110,231,255,'+(.22*(1-dist/44)*a.d)+')'; ox.lineWidth=.8;
+      ox.beginPath(); ox.moveTo(a.px,a.py); ox.lineTo(b.px,b.py); ox.stroke(); }
+  }
+  proj.forEach(p=>{
+    ox.globalAlpha=.15+p.d*.85;
+    ox.fillStyle='hsl('+(186+p.d*80)+',100%,'+(55+p.d*25)+'%)';
+    ox.beginPath(); ox.arc(p.px,p.py,.6+p.d*2.1,0,6.2832); ox.fill();
+  });
+  ox.globalAlpha=1;
+}
+odraw();
+
+/* ---------------- panel 3: transmit ---------------- */
+document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>
+  c.setAttribute('aria-pressed', c.getAttribute('aria-pressed')==='true'?'false':'true')));
+const send=document.getElementById('send');
+send.addEventListener('click',()=>{
+  const n=[...document.querySelectorAll('.chip[aria-pressed="true"]')].length;
+  const has=document.getElementById('msg').value.trim().length;
+  if(!has||!n){ send.textContent = !has ? 'Payload is empty' : 'Pick a channel';
+    send.animate([{translate:'0'},{translate:'-7px'},{translate:'7px'},{translate:'0'}],{duration:280});
+    setTimeout(()=>send.textContent='Transmit',1400); return; }
+  send.classList.add('done'); send.textContent='Sent to '+n+' channel'+(n>1?'s':'');
+  setTimeout(()=>{ send.classList.remove('done'); send.textContent='Transmit'; },1800);
+});
+
+/* ---------------- panel 4: toggles that do things ---------------- */
+function toggle(btn,on){ btn.setAttribute('aria-pressed',on); }
+document.getElementById('swHue').addEventListener('click',e=>{
+  const on=e.currentTarget.getAttribute('aria-pressed')!=='true';
+  toggle(e.currentTarget,on);
+  document.body.style.setProperty('--glow', on?'#6ee7ff':'#ff8a5b');
+});
+document.getElementById('swGoo').addEventListener('click',e=>{
+  const on=e.currentTarget.getAttribute('aria-pressed')!=='true';
+  toggle(e.currentTarget,on);
+  document.getElementById('goo').style.filter = on?'url(#goo)':'none';
+});
+document.getElementById('swLbl').addEventListener('click',e=>{
+  const on=e.currentTarget.getAttribute('aria-pressed')!=='true';
+  toggle(e.currentTarget,on);
+  dock.querySelectorAll('i').forEach(i=>i.style.display=on?'':'none');
+});
+
+/* boot */
+const h=+(location.hash.match(/p(\d)/)?.[1] ?? 0);
+place(0,false);
+requestAnimationFrame(()=>{ place(0,false); if(h) go(h); });
+</script>
+</body>
+</html>

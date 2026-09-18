@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Save</title>
+<style>
+:root{--bg:#0a0d12;--card:#161b22;--line:rgba(255,255,255,.08);
+--txt:#e9edf8;--mut:#8b95b3;--dim:#5a6482;--faint:#3c4562;
+--a:#ffb057;--b:#ff7a59;--ok:#5fe0ac;--ease:cubic-bezier(.25,1,.5,1)}
+*{box-sizing:border-box}html{height:100%}
+body{margin:0;min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+gap:26px;padding:30px 20px;font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+color:var(--txt);background:var(--bg)}
+body::before{content:"";position:fixed;width:58vmax;height:58vmax;border-radius:50%;filter:blur(150px);
+background:rgba(255,176,87,.1);top:-24vmax;left:50%;margin-left:-29vmax;pointer-events:none}
+
+.head{text-align:center;z-index:1}
+.head p:first-child{margin:0 0 7px;font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.22em;color:var(--faint)}
+.head h1{margin:0 0 5px;font-size:21px;letter-spacing:-.03em}
+.head p:last-child{margin:0;font-size:13px;color:var(--dim)}
+
+.art{position:relative;z-index:1;width:min(330px,100%);border-radius:20px;overflow:hidden;
+background:linear-gradient(168deg,var(--card),#10141a);border:1px solid var(--line);
+box-shadow:0 30px 66px -28px rgba(0,0,0,.9)}
+.cover{height:104px;background:linear-gradient(140deg,#ffb057,#ff7a59 55%,#c9427a)}
+.body{padding:15px;display:flex;align-items:flex-start;gap:12px}
+.body .t{flex:1;min-width:0}
+.body b{display:block;font-size:14.5px;font-weight:650;letter-spacing:-.01em}
+.body span{font-size:12px;color:var(--faint)}
+
+/* ---------- the button ---------- */
+.save{position:relative;width:40px;height:40px;flex:0 0 auto;display:grid;place-items:center;
+background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:12px;cursor:pointer;
+color:var(--dim);transition:color .25s,background .25s,border-color .25s}
+.save:hover{color:var(--mut);background:rgba(255,255,255,.09)}
+.save:focus-visible{outline:2px solid var(--a);outline-offset:3px}
+.save[aria-pressed="true"]{color:var(--a);background:rgba(255,176,87,.13);border-color:rgba(255,176,87,.34)}
+
+.mark{width:19px;height:22px;overflow:visible}
+.mark .wire{fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round}
+/* the ribbon fills from the top down, then the notch bites up from the bottom */
+.mark .ink{fill:var(--a);
+  clip-path:inset(100% 0 0 0);
+  transition:clip-path .42s cubic-bezier(.3,1,.4,1)}
+.save[aria-pressed="true"] .mark .ink{clip-path:inset(0 0 0 0)}
+.mark .notch{fill:var(--card);opacity:0;transform-box:fill-box;transform-origin:50% 100%;
+  transform:scaleY(0);transition:transform .3s .2s cubic-bezier(.34,1.5,.4,1),opacity .1s .2s}
+.save[aria-pressed="true"] .mark .notch{opacity:1;transform:scaleY(1)}
+.save[aria-pressed="true"] .mark{animation:tuck .46s cubic-bezier(.34,1.5,.4,1)}
+@keyframes tuck{0%{transform:translateY(-3px) scaleY(.9)}55%{transform:translateY(2px) scaleY(1.06)}100%{transform:none}}
+
+/* ---------- the confirmation ---------- */
+.toast{position:fixed;left:50%;bottom:34px;z-index:9;display:flex;align-items:center;gap:10px;
+padding:10px 14px;border-radius:14px;white-space:nowrap;
+background:#11161f;border:1px solid var(--line);box-shadow:0 20px 40px -16px rgba(0,0,0,.95);
+transform:translate(-50%,26px);opacity:0;pointer-events:none;
+transition:transform .42s cubic-bezier(.3,1.3,.4,1),opacity .28s}
+.toast.on{transform:translate(-50%,0);opacity:1;pointer-events:auto}
+.toast i{width:24px;height:24px;flex:0 0 auto;border-radius:8px;display:grid;place-items:center;
+background:rgba(255,176,87,.16);color:var(--a);font-style:normal}
+.toast i svg{width:13px;height:13px;fill:currentColor}
+.toast b{font-size:13px;font-weight:600}
+.toast button{margin-left:6px;padding:0;font:inherit;font-size:12.5px;font-weight:650;
+color:var(--a);background:none;border:0;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+
+.readout{font:600 10.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.13em;
+text-transform:uppercase;color:var(--faint);z-index:1}
+.readout b{color:var(--a)}
+@media (prefers-reduced-motion:reduce){.mark,.mark *,.toast{transition-duration:.01ms;animation:none}}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <p>BUTTON 10</p><h1>Save</h1>
+  <p>Ink pours down the ribbon, then the notch bites up from the bottom.</p>
+</div>
+
+<article class="art">
+  <div class="cover"></div>
+  <div class="body">
+    <span class="t"><b>Designing for the pause</b><span>9 min read &middot; Interface</span></span>
+    <button class="save" id="save" type="button" aria-pressed="false" aria-label="Save for later">
+      <svg class="mark" viewBox="0 0 20 24">
+        <path class="ink"   d="M2 1.6h16v20.8l-8-5.6-8 5.6Z"/>
+        <path class="notch" d="M10 16.8 2 22.4V24h16v-1.6Z"/>
+        <path class="wire"  d="M2 1.6h16v20.8l-8-5.6-8 5.6Z"/>
+      </svg>
+    </button>
+  </div>
+</article>
+
+<p class="readout" id="readout">state <b>not saved</b></p>
+
+<div class="toast" id="toast">
+  <i><svg viewBox="0 0 24 24"><path d="M6 2h12v20l-6-4.4L6 22Z"/></svg></i>
+  <b id="toastMsg">Saved to Read later</b>
+  <button type="button" id="undo">Undo</button>
+</div>
+
+<script>
+const save = document.getElementById('save'), toast = document.getElementById('toast'),
+      toastMsg = document.getElementById('toastMsg'), undo = document.getElementById('undo'),
+      readout = document.getElementById('readout');
+let on = false, timer;
+
+function show(msg){
+  toastMsg.textContent = msg;
+  toast.classList.add('on');
+  clearTimeout(timer);
+  timer = setTimeout(() => toast.classList.remove('on'), 3000);
+}
+function set(next){
+  on = next;
+  save.setAttribute('aria-pressed', String(on));
+  save.setAttribute('aria-label', on ? 'Remove from saved' : 'Save for later');
+  readout.innerHTML = 'state <b>' + (on ? 'saved' : 'not saved') + '</b>';
+}
+
+save.addEventListener('click', () => {
+  set(!on);
+  show(on ? 'Saved to Read later' : 'Removed from Read later');
+});
+undo.addEventListener('click', () => {
+  set(!on);
+  show(on ? 'Saved to Read later' : 'Removed from Read later');
+});
+</script>
+</body>
+</html>

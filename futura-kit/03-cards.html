@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Card Systems</title>
+<style>
+@property --ang{syntax:'<angle>';inherits:false;initial-value:0deg}
+@property --mx{syntax:'<percentage>';inherits:true;initial-value:50%}
+@property --my{syntax:'<percentage>';inherits:true;initial-value:50%}
+
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;padding:46px 20px 70px;overflow-x:hidden;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:#e9edff;background:#06070d}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(110px);pointer-events:none;z-index:0}
+body::before{width:56vmax;height:56vmax;left:-20vmax;top:-26vmax;background:rgba(0,180,255,.22)}
+body::after{width:48vmax;height:48vmax;right:-18vmax;bottom:-24vmax;background:rgba(255,47,179,.18)}
+
+.wrap{position:relative;z-index:1;max-width:1120px;margin:0 auto}
+.head{margin-bottom:34px}
+.head p:first-child{margin:0 0 10px;font:600 10px/1 ui-monospace,Menlo,monospace;
+  letter-spacing:.38em;text-transform:uppercase;color:rgba(233,237,255,.38)}
+.head h1{margin:0 0 8px;font-size:clamp(30px,6vw,46px);font-weight:650;letter-spacing:-.05em;
+  background:linear-gradient(100deg,#fff,#8ee7ff 45%,#ff9ee0 75%,#fff);background-size:220% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 7s linear infinite}
+@keyframes shine{to{background-position:220% 0}}
+.head h1 + p{margin:0;color:rgba(233,237,255,.48);font-size:14.5px;max-width:62ch}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(272px,1fr));gap:15px;align-items:start}
+.slot{position:relative;perspective:1200px}
+.cap{display:block;margin-top:10px;font:600 8.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.2em;
+  text-transform:uppercase;color:rgba(233,237,255,.3);text-align:center}
+.wide{grid-column:span 2}
+@media(max-width:700px){.wide{grid-column:span 1}}
+
+.card{position:relative;border-radius:22px;overflow:hidden;
+  background:linear-gradient(165deg,rgba(255,255,255,.075),rgba(255,255,255,.02));
+  border:1px solid rgba(255,255,255,.09);
+  box-shadow:0 24px 56px -30px #000,0 1px 0 0 rgba(255,255,255,.11) inset;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.pad{padding:18px}
+h3{margin:0;font-size:16.5px;font-weight:650;letter-spacing:-.03em}
+.sub{margin:4px 0 0;font-size:12.5px;color:rgba(233,237,255,.45);line-height:1.5}
+.k{font:600 8.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.2em;text-transform:uppercase;
+  color:rgba(233,237,255,.36)}
+
+/* ---------- 01 tilt + glare ---------- */
+.c-tilt{transform-style:preserve-3d;transition:transform .45s cubic-bezier(.2,1,.3,1)}
+.c-tilt .art{height:120px;background:conic-gradient(from 210deg at 30% 20%,#1b1440,#3b1f6e,#0f4a76,#5d1d63,#1b1440)}
+.c-tilt .glare{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .3s;
+  background:radial-gradient(240px 240px at var(--mx) var(--my),rgba(255,255,255,.4),transparent 60%)}
+.c-tilt:hover .glare{opacity:1}
+.c-tilt .lift{transform:translateZ(38px)}
+
+/* ---------- 02 spotlight border ---------- */
+.c-spot::before{content:"";position:absolute;inset:0;border-radius:22px;padding:1.4px;z-index:2;
+  pointer-events:none;opacity:0;transition:opacity .35s;
+  background:radial-gradient(180px 180px at var(--mx) var(--my),#fff,rgba(120,150,255,.3) 45%,transparent 70%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  mask-composite:exclude}
+.c-spot:hover::before{opacity:1}
+.c-spot::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .35s;
+  background:radial-gradient(200px 200px at var(--mx) var(--my),rgba(110,180,255,.16),transparent 65%)}
+.c-spot:hover::after{opacity:1}
+.dots{display:flex;gap:6px;margin-top:14px}
+.dots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.18)}
+.dots i:first-child{background:#31e0ff;box-shadow:0 0 10px #31e0ff}
+
+/* ---------- 03 flip ---------- */
+.c-flip{height:196px;transform-style:preserve-3d;transition:transform .8s cubic-bezier(.4,.9,.3,1);
+  cursor:pointer;border:0;background:none;box-shadow:none;padding:0;width:100%;font:inherit;color:inherit;
+  text-align:left;backdrop-filter:none}
+.c-flip[data-flip]{transform:rotateY(180deg)}
+.c-flip .f{position:absolute;inset:0;border-radius:22px;backface-visibility:hidden;overflow:hidden;
+  border:1px solid rgba(255,255,255,.1);padding:18px;display:flex;flex-direction:column;
+  justify-content:space-between}
+.c-flip .front{background:linear-gradient(150deg,#2a1a5e,#0d1030)}
+.c-flip .back{background:linear-gradient(150deg,#0b3550,#08202e);transform:rotateY(180deg)}
+.c-flip .num{font:650 19px/1 ui-monospace,monospace;letter-spacing:.14em}
+
+/* ---------- 04 product ---------- */
+.c-prod .art{height:136px;position:relative;overflow:hidden;
+  background:radial-gradient(90% 90% at 50% 20%,#ff8a5b,#7a1f4f 60%,#1a0a20)}
+.c-prod .art .obj{position:absolute;left:50%;top:52%;width:86px;height:86px;margin:-43px 0 0 -43px;
+  border-radius:26px;background:linear-gradient(145deg,#fff,#ffd9c2 40%,#ff7a45);
+  box-shadow:0 22px 40px -14px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.4) inset;
+  transition:transform .55s cubic-bezier(.2,1.2,.3,1)}
+.c-prod:hover .art .obj{transform:translateY(-8px) rotate(-8deg) scale(1.06)}
+.c-prod .tag{position:absolute;top:12px;left:12px;padding:5px 9px;border-radius:8px;
+  background:rgba(0,0,0,.45);backdrop-filter:blur(6px);
+  font:700 9px/1 ui-monospace,monospace;letter-spacing:.14em;color:#ffd6c2}
+.buy{display:flex;align-items:center;gap:9px;margin-top:14px}
+.buy .price{font-size:18px;font-weight:650;letter-spacing:-.03em;flex:1;font-variant-numeric:tabular-nums}
+.buy .price s{font-size:12px;color:rgba(233,237,255,.35);font-weight:400;margin-left:5px}
+.atc{position:relative;border:0;border-radius:12px;padding:11px 16px;cursor:pointer;overflow:hidden;
+  font:650 12.5px/1 ui-sans-serif,system-ui;color:#1a0a08;
+  background:linear-gradient(130deg,#ffd9c2,#ff7a45);box-shadow:0 10px 24px -10px #ff7a45;
+  transition:transform .2s cubic-bezier(.2,1.5,.4,1),width .35s}
+.atc:active{transform:scale(.95)}
+.atc[data-s="ok"]{background:linear-gradient(130deg,#3dffa8,#25d9e6)}
+.fly{position:fixed;z-index:99;width:16px;height:16px;border-radius:50%;pointer-events:none;
+  background:#ff7a45;box-shadow:0 0 14px #ff7a45}
+
+/* ---------- 05 profile ---------- */
+.c-prof{text-align:center}
+.c-prof .cover{height:74px;background:linear-gradient(110deg,#7c5cff,#31e0ff,#ff2fb3);
+  background-size:200% 100%;animation:pan 9s linear infinite}
+@keyframes pan{to{background-position:200% 0}}
+.c-prof .av{width:70px;height:70px;border-radius:24px;margin:-38px auto 0;position:relative;
+  background:linear-gradient(145deg,#fff,#b8c6ff);border:3px solid #0b0d17;
+  display:grid;place-items:center;font:700 22px/1 ui-sans-serif,system-ui;color:#161a33;
+  box-shadow:0 14px 30px -12px #000;transition:transform .45s cubic-bezier(.2,1.4,.3,1)}
+.c-prof:hover .av{transform:translateY(-4px) rotate(-5deg)}
+.stats{display:flex;justify-content:center;gap:0;margin:14px 0 0}
+.stats div{flex:1}
+.stats b{display:block;font-size:16px;font-weight:650;font-variant-numeric:tabular-nums}
+.stats span{font:600 8px/1 ui-monospace,monospace;letter-spacing:.16em;text-transform:uppercase;
+  color:rgba(233,237,255,.36)}
+.follow{width:100%;margin-top:15px;padding:12px;border:0;border-radius:13px;cursor:pointer;
+  font:650 13px/1 ui-sans-serif,system-ui;color:#07080f;background:#fff;
+  transition:transform .2s cubic-bezier(.2,1.5,.4,1),background .3s,color .3s}
+.follow:active{transform:scale(.97)}
+.follow[data-s="on"]{background:rgba(255,255,255,.1);color:#fff;
+  box-shadow:0 0 0 1px rgba(255,255,255,.2) inset}
+
+/* ---------- 06 music ---------- */
+.c-music{background:linear-gradient(160deg,#241539,#0d0a1c)}
+.c-music .row{display:flex;align-items:center;gap:13px}
+.c-music .cov{width:58px;height:58px;border-radius:16px;flex:none;
+  background:conic-gradient(from 40deg,#ff2fb3,#7c5cff,#31e0ff,#ff2fb3);
+  box-shadow:0 0 26px -8px #7c5cff;animation:rot 8s linear infinite;animation-play-state:paused}
+[data-play] .cov{animation-play-state:running}
+@keyframes rot{to{transform:rotate(1turn)}}
+.c-music .pp{width:40px;height:40px;flex:none;border:0;border-radius:50%;cursor:pointer;
+  background:#fff;color:#0b0716;display:grid;place-items:center;
+  transition:transform .2s cubic-bezier(.2,1.6,.4,1)}
+.c-music .pp:active{transform:scale(.88)}
+.c-music .pp svg{width:15px;height:15px;fill:currentColor}
+.c-music .pp .pa{display:none}
+[data-play] .pp .pl{display:none}
+[data-play] .pp .pa{display:block}
+.eq{display:flex;align-items:flex-end;gap:3px;height:26px;margin-top:14px}
+.eq i{flex:1;border-radius:2px;background:linear-gradient(180deg,#31e0ff,#7c5cff);height:15%;
+  transition:height .12s linear}
+.bar{height:4px;border-radius:99px;background:rgba(255,255,255,.12);margin-top:12px;overflow:hidden}
+.bar span{display:block;height:100%;width:0%;border-radius:99px;
+  background:linear-gradient(90deg,#31e0ff,#ff2fb3)}
+
+/* ---------- 07 weather ---------- */
+.c-weather{background:linear-gradient(170deg,#12304f,#070d1c);position:relative}
+.c-weather canvas{position:absolute;inset:0;width:100%;height:100%}
+.c-weather .pad{position:relative;z-index:2}
+.temp{font-size:44px;font-weight:600;letter-spacing:-.05em;line-height:1;margin:10px 0 0}
+.temp sup{font-size:18px;vertical-align:super;opacity:.5}
+.wrow{display:flex;justify-content:space-between;margin-top:16px;font-size:11px;
+  color:rgba(233,237,255,.5);font-family:ui-monospace,monospace}
+.sun{position:absolute;right:20px;top:18px;width:44px;height:44px;border-radius:50%;
+  background:radial-gradient(circle,#ffe9a8,#ffb648);box-shadow:0 0 34px 6px rgba(255,182,72,.5);
+  animation:bob 5s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(7px) scale(1.05)}}
+
+/* ---------- 08 swipe deck ---------- */
+.deck{position:relative;height:220px}
+.sw{position:absolute;inset:0;border-radius:22px;padding:18px;cursor:grab;user-select:none;
+  display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;
+  border:1px solid rgba(255,255,255,.12);box-shadow:0 26px 60px -26px #000;
+  transition:transform .45s cubic-bezier(.3,1.1,.3,1),opacity .35s;touch-action:none}
+.sw:active{cursor:grabbing}
+.sw .stampY,.sw .stampN{position:absolute;top:18px;padding:6px 12px;border-radius:9px;
+  font:800 13px/1 ui-monospace,monospace;letter-spacing:.18em;opacity:0;transition:opacity .15s}
+.sw .stampY{left:18px;color:#4dffcf;border:2px solid #4dffcf;transform:rotate(-12deg)}
+.sw .stampN{right:18px;color:#ff5e79;border:2px solid #ff5e79;transform:rotate(12deg)}
+.deckhint{position:absolute;left:0;right:0;bottom:-26px;text-align:center;
+  font:600 9px/1 ui-monospace,monospace;letter-spacing:.18em;text-transform:uppercase;
+  color:rgba(233,237,255,.26)}
+
+/* ---------- 09 border beam ---------- */
+.c-beam{position:relative;background:#0a0c18}
+.c-beam::before{content:"";position:absolute;inset:-1.5px;border-radius:23px;z-index:0;
+  background:conic-gradient(from var(--ang),transparent 0 66%,#31e0ff 80%,#ff2fb3 92%,transparent);
+  animation:spin 3.4s linear infinite}
+.c-beam::after{content:"";position:absolute;inset:0;border-radius:22px;background:#0a0c18;z-index:1}
+.c-beam .pad{position:relative;z-index:2}
+@keyframes spin{to{--ang:360deg}}
+
+/* ---------- 10 reveal ---------- */
+.c-rev{height:206px;position:relative}
+.c-rev .art{position:absolute;inset:0;
+  background:radial-gradient(80% 80% at 30% 20%,#4b2fa8,#12132c 70%);
+  transition:transform .6s cubic-bezier(.2,1,.3,1)}
+.c-rev:hover .art{transform:scale(1.08)}
+.c-rev .veil{position:absolute;inset:0;
+  background:linear-gradient(0deg,rgba(6,7,13,.95) 12%,rgba(6,7,13,.25) 55%,transparent)}
+.c-rev .body{position:absolute;left:0;right:0;bottom:0;padding:18px;
+  transform:translateY(38px);transition:transform .5s cubic-bezier(.2,1,.3,1)}
+.c-rev .more{opacity:0;transition:opacity .4s .08s;margin-top:8px}
+.c-rev:hover .body{transform:none}
+.c-rev:hover .more{opacity:1}
+
+/* ---------- 11 stat ---------- */
+.c-stat canvas{display:block;width:100%;height:56px;margin-top:10px}
+.big{font-size:30px;font-weight:650;letter-spacing:-.045em;font-variant-numeric:tabular-nums;
+  margin-top:8px;line-height:1}
+.up{color:#4dffcf;font:600 11px/1 ui-monospace,monospace;margin-top:6px;display:inline-block}
+
+/* ---------- 12 pricing ---------- */
+.c-price{background:linear-gradient(160deg,rgba(124,92,255,.18),rgba(255,255,255,.02))}
+.billing{display:flex;padding:3px;border-radius:11px;background:rgba(0,0,0,.28);
+  width:fit-content;margin-top:12px;position:relative}
+.billing button{position:relative;z-index:2;border:0;background:none;cursor:pointer;
+  font:650 11px/1 ui-sans-serif,system-ui;padding:8px 13px;border-radius:9px;
+  color:rgba(233,237,255,.5);transition:color .3s}
+.billing button[aria-pressed="true"]{color:#07080f}
+.billing .th{position:absolute;top:3px;bottom:3px;left:3px;border-radius:9px;background:#fff;z-index:1;
+  transition:transform .4s cubic-bezier(.34,1.35,.4,1),width .4s}
+.amount{font-size:38px;font-weight:650;letter-spacing:-.05em;margin:16px 0 0;line-height:1;
+  font-variant-numeric:tabular-nums}
+.amount em{font-style:normal;font-size:13px;font-weight:500;color:rgba(233,237,255,.45);
+  letter-spacing:0;margin-left:3px}
+.feat{list-style:none;padding:0;margin:14px 0 0;display:flex;flex-direction:column;gap:8px}
+.feat li{display:flex;gap:9px;align-items:center;font-size:12.5px;color:rgba(233,237,255,.66)}
+.feat svg{width:14px;height:14px;fill:none;stroke:#4dffcf;stroke-width:2.6;flex:none}
+.cta{width:100%;margin-top:16px;padding:13px;border:0;border-radius:13px;cursor:pointer;
+  font:650 13.5px/1 ui-sans-serif,system-ui;color:#07080f;
+  background:linear-gradient(130deg,#c9b6ff,#7c5cff);box-shadow:0 14px 32px -14px #7c5cff;
+  transition:transform .2s cubic-bezier(.2,1.5,.4,1)}
+.cta:active{transform:scale(.97)}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <p>futura kit · 03</p>
+    <h1>Card systems</h1>
+    <p>Twelve card archetypes. Tilt with real glare maths, a swipeable deck with pointer physics, live charts, and states that persist when you click them.</p>
+  </div>
+
+  <div class="grid">
+
+    <div class="slot"><div class="card c-tilt" data-tilt>
+      <div class="art"></div><div class="glare"></div>
+      <div class="pad lift"><span class="k">holo layer</span>
+        <h3 style="margin-top:6px">Parallax Tilt</h3>
+        <p class="sub">Rotates to your pointer; the text sits 38px forward in Z so it separates from the art.</p></div>
+    </div><span class="cap">3d tilt · glare</span></div>
+
+    <div class="slot"><div class="card c-spot" data-spot>
+      <div class="pad"><span class="k">system</span>
+        <h3 style="margin-top:6px">Spotlight Border</h3>
+        <p class="sub">A masked radial gradient rides the cursor around the 1.4px border.</p>
+        <div class="dots"><i></i><i></i><i></i><i></i></div></div>
+    </div><span class="cap">cursor border</span></div>
+
+    <div class="slot"><button class="c-flip" id="flip">
+      <div class="f front">
+        <span class="k">tap to flip</span>
+        <div><div class="num">•••• 4291</div><h3 style="margin-top:8px">Front face</h3></div>
+      </div>
+      <div class="f back">
+        <span class="k">reverse</span>
+        <div><p class="sub" style="color:rgba(233,237,255,.7)">Two absolutely-positioned faces, backface-visibility hidden, 800ms rotateY.</p></div>
+      </div>
+    </button><span class="cap">flip card</span></div>
+
+    <div class="slot"><div class="card c-prod">
+      <div class="art"><span class="tag">NEW DROP</span><div class="obj"></div></div>
+      <div class="pad"><span class="k">aero series</span>
+        <h3 style="margin-top:6px">Nimbus Cube</h3>
+        <div class="buy"><span class="price">$148<s>$189</s></span>
+          <button class="atc" id="atc" data-s="idle">Add to cart</button></div></div>
+    </div><span class="cap">product · fly to cart</span></div>
+
+    <div class="slot"><div class="card c-prof">
+      <div class="cover"></div>
+      <div class="av">VO</div>
+      <div class="pad" style="padding-top:12px">
+        <h3>Vega Ortiz</h3><p class="sub">Motion systems · Reykjavík</p>
+        <div class="stats">
+          <div><b data-c="1284">0</b><span>posts</span></div>
+          <div><b data-c="48200">0</b><span>followers</span></div>
+          <div><b data-c="312">0</b><span>following</span></div>
+        </div>
+        <button class="follow" id="follow" data-s="off">Follow</button>
+      </div>
+    </div><span class="cap">profile · count-up</span></div>
+
+    <div class="slot"><div class="card c-music" id="music">
+      <div class="pad">
+        <div class="row">
+          <div class="cov"></div>
+          <div style="flex:1;min-width:0">
+            <h3 style="font-size:15px">Solar Static</h3>
+            <p class="sub" style="margin-top:2px">Aeon Drift</p>
+          </div>
+          <button class="pp" id="pp" aria-label="play">
+            <svg class="pl" viewBox="0 0 24 24"><path d="M8 5v14l12-7z"/></svg>
+            <svg class="pa" viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>
+          </button>
+        </div>
+        <div class="eq" id="eq"></div>
+        <div class="bar"><span id="mbar"></span></div>
+      </div>
+    </div><span class="cap">now playing</span></div>
+
+    <div class="slot"><div class="card c-weather">
+      <canvas id="rain"></canvas>
+      <div class="pad">
+        <div class="sun"></div>
+        <span class="k">reykjavík</span>
+        <div class="temp">11<sup>°C</sup></div>
+        <p class="sub">Light rain · feels like 8°</p>
+        <div class="wrow"><span>↑ 13°</span><span>↓ 6°</span><span>78% RH</span><span>12 km/h</span></div>
+      </div>
+    </div><span class="cap">weather · canvas rain</span></div>
+
+    <div class="slot wide"><div class="deck" id="deck"></div>
+      <span class="cap" style="margin-top:34px">swipe deck · drag left / right</span></div>
+
+    <div class="slot"><div class="card c-beam">
+      <div class="pad"><span class="k">runtime</span>
+        <h3 style="margin-top:6px">Border Beam</h3>
+        <p class="sub">A conic gradient rotating behind the card, clipped by an inset panel.</p>
+        <div class="dots"><i></i><i></i><i></i></div></div>
+    </div><span class="cap">animated border</span></div>
+
+    <div class="slot"><div class="card c-rev">
+      <div class="art"></div><div class="veil"></div>
+      <div class="body"><span class="k">editorial</span>
+        <h3 style="margin-top:6px">Hover to reveal</h3>
+        <p class="sub more">The body lifts 38px and the second paragraph fades in behind it — one transform, two transitions.</p></div>
+    </div><span class="cap">reveal on hover</span></div>
+
+    <div class="slot"><div class="card c-stat">
+      <div class="pad"><span class="k">throughput</span>
+        <div class="big" data-c="18492">0</div>
+        <span class="up">▲ 12.4% this week</span>
+        <canvas id="spark"></canvas></div>
+    </div><span class="cap">stat · sparkline</span></div>
+
+    <div class="slot"><div class="card c-price">
+      <div class="pad"><span class="k">studio plan</span>
+        <div class="billing" id="billing"><span class="th"></span>
+          <button aria-pressed="true">Monthly</button><button aria-pressed="false">Yearly</button></div>
+        <div class="amount" id="amount">$24<em>/mo</em></div>
+        <ul class="feat">
+          <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>Unlimited prototypes</li>
+          <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>Motion tokens + export</li>
+          <li><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>Five seats included</li>
+        </ul>
+        <button class="cta">Choose Studio</button></div>
+    </div><span class="cap">pricing · billing toggle</span></div>
+
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+/* ---------- pointer vars for tilt + spotlight ---------- */
+document.querySelectorAll('[data-tilt],[data-spot]').forEach(c=>{
+  c.addEventListener('pointermove',e=>{
+    const b=c.getBoundingClientRect();
+    const px=(e.clientX-b.left)/b.width, py=(e.clientY-b.top)/b.height;
+    c.style.setProperty('--mx',(px*100)+'%');
+    c.style.setProperty('--my',(py*100)+'%');
+    if(c.hasAttribute('data-tilt') && !reduce)
+      c.style.transform='rotateY('+((px-.5)*14)+'deg) rotateX('+(-(py-.5)*12)+'deg) translateZ(10px)';
+  });
+  c.addEventListener('pointerleave',()=>{ c.style.transform=''; });
+});
+
+/* ---------- 03 flip ---------- */
+$('flip').addEventListener('click',e=>e.currentTarget.toggleAttribute('data-flip'));
+
+/* ---------- 04 add to cart, with a dot that flies off ---------- */
+const atc=$('atc');
+atc.addEventListener('click',e=>{
+  if(atc.dataset.s!=='idle') return;
+  const b=atc.getBoundingClientRect();
+  if(!reduce){
+    const d=document.createElement('div'); d.className='fly';
+    d.style.left=(b.left+b.width/2-8)+'px'; d.style.top=(b.top+b.height/2-8)+'px';
+    document.body.appendChild(d);
+    d.animate([
+      {transform:'translate(0,0) scale(1)',opacity:1},
+      {transform:'translate(60px,-90px) scale(1.5)',opacity:.9,offset:.5},
+      {transform:'translate(180px,-200px) scale(.2)',opacity:0}
+    ],{duration:750,easing:'cubic-bezier(.4,0,.6,1)'}).onfinish=()=>d.remove();
+  }
+  atc.dataset.s='ok'; atc.textContent='Added ✓';
+  setTimeout(()=>{ atc.dataset.s='idle'; atc.textContent='Add to cart'; },1500);
+});
+
+/* ---------- 05 follow + count-up ---------- */
+const follow=$('follow');
+follow.addEventListener('click',()=>{
+  const on=follow.dataset.s==='off';
+  follow.dataset.s=on?'on':'off';
+  follow.textContent=on?'Following':'Follow';
+  const f=document.querySelector('[data-c="48200"]');
+  f.textContent=fmt(48200+(on?1:0));
+});
+const fmt=n=>n>=1000?(n/1000).toFixed(1).replace('.0','')+'k':''+n;
+function countUp(){
+  document.querySelectorAll('[data-c]').forEach(el=>{
+    const to=+el.dataset.c;
+    if(reduce){ el.textContent=fmt(to); return; }
+    const t0=performance.now();
+    (function tick(t){
+      const p=Math.min(1,(t-t0)/1200), e=1-Math.pow(1-p,3);
+      el.textContent=fmt(Math.round(to*e));
+      if(p<1) requestAnimationFrame(tick);
+    })(t0);
+  });
+}
+countUp();
+
+/* ---------- 06 music card ---------- */
+const music=$('music'), eq=$('eq'), mbar=$('mbar');
+for(let i=0;i<22;i++) eq.appendChild(document.createElement('i'));
+let playing=false, prog=0;
+$('pp').addEventListener('click',()=>{
+  playing=!playing; music.toggleAttribute('data-play',playing);
+});
+setInterval(()=>{
+  if(!playing) return;
+  [...eq.children].forEach((b,i)=>
+    b.style.height = (12 + Math.abs(Math.sin(Date.now()/240 + i*.6))*78) + '%');
+  prog=(prog+.4)%100; mbar.style.width=prog+'%';
+}, reduce?500:70);
+
+/* ---------- 07 rain canvas ---------- */
+const rain=$('rain'), rx=rain.getContext('2d'), DPR=Math.min(devicePixelRatio||1,2);
+let rw=0,rh=0, drops=[];
+function rfit(){
+  const b=rain.getBoundingClientRect(); rw=b.width; rh=b.height;
+  rain.width=rw*DPR; rain.height=rh*DPR; rx.setTransform(DPR,0,0,DPR,0,0);
+  drops=Array.from({length:60},()=>({x:Math.random()*rw,y:Math.random()*rh,
+    v:1.6+Math.random()*2.6,l:7+Math.random()*13,o:.12+Math.random()*.32}));
+}
+addEventListener('resize',rfit);
+function rdraw(){
+  requestAnimationFrame(rdraw);
+  if(!rw) rfit();
+  rx.clearRect(0,0,rw,rh);
+  rx.lineWidth=1.1; rx.lineCap='round';
+  drops.forEach(d=>{
+    rx.strokeStyle='rgba(175,215,255,'+d.o+')';
+    rx.beginPath(); rx.moveTo(d.x,d.y); rx.lineTo(d.x-1.6,d.y+d.l); rx.stroke();
+    if(!reduce){ d.y+=d.v*2.2; d.x-=d.v*.35; }
+    if(d.y>rh){ d.y=-d.l; d.x=Math.random()*rw; }
+  });
+}
+rdraw();
+
+/* ---------- 08 swipe deck with real pointer physics ---------- */
+const DECKDATA=[
+  ['Orbital Ring','#3b1f6e','#0f2a56','Structural concept · 2031'],
+  ['Deep Current','#0b4a4f','#08202e','Hydro grid study'],
+  ['Solar Veil','#5d1d33','#2a0a20','Thermal shielding'],
+  ['Night Atlas','#1b2450','#0a0d1c','Cartography engine']
+];
+const deck=$('deck');
+const topCard=()=>[...deck.querySelectorAll('.sw')].pop();
+function buildDeck(){
+  deck.innerHTML='';
+  const hint=document.createElement('div'); hint.className='deckhint';
+  hint.textContent='drag the top card'; deck.appendChild(hint);   // first, so cards stay last
+  DECKDATA.forEach((d,i)=>{
+    const el=document.createElement('div'); el.className='sw';
+    el.style.background='linear-gradient(160deg,'+d[1]+','+d[2]+')';
+    el.innerHTML='<span class="stampY">LIKE</span><span class="stampN">NOPE</span>'+
+      '<span class="k">'+d[3]+'</span><h3 style="margin-top:6px;font-size:20px">'+d[0]+'</h3>';
+    deck.appendChild(el);
+  });
+  layout();
+}
+function layout(){
+  const cards=[...deck.querySelectorAll('.sw')];
+  cards.forEach((c,i)=>{
+    const depth=cards.length-1-i;                 // 0 = top card
+    c.style.transform='translateY('+(depth*-9)+'px) scale('+(1-depth*.045)+')';
+    c.style.opacity = depth>2 ? 0 : 1;
+    c.style.zIndex = i+1;
+  });
+}
+function arm(card){
+  let sx=0, dx=0, down=false;
+  const y=card.querySelector('.stampY'), n=card.querySelector('.stampN');
+  card.addEventListener('pointerdown',e=>{
+    down=true; sx=e.clientX; card.style.transition='none';
+    card.setPointerCapture(e.pointerId);
+  });
+  card.addEventListener('pointermove',e=>{
+    if(!down) return;
+    dx=e.clientX-sx;
+    card.style.transform='translateX('+dx+'px) rotate('+(dx*.06)+'deg)';
+    y.style.opacity=Math.max(0,Math.min(1,dx/90));
+    n.style.opacity=Math.max(0,Math.min(1,-dx/90));
+  });
+  card.addEventListener('pointerup',()=>{
+    if(!down) return; down=false;
+    card.style.transition='';
+    if(Math.abs(dx)>90){
+      const dir=Math.sign(dx);
+      card.style.transform='translateX('+(dir*600)+'px) rotate('+(dir*30)+'deg)';
+      card.style.opacity=0;
+      setTimeout(()=>{
+        deck.insertBefore(card,deck.firstChild);    // recycle to the bottom
+        card.style.transition='none'; card.style.opacity=1;
+        y.style.opacity=n.style.opacity=0;
+        layout();
+        requestAnimationFrame(()=>{ card.style.transition=''; });
+        const top=topCard();
+        if(top && !top.dataset.armed) arm(top);
+      },340);
+    }else{
+      layout(); y.style.opacity=n.style.opacity=0;
+    }
+    dx=0;
+  });
+  card.dataset.armed='1';
+}
+buildDeck();
+// arm every card once so recycled ones keep working
+deck.querySelectorAll('.sw').forEach(c=>{ if(!c.dataset.armed) arm(c); });
+
+/* ---------- 11 sparkline ---------- */
+(function(){
+  const c=$('spark'), x=c.getContext('2d');
+  const w=c.clientWidth||240, h=56;
+  c.width=w*DPR; c.height=h*DPR; x.scale(DPR,DPR);
+  const pts=Array.from({length:30},(_,i)=>
+    .3+.45*Math.abs(Math.sin(i*.42)*Math.cos(i*.19+1.2))+i*.008);
+  const px=i=>i/(pts.length-1)*w, py=v=>h-4-v*(h-12);
+  x.beginPath(); pts.forEach((v,i)=>i?x.lineTo(px(i),py(v)):x.moveTo(px(i),py(v)));
+  x.lineTo(w,h); x.lineTo(0,h); x.closePath();
+  const g=x.createLinearGradient(0,0,0,h);
+  g.addColorStop(0,'rgba(77,255,207,.34)'); g.addColorStop(1,'rgba(77,255,207,0)');
+  x.fillStyle=g; x.fill();
+  x.beginPath(); pts.forEach((v,i)=>i?x.lineTo(px(i),py(v)):x.moveTo(px(i),py(v)));
+  x.strokeStyle='#4dffcf'; x.lineWidth=1.8; x.lineJoin='round';
+  x.shadowBlur=10; x.shadowColor='#4dffcf'; x.stroke();
+})();
+
+/* ---------- 12 billing toggle ---------- */
+const billing=$('billing'), th=billing.querySelector('.th');
+const bBtns=[...billing.querySelectorAll('button')];
+function bill(i){
+  const b=bBtns[i].getBoundingClientRect(), s=billing.getBoundingClientRect();
+  th.style.width=b.width+'px';
+  th.style.transform='translateX('+(b.left-s.left-3)+'px)';
+  bBtns.forEach((x,n)=>x.setAttribute('aria-pressed',n===i));
+  $('amount').innerHTML = i ? '$19<em>/mo · billed yearly</em>' : '$24<em>/mo</em>';
+}
+bBtns.forEach((b,i)=>b.addEventListener('click',()=>bill(i)));
+requestAnimationFrame(()=>bill(0));
+</script>
+</body>
+</html>

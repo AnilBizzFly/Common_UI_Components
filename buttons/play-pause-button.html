@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Play / Pause</title>
+<style>
+:root{--bg:#080c17;--card:#141b2b;--line:rgba(255,255,255,.08);
+--txt:#e9edf8;--mut:#8b95b3;--dim:#5a6482;--faint:#3c4562;
+--a:#5fe0ac;--b:#4bc7ff;--ease:cubic-bezier(.25,1,.5,1)}
+*{box-sizing:border-box}html{height:100%}
+body{margin:0;min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+gap:26px;padding:30px 20px;font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+color:var(--txt);background:var(--bg)}
+body::before{content:"";position:fixed;width:58vmax;height:58vmax;border-radius:50%;filter:blur(150px);
+background:rgba(95,224,172,.1);top:-24vmax;left:50%;margin-left:-29vmax;pointer-events:none}
+
+.head{text-align:center;z-index:1}
+.head p:first-child{margin:0 0 7px;font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.22em;color:var(--faint)}
+.head h1{margin:0 0 5px;font-size:21px;letter-spacing:-.03em}
+.head p:last-child{margin:0;font-size:13px;color:var(--dim)}
+
+.player{position:relative;z-index:1;display:flex;align-items:center;gap:15px;width:min(370px,100%);
+padding:15px;border-radius:20px;background:linear-gradient(168deg,var(--card),#0e1422);
+border:1px solid var(--line);box-shadow:0 30px 66px -28px rgba(0,0,0,.86)}
+.art{width:52px;height:52px;flex:0 0 auto;border-radius:14px;
+background:linear-gradient(140deg,#5fe0ac,#4bc7ff 55%,#7c8cff)}
+.track{flex:1;min-width:0}
+.track b{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track span{font-size:11.5px;color:var(--faint);font-variant-numeric:tabular-nums}
+.line{margin-top:7px;height:3px;border-radius:2px;background:rgba(255,255,255,.1);overflow:hidden}
+.line i{display:block;height:100%;width:0%;border-radius:2px;
+background:linear-gradient(90deg,var(--a),var(--b))}
+
+/* ---------- the button ---------- */
+.pp{position:relative;width:52px;height:52px;flex:0 0 auto;border:0;border-radius:50%;cursor:pointer;
+background:linear-gradient(115deg,var(--a),var(--b));
+box-shadow:0 12px 26px -10px rgba(95,224,172,.75);
+transition:transform .16s,box-shadow .25s}
+.pp:hover{transform:scale(1.05)}
+.pp:active{transform:scale(.96)}
+.pp:focus-visible{outline:2px solid #fff;outline-offset:3px}
+
+/* the ring rides the same progress the bar does */
+.ring{position:absolute;inset:-5px;transform:rotate(-90deg);pointer-events:none}
+.ring circle{fill:none;stroke:rgba(255,255,255,.85);stroke-width:2.5;stroke-linecap:round;
+stroke-dasharray:var(--C);stroke-dashoffset:var(--C);transition:stroke-dashoffset .2s linear}
+
+/* two halves, morphed by clip-path — a rectangle and a trapezoid have the same
+   four points, so the shape can actually tween */
+.glyph{position:absolute;left:50%;top:50%;width:22px;height:20px;margin:-10px 0 0 -11px}
+.half{position:absolute;top:0;height:100%;width:8px;background:#06231b;border-radius:1.5px;
+transition:clip-path .34s var(--ease),transform .34s var(--ease),border-radius .34s}
+.l{left:0;  clip-path:polygon(0 0,100% 0,100% 100%,0 100%)}
+.r{right:0; clip-path:polygon(0 0,100% 0,100% 100%,0 100%)}
+.pp[aria-pressed="true"] .l{transform:translateX(3px);border-radius:2px 0 0 2px;
+  clip-path:polygon(0 0,100% 26%,100% 74%,0 100%)}
+.pp[aria-pressed="true"] .r{transform:translateX(-3px);border-radius:0;
+  clip-path:polygon(0 26%,100% 50%,100% 50%,0 74%)}
+
+.readout{font:600 10.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.13em;
+text-transform:uppercase;color:var(--faint);z-index:1}
+.readout b{color:var(--a)}
+@media (prefers-reduced-motion:reduce){.half{transition-duration:.01ms}}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <p>BUTTON 07</p><h1>Play / Pause</h1>
+  <p>Two bars become a triangle &mdash; four points either way, so it tweens.</p>
+</div>
+
+<div class="player">
+  <span class="art"></span>
+  <span class="track"><b>Parallel Index Rebuild</b><span id="time">0:00 / 3:24</span>
+    <span class="line"><i id="fill"></i></span></span>
+  <button class="pp" id="pp" type="button" aria-pressed="false" aria-label="Play">
+    <svg class="ring" viewBox="0 0 62 62"><circle id="arc" cx="31" cy="31" r="29"/></svg>
+    <span class="glyph"><span class="half l"></span><span class="half r"></span></span>
+  </button>
+</div>
+
+<p class="readout" id="readout">transport <b>paused</b></p>
+
+<script>
+const pp = document.getElementById('pp'), fill = document.getElementById('fill'),
+      arc = document.getElementById('arc'), time = document.getElementById('time'),
+      readout = document.getElementById('readout');
+
+const LEN = 204;                                   // 3:24 in seconds
+const C = 2 * Math.PI * 29;
+arc.style.setProperty('--C', C.toFixed(2));
+
+let playing = false, at = 0, raf = null, last = 0;
+const mmss = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+
+function paint(){
+  const p = at / LEN;
+  fill.style.width = (p * 100).toFixed(2) + '%';
+  arc.style.strokeDashoffset = (C * (1 - p)).toFixed(2);
+  time.textContent = mmss(at) + ' / ' + mmss(LEN);
+}
+function tick(now){
+  const dt = (now - last) / 1000; last = now;
+  at = Math.min(LEN, at + dt * 12);                // 12x so the demo actually moves
+  paint();
+  if (at >= LEN){ toggle(false); at = 0; paint(); return; }
+  raf = requestAnimationFrame(tick);
+}
+function toggle(next){
+  playing = next;
+  pp.setAttribute('aria-pressed', String(playing));
+  pp.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+  readout.innerHTML = 'transport <b>' + (playing ? 'playing' : 'paused') + '</b>';
+  if (playing){ last = performance.now(); raf = requestAnimationFrame(tick); }
+  else { cancelAnimationFrame(raf); raf = null; }
+}
+pp.addEventListener('click', () => toggle(!playing));
+paint();
+</script>
+</body>
+</html>

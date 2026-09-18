@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bead — export</title>
+<style>
+/* NOT a length. calc(1 - <length> * n) is invalid, and an invalid value inside a
+   transform drops the WHOLE transform, silently — so the sag travels as a number. */
+@property --sagn{
+  syntax:'<number>';
+  inherits:true; initial-value:0;
+}
+
+:root{
+  --ink:#05070e; --face-a:#18203200; --face-b:#0d1320;
+  --line:rgba(255,255,255,.14);
+  --txt:#e9eef9; --mut:#8e9ab5; --dim:#5b6681; --faint:#3a4360;
+  --aq:#5eead4; --sky:#38bdf8; --vio:#a78bfa;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+*{box-sizing:border-box}
+html{height:100%}
+body{
+  margin:0;min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:40px;padding:40px 20px;overflow:hidden;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:var(--txt);background:var(--ink);
+}
+body::before{content:"";position:fixed;inset:-20%;pointer-events:none;
+  background:radial-gradient(40vmax 34vmax at 30% 16%,rgba(56,189,248,.16),transparent 62%),
+             radial-gradient(36vmax 32vmax at 74% 82%,rgba(167,139,250,.14),transparent 62%);
+  filter:blur(24px);animation:drift 24s ease-in-out infinite}
+@keyframes drift{0%,100%{transform:scale(1)}50%{transform:scale(1.12) translate(-2vmax,2vmax)}}
+
+.head{position:relative;z-index:2;text-align:center}
+.head p:first-child{margin:0 0 10px;font:600 10px/1 ui-monospace,Menlo,monospace;
+  letter-spacing:.3em;color:var(--faint)}
+.head h1{margin:0 0 8px;font-size:clamp(26px,6vw,38px);font-weight:600;letter-spacing:-.045em}
+.head p:last-child{margin:0;max-width:40ch;font-size:13.5px;line-height:1.7;color:var(--dim)}
+
+/* ============ the bead ============ */
+.bead{position:relative;z-index:2;display:block}
+.bead__stage{position:relative;display:block;width:260px;height:150px}
+
+/* one svg UNDER the button, one OVER it, both handed the same `d` */
+.bead__frame-fill,.bead__frame-line{position:absolute;inset:0;width:100%;height:100%;
+  pointer-events:none;overflow:visible}
+.bead__frame-fill{z-index:1}
+.bead__frame-line{z-index:3}
+
+.bead__face{fill:url(#faceGrad);
+  filter:drop-shadow(0 18px 34px rgba(0,0,0,.65))}
+.bead__outline{fill:none;stroke:var(--line);stroke-width:1.5}
+/* the arc shares the path's radius AND centre, so at w == h it lies exactly on it */
+.bead__arc{fill:none;stroke:url(#arcGrad);stroke-width:3.2;stroke-linecap:round;
+  opacity:0;transition:opacity .3s}
+.bead__dot{fill:var(--aq);opacity:0;transition:opacity .25s;
+  filter:drop-shadow(0 0 8px rgba(94,234,212,.85))}
+[data-state="load"] .bead__arc,[data-state="ring"] .bead__arc{opacity:1}
+[data-state="load"] .bead__dot,[data-state="ring"] .bead__dot{opacity:1}
+
+/* ---------- the button ---------- */
+.bead__btn{
+  position:absolute;left:50%;top:54px;z-index:2;
+  transition:gap .34s var(--ease),padding .34s var(--ease);
+  display:flex;align-items:center;justify-content:center;gap:11px;
+  height:58px;padding:0 20px;border-radius:29px;
+  transform:translate(-50%,-50%);
+  text-decoration:none;color:var(--txt);cursor:pointer;overflow:hidden;
+  -webkit-tap-highlight-color:transparent;
+}
+.bead__btn:focus-visible{outline:2px solid var(--sky);outline-offset:6px;border-radius:29px}
+
+/* the well holds the glyph and the water */
+.bead__well{position:relative;width:32px;height:32px;flex:0 0 auto;border-radius:50%;
+  overflow:hidden;background:rgba(255,255,255,.06);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.bead__glyph{position:absolute;inset:0;margin:auto;width:17px;height:17px;z-index:2;
+  fill:none;stroke:var(--txt);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
+  transition:opacity .3s,transform .4s var(--ease)}
+.glyph-open{opacity:0;transform:scale(.6) rotate(-25deg)}
+[data-state="done"] .glyph-dl{opacity:0;transform:scale(.6) rotate(25deg)}
+[data-state="done"] .glyph-open{opacity:1;transform:none}
+
+/* the water rises with the same number the arc uses */
+.bead__water{position:absolute;left:0;right:0;bottom:0;z-index:1;
+  height:calc(var(--fill,0) * 1%);
+  background:linear-gradient(180deg,var(--aq),var(--sky))}
+/* Two rounded squares turning just under the surface ARE the waterline.
+   top-anchored: only their rounded corners break the surface as they turn. */
+.bead__wave{
+  position:absolute;left:50%;top:-5px;
+  width:180%;aspect-ratio:1;margin-left:-90%;
+  border-radius:42%;
+  background:var(--aq);
+  animation:churn 5.4s linear infinite;
+}
+.bead__wave::after{content:"";position:absolute;left:0;top:3px;
+  width:100%;aspect-ratio:1;border-radius:45%;
+  background:var(--sky);opacity:.7;
+  animation:churn 3.7s linear infinite reverse}
+@keyframes churn{to{transform:rotate(360deg)}}
+
+/* both words, always laid out: the one NOT showing is the ruler for the one that is */
+.bead__words{position:relative;display:grid;place-items:center;overflow:hidden;
+  transition:max-width .34s var(--ease),opacity .3s ease}
+.bead__word-start,.bead__word-done{
+  grid-area:1/1;white-space:nowrap;font-size:15px;font-weight:600;letter-spacing:-.01em;
+  transition:opacity .3s ease;
+}
+.bead__word-start{
+  transform:translateY(calc(var(--sagn) * .58px)) scale(calc(1 - var(--sagn) * .0092));
+}
+.bead__word-done{
+  position:absolute;left:50%;top:50%;opacity:0;
+  transform:
+    translate(-50%,-50%)
+    translateY(calc(var(--sagn) * .58px))
+    scale(calc(1 - var(--sagn) * .0092));
+}
+/* the words keep their flex space even at opacity 0, which shoves the well off
+   centre the moment the pill narrows — fold them, and the gap and padding too */
+[data-state="load"] .bead__words,[data-state="ring"] .bead__words{opacity:0;max-width:0}
+[data-state="load"] .bead__btn,[data-state="ring"] .bead__btn{gap:0;padding:0}
+[data-state="done"] .bead__word-start{opacity:0}
+[data-state="done"] .bead__word-done{opacity:1}
+
+.bead__btn .bead__words{transition:opacity .35s ease .12s}
+
+/* ---------- readout ---------- */
+.read{position:relative;z-index:2;display:flex;gap:22px;
+  font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--faint);font-variant-numeric:tabular-nums}
+.read b{color:var(--sky);font-weight:600}
+.read i{font-style:normal;color:var(--aq)}
+
+@media (prefers-reduced-motion:reduce){
+  body::before,.bead__wave,.bead__wave::after{animation:none}
+}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <p>COMPONENT &middot; BEAD</p>
+  <h1>The bottom edge carries the weight</h1>
+  <p>The border is a path and the face is that same path&rsquo;s fill, so when the edge bends the fill bends with it.</p>
+</div>
+
+<!-- The border is a PATH and the face is that same path's FILL: one svg under
+     the button, one over it, both handed the same `d`. So the bottom edge can
+     bend and take the fill with it. -->
+<span class="bead" data-state="idle" id="bead">
+  <span class="bead__stage">
+
+    <svg class="bead__frame-fill" viewBox="0 0 260 150" aria-hidden="true">
+      <defs>
+        <linearGradient id="faceGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#1b2338"/><stop offset="1" stop-color="#0c1120"/>
+        </linearGradient>
+        <linearGradient id="arcGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#5eead4"/><stop offset=".55" stop-color="#38bdf8"/>
+          <stop offset="1" stop-color="#a78bfa"/>
+        </linearGradient>
+      </defs>
+      <path class="bead__face" id="face"/>
+    </svg>
+
+    <a class="bead__btn" href="#" download id="btn">
+      <span class="bead__well">
+        <svg class="bead__glyph glyph-dl" viewBox="0 0 24 24">
+          <path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/>
+        </svg>
+        <svg class="bead__glyph glyph-open" viewBox="0 0 24 24">
+          <path d="M14 4h6v6"/><path d="M20 4 11 13"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/>
+        </svg>
+        <span class="bead__water" id="water"><i class="bead__wave"></i></span>
+      </span>
+
+      <span class="bead__words">
+        <span class="bead__word-start">Export</span>
+        <span class="bead__word-done">Open</span>
+      </span>
+    </a>
+
+    <svg class="bead__frame-line" viewBox="0 0 260 150" aria-hidden="true">
+      <path class="bead__outline" id="outline"/>
+      <circle class="bead__arc" id="arc"/>
+      <circle class="bead__dot" id="dot" r="5.5"/>
+    </svg>
+  </span>
+</span>
+
+<p class="read">
+  <span>state <b id="rState">idle</b></span>
+  <span>arc <b id="rPct">0%</b></span>
+  <span>sag <i id="rSag">0.0</i></span>
+</p>
+
+<script>
+const bead = document.getElementById('bead'), btn = document.getElementById('btn'),
+      face = document.getElementById('face'), outline = document.getElementById('outline'),
+      arc = document.getElementById('arc'), dot = document.getElementById('dot'),
+      water = document.getElementById('water');
+const rState = document.getElementById('rState'), rPct = document.getElementById('rPct'),
+      rSag = document.getElementById('rSag');
+
+/* ---------- geometry ---------- */
+const CX = 130, CY = 54, H = 58, R = H / 2;      // radius pinned to half the height
+const SAG_U = 0.5;                               // where on the span the bead hangs
+let PILL_W = 200, W = PILL_W, wTo = PILL_W;
+
+/* A rope with a weight on it is not a triangle: a raised cosine peaked at the
+   bead, times how far below the equator the point is - so the caps STRETCH. */
+const bump = (t, u) => {
+  const s = t < u ? t / u : (1 - t) / (1 - u);
+  return .5 - .5 * Math.cos(Math.PI * s);
+};
+
+/* `d` is a rounded rect whose radius is pinned to half the height, so at w == h
+   it is a CIRCLE by construction. Every point below the equator is pulled down
+   by the bump, scaled by how far below it sits. */
+function shape(w, sag){
+  const left = CX - w / 2, right = CX + w / 2;
+  const top = CY - R, bot = CY + R;
+  const xl = left + R, xr = right - R;           // the two cap centres
+  const u_ = SAG_U;
+  const pts = [];
+  const put = (x, y) => {
+    const t = (x - left) / w;
+    const below = Math.max(0, (y - CY) / R);      // 0 at the equator, 1 at the floor
+    pts.push(x.toFixed(2) + ' ' + (y + sag * bump(t, u_) * below).toFixed(2));
+  };
+  const N = 24, M = 30;
+
+  put(xl, top); put(xr, top);                                       // top edge
+  for (let i = 1; i <= N; i++){                                     // right cap
+    const a = -Math.PI / 2 + (i / N) * Math.PI;
+    put(xr + R * Math.cos(a), CY + R * Math.sin(a));
+  }
+  for (let i = 1; i <= M; i++) put(xr + (xl - xr) * (i / M), bot);   // bottom edge
+  for (let i = 1; i <= N; i++){                                     // left cap
+    const a = Math.PI / 2 + (i / N) * Math.PI;
+    put(xl + R * Math.cos(a), CY + R * Math.sin(a));
+  }
+  return 'M' + pts.join('L') + 'Z';
+}
+
+/* ---------- the loop ---------- */
+let sag = 0, sagV = 0;                 // the spring
+let shown = 0, got = 0, total = 0;     // the transfer
+let t0 = 0, state = 'idle';
+const MIN_MS = 1700;                   // the pacing floor: nothing may finish faster
+const C = 2 * Math.PI * R;
+arc.setAttribute('cx', CX); arc.setAttribute('cy', CY); arc.setAttribute('r', R);
+arc.style.strokeDasharray = C.toFixed(2);
+arc.setAttribute('transform', `rotate(-90 ${CX} ${CY})`);   // 12 o'clock, once
+
+function setState(s){
+  state = s; bead.dataset.state = s; rState.textContent = s;
+}
+
+/* the hidden word is the ruler: measure the natural width BEFORE the loop
+   writes an inline one, or it just measures its own last output */
+PILL_W = Math.max(176, Math.ceil(btn.getBoundingClientRect().width) + 10);
+W = wTo = PILL_W;
+
+let last = performance.now();
+(function loop(now){
+  const dt = Math.min(.032, (now - last) / 1000); last = now;
+
+  /* One damped spring, integrated: it rings twice and overshoots UPWARD on the
+     way back. That is the whole reason the end reads as an object, not a fade. */
+  sagV += (-175 * sag - 10.5 * sagV) * dt;
+  sag  += sagV * dt;
+  if (Math.abs(sag) < .01 && Math.abs(sagV) < .05){ sag = 0; sagV = 0; }
+
+  W += (wTo - W) * Math.min(1, dt * 9);
+
+  /* the transfer: real bytes, then a pacing floor, then monotonic */
+  if (state === 'load'){
+    got = Math.min(total, got + total * (0.35 + Math.random() * 1.5) * dt * 0.55);
+    let raw = 0;
+    if (total) raw = got / total;
+    const el = now - t0;
+    shown = Math.max(shown, Math.min(raw, el / MIN_MS));
+    if (shown >= 0.999){ shown = 1; finish(); }
+  }
+
+  /* --- paint: both svgs get the SAME d --- */
+  const d = shape(W, sag);
+  face.setAttribute('d', d);
+  outline.setAttribute('d', d);
+
+  arc.style.strokeDashoffset = (C * (1 - shown)).toFixed(2);
+
+  /* The bead and the valley get the SAME u - a bead resting off the bottom of
+     its own dent reads as two unrelated animations. */
+  const bx = CX + (SAG_U - .5) * W;
+  const by = (CY + R) + sag;
+  dot.setAttribute('cx', bx.toFixed(2));
+  dot.setAttribute('cy', by.toFixed(2));
+
+  bead.style.setProperty('--sagn', sag.toFixed(3));
+  bead.style.setProperty('--fill', (shown * 100).toFixed(1));
+  btn.style.width = W.toFixed(1) + 'px';
+
+  rPct.textContent = Math.round(shown * 100) + '%';
+  rSag.textContent = sag.toFixed(1);
+
+  requestAnimationFrame(loop);
+})(last);
+
+/* ---------- the run ---------- */
+function start(){
+  if (state !== 'idle') return;
+  total = 4.2 * 1024 * 1024; got = 0; shown = 0;
+  t0 = performance.now();
+  setState('load');
+  wTo = H;                 // w == h, so the path becomes a circle by construction
+  sagV += 88;              // the bead drops onto the rope
+}
+
+function finish(){
+  setState('ring');
+  wTo = PILL_W;
+  sagV -= 132;             // released: it overshoots upward, then rings out
+  setTimeout(() => {
+    setState('done');
+    setTimeout(() => { setState('idle'); shown = 0; }, 2400);
+  }, 520);
+}
+
+btn.addEventListener('click', e => { e.preventDefault(); start(); });
+
+</script>
+</body>
+</html>
